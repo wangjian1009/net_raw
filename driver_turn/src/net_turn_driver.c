@@ -1,9 +1,9 @@
 #include "net_schedule.h"
 #include "net_driver.h"
 #include "net_turn_driver_i.h"
+#include "net_turn_device_i.h"
 #include "net_turn_endpoint.h"
 #include "net_turn_dgram.h"
-#include "net_turn_timer.h"
 
 static int net_turn_driver_init(net_driver_t driver);
 static void net_turn_driver_fini(net_driver_t driver);
@@ -14,18 +14,18 @@ net_turn_driver_create(net_schedule_t schedule, struct ev_loop * ev_loop) {
 
     base_driver = net_driver_create(
         schedule,
-        "ev",
+        "turn",
         /*driver*/
         sizeof(struct net_turn_driver),
         net_turn_driver_init,
         net_turn_driver_fini,
         /*timer*/
-        sizeof(struct net_turn_timer),
-        net_turn_timer_init,
-        net_turn_timer_fini,
-        net_turn_timer_active,
-        net_turn_timer_cancel,
-        net_turn_timer_is_active,
+        0,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
         /*endpoint*/
         sizeof(struct net_turn_endpoint),
         net_turn_endpoint_init,
@@ -48,9 +48,13 @@ net_turn_driver_create(net_schedule_t schedule, struct ev_loop * ev_loop) {
 }
 
 static int net_turn_driver_init(net_driver_t base_driver) {
+    net_schedule_t schedule = net_driver_schedule(base_driver);
     net_turn_driver_t driver = net_driver_data(base_driver);
 
+    driver->m_alloc = net_schedule_allocrator(schedule);
+    driver->m_em = net_schedule_em(schedule);
     driver->m_turn_loop = NULL;
+    TAILQ_INIT(&driver->m_devices);
     driver->m_sock_process_fun = NULL;
     driver->m_sock_process_ctx = NULL;
     driver->m_data_monitor_fun = NULL;
@@ -61,7 +65,11 @@ static int net_turn_driver_init(net_driver_t base_driver) {
 }
 
 static void net_turn_driver_fini(net_driver_t base_driver) {
-    //net_turn_driver_t driver = net_driver_data(base_driver);
+    net_turn_driver_t driver = net_driver_data(base_driver);
+
+    while(!TAILQ_EMPTY(&driver->m_devices)) {
+        net_turn_device_free(TAILQ_FIRST(&driver->m_devices));
+    }
 }
 
 void net_turn_driver_free(net_turn_driver_t driver) {
