@@ -9,7 +9,11 @@ struct net_turn_device {
     char m_name[32];
     int m_fd;
     int m_frame_mtu;
+    struct netif m_netif;
     struct ev_io m_watcher;
+    uint8_t m_quitting;
 };
+
+int net_turn_device_send(net_turn_device_t device, uint8_t *data, int data_len);
 
 #endif

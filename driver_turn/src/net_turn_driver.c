@@ -46,6 +46,8 @@ net_turn_driver_create(net_schedule_t schedule, struct ev_loop * ev_loop) {
     driver->m_ev_loop = ev_loop;
     ev_timer_start(driver->m_ev_loop, &driver->m_tcp_timer);
 
+    lwip_init();
+    
     return net_driver_data(base_driver);
 }
 
@@ -106,6 +108,10 @@ void net_turn_driver_set_data_monitor(
 {
     driver->m_data_monitor_fun = monitor_fun;
     driver->m_data_monitor_ctx = monitor_ctx;
+}
+
+mem_buffer_t net_turn_driver_tmp_buffer(net_turn_driver_t driver) {
+    return net_schedule_tmp_buffer(net_driver_schedule(net_driver_from_data(driver)));
 }
 
 static void net_turn_driver_tcp_timer_cb(EV_P_ ev_timer *watcher, int revents) {

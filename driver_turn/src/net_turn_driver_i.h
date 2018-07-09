@@ -1,11 +1,14 @@
 #ifndef NET_DRIVER_TURN_I_H_INCLEDED
 #define NET_DRIVER_TURN_I_H_INCLEDED
-#include "lwip/tcp.h"
 #include "lwip/tcp_impl.h"
+#include "lwip/init.h"
+#include "lwip/netif.h"
+#include "lwip/tcp.h"
 #undef mem_free
 #undef mem_calloc
 #include "cpe/pal/pal_queue.h"
 #include "cpe/utils/memory.h"
+#include "cpe/utils/buffer.h"
 #include "cpe/utils/error.h"
 #include "net_schedule.h"
 #include "net_turn_driver.h"
@@ -33,5 +36,7 @@ struct net_turn_driver {
     void * m_data_monitor_ctx;
 
 };
+
+mem_buffer_t net_turn_driver_tmp_buffer(net_turn_driver_t driver);
 
 #endif
