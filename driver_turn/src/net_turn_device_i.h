@@ -10,6 +10,8 @@ struct net_turn_device {
     int m_fd;
     int m_frame_mtu;
     struct netif m_netif;
+    struct tcp_pcb * m_listener_ip4;
+    struct tcp_pcb * m_listener_ip6;
     struct ev_io m_watcher;
     uint8_t m_quitting;
 };

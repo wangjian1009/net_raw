@@ -13,11 +13,16 @@
 #include "net_turn_device_i.h"
 
 static void net_turn_device_rw_cb(EV_P_ ev_io *w, int revents);
+
 static int net_turn_device_init_netif(net_turn_device_t device, net_address_t ip, net_address_t mask);
+static int net_turn_device_init_listener_ip4(net_turn_device_t device);
+
 static err_t net_turn_device_netif_init(struct netif *netif);
 static err_t net_turn_device_netif_input(struct pbuf *p, struct netif *inp);
 static err_t net_turn_device_netif_output_ip4(struct netif *netif, struct pbuf *p, ip_addr_t *ipaddr);
 static err_t net_turn_device_netif_output_ip6(struct netif *netif, struct pbuf *p, ip6_addr_t *ipaddr);
+
+static err_t net_turn_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_t err);
 
 net_turn_device_t
 net_turn_device_create(net_turn_driver_t driver, const char * name, net_address_t ip, net_address_t mask) {
@@ -30,6 +35,9 @@ net_turn_device_create(net_turn_driver_t driver, const char * name, net_address_
     device->m_driver = driver;
     device->m_fd = -1;
     device->m_frame_mtu = 0;
+    device->m_listener_ip4 = NULL;
+    device->m_listener_ip6 = NULL;
+
     device->m_quitting = 0;
     
 #if CPE_OS_LINUX
@@ -88,6 +96,14 @@ net_turn_device_create(net_turn_driver_t driver, const char * name, net_address_
     if (net_turn_device_init_netif(device, ip, mask) != 0) {
         close(device->m_fd);
         mem_free(driver->m_alloc, device);
+        return NULL;
+    }
+
+    if (net_turn_device_init_listener_ip4(device) != 0) {
+        netif_remove(&device->m_netif);
+        close(device->m_fd);
+        mem_free(driver->m_alloc, device);
+        return NULL;
     }
     
     device->m_watcher.data = device;
@@ -105,10 +121,20 @@ net_turn_device_create(net_turn_driver_t driver, const char * name, net_address_
 
 void net_turn_device_free(net_turn_device_t device) {
     net_turn_driver_t driver = device->m_driver;
-    
-    close(device->m_fd);
 
+    if (device->m_listener_ip4) {
+        tcp_close(device->m_listener_ip4);
+        device->m_listener_ip4 = NULL;
+    }
+
+    if (device->m_listener_ip6) {
+        tcp_close(device->m_listener_ip6);
+        device->m_listener_ip6 = NULL;
+    }
+    
     netif_remove(&device->m_netif);
+
+    close(device->m_fd);
 
     TAILQ_REMOVE(&driver->m_devices, device, m_next_for_driver);
     
@@ -128,7 +154,40 @@ static int net_turn_device_init_netif(net_turn_device_t device, net_address_t ip
         CPE_ERROR(device->m_driver->m_em, "device %s: add netif fail!", device->m_name);
         return -1;
     }
-    
+
+    netif_set_up(&device->m_netif);
+
+    // set netif pretend TCP
+    netif_set_pretend_tcp(&device->m_netif, 1);
+
+    // set netif default
+    netif_set_default(&device->m_netif);
+
+    return 0;
+}
+
+static int net_turn_device_init_listener_ip4(net_turn_device_t device) {
+    struct tcp_pcb * l = tcp_new();
+    if (l == NULL) {
+        CPE_ERROR(device->m_driver->m_em, "device %s: init listener 4: tcp_new failed", device->m_name);
+        return -1;
+    }
+
+    if (tcp_bind_to_netif(l, "ho0") != ERR_OK) {
+        CPE_ERROR(device->m_driver->m_em, "device %s: init listener 4: bind_to_netif fail", device->m_name);
+        tcp_close(l);
+        return -1;
+    }
+
+    device->m_listener_ip4 = tcp_listen(l);
+    if (device->m_listener_ip4 == NULL) {
+        CPE_ERROR(device->m_driver->m_em, "device %s: init listener 4: tcp_listen fail", device->m_name);
+        tcp_close(l);
+        return -1;
+    }
+
+    tcp_accept(device->m_listener_ip4, net_turn_device_netif_accept);
+
     return 0;
 }
 
@@ -223,4 +282,7 @@ static err_t net_turn_device_netif_input(struct pbuf *p, struct netif *inp) {
     pbuf_free(p);
 
     return ERR_OK;
+}
+
+static err_t net_turn_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
 }
