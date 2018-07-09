@@ -70,7 +70,7 @@ net_turn_device_create(net_turn_driver_t driver, const char * device_path) {
 
     device->m_watcher.data = device;
     ev_io_init(&device->m_watcher, net_turn_device_rw_cb, device->m_fd, EV_READ);
-    ev_io_start(driver->m_turn_loop, &device->m_watcher);
+    ev_io_start(driver->m_ev_loop, &device->m_watcher);
     
     if (driver->m_debug) {
         CPE_INFO(driver->m_em, "turn: device: %s for reading...", ifr.ifr_name);

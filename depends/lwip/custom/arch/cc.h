@@ -2,6 +2,7 @@
 #define LWIP_CUSTOM_CC_H
 
 #include <errno.h>
+#include <arpa/inet.h>
 #include "cpe/pal/pal_platform.h"
 #include "cpe/pal/pal_stdio.h"
 #include "cpe/pal/pal_stdlib.h"
@@ -29,9 +30,9 @@
 #define X32_F PRIx32
 #define SZT_F "zu"
 
-#define LWIP_PLATFORM_BYTESWAP 1
-#define LWIP_PLATFORM_HTONS(x) hton16(x)
-#define LWIP_PLATFORM_HTONL(x) hton32(x)
+#define LWIP_PLATFORM_BYTESWAP 0
+/* #define LWIP_PLATFORM_HTONS(x) hton16(x) */
+/* #define LWIP_PLATFORM_HTONL(x) hton32(x) */
 
 #define LWIP_RAND() ( \
     (((uint32_t)(rand() & 0xFF)) << 24) | \

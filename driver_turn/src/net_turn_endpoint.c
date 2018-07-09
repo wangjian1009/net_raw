@@ -27,7 +27,7 @@ void net_turn_endpoint_fini(net_endpoint_t base_endpoint) {
     net_turn_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
 
     if (endpoint->m_fd != -1) {
-        ev_io_stop(driver->m_turn_loop, &endpoint->m_watcher);
+        ev_io_stop(driver->m_ev_loop, &endpoint->m_watcher);
         cpe_sock_close(endpoint->m_fd);
         endpoint->m_fd = -1;
     }
@@ -156,7 +156,7 @@ int net_turn_endpoint_connect(net_endpoint_t base_endpoint) {
                 &endpoint->m_watcher,
                 net_turn_endpoint_connect_cb, endpoint->m_fd,
                 EV_READ | EV_WRITE);
-            ev_io_start(driver->m_turn_loop, &endpoint->m_watcher);
+            ev_io_start(driver->m_ev_loop, &endpoint->m_watcher);
             
             return net_endpoint_set_state(base_endpoint, net_endpoint_state_connecting);
         }
@@ -193,7 +193,7 @@ void net_turn_endpoint_close(net_endpoint_t base_endpoint) {
 
     if (endpoint->m_fd == -1) return;
 
-    ev_io_stop(driver->m_turn_loop, &endpoint->m_watcher);
+    ev_io_stop(driver->m_ev_loop, &endpoint->m_watcher);
     cpe_sock_close(endpoint->m_fd);
     endpoint->m_fd = -1;
 }
@@ -201,13 +201,13 @@ void net_turn_endpoint_close(net_endpoint_t base_endpoint) {
 void net_turn_endpoint_start_rw_watcher(
     net_turn_driver_t driver, net_endpoint_t base_endpoint, net_turn_endpoint_t endpoint)
 {
-    ev_io_stop(driver->m_turn_loop, &endpoint->m_watcher);
+    ev_io_stop(driver->m_ev_loop, &endpoint->m_watcher);
     ev_io_init(
         &endpoint->m_watcher,
         net_turn_endpoint_rw_cb, endpoint->m_fd,
         (net_endpoint_rbuf_is_full(base_endpoint) ? 0 : EV_READ)
         | (net_endpoint_wbuf_is_empty(base_endpoint) ? 0 : EV_WRITE));
-    ev_io_start(driver->m_turn_loop, &endpoint->m_watcher);
+    ev_io_start(driver->m_ev_loop, &endpoint->m_watcher);
 }
 
 int net_turn_endpoint_update_local_address(net_turn_endpoint_t endpoint) {
@@ -410,7 +410,7 @@ static void net_turn_endpoint_connect_cb(EV_P_ ev_io *w, int revents) {
     net_schedule_t schedule = net_endpoint_schedule(base_endpoint);
     error_monitor_t em = net_schedule_em(schedule);
 
-    ev_io_stop(driver->m_turn_loop, &endpoint->m_watcher);
+    ev_io_stop(driver->m_ev_loop, &endpoint->m_watcher);
 
     int err;
     socklen_t err_len;

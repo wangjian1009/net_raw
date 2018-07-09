@@ -109,7 +109,7 @@ int net_turn_dgram_init(net_dgram_t base_dgram) {
     bzero(&dgram->m_watcher, sizeof(dgram->m_watcher));
     dgram->m_watcher.data = dgram;
     ev_io_init(&dgram->m_watcher, net_turn_dgram_receive_cb, dgram->m_fd, EV_READ);
-    ev_io_start(driver->m_turn_loop, &dgram->m_watcher);
+    ev_io_start(driver->m_ev_loop, &dgram->m_watcher);
 
     return 0;
 }
@@ -119,7 +119,7 @@ void net_turn_dgram_fini(net_dgram_t base_dgram) {
     net_turn_driver_t driver = net_driver_data(net_dgram_driver(base_dgram));
 
     if (dgram->m_fd != -1) {
-        ev_io_stop(driver->m_turn_loop, &dgram->m_watcher);
+        ev_io_stop(driver->m_ev_loop, &dgram->m_watcher);
         cpe_sock_close(dgram->m_fd);
         dgram->m_fd = -1;
     }

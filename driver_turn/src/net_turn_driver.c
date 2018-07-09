@@ -7,6 +7,7 @@
 
 static int net_turn_driver_init(net_driver_t driver);
 static void net_turn_driver_fini(net_driver_t driver);
+static void net_turn_driver_tcp_timer_cb(EV_P_ ev_timer *watcher, int revents);
 
 net_turn_driver_t
 net_turn_driver_create(net_schedule_t schedule, struct ev_loop * ev_loop) {
@@ -42,7 +43,7 @@ net_turn_driver_create(net_schedule_t schedule, struct ev_loop * ev_loop) {
     if (base_driver == NULL) return NULL;
 
     net_turn_driver_t driver = net_driver_data(base_driver);
-    driver->m_turn_loop = ev_loop;
+    driver->m_ev_loop = ev_loop;
 
     return net_driver_data(base_driver);
 }
@@ -53,7 +54,7 @@ static int net_turn_driver_init(net_driver_t base_driver) {
 
     driver->m_alloc = net_schedule_allocrator(schedule);
     driver->m_em = net_schedule_em(schedule);
-    driver->m_turn_loop = NULL;
+    driver->m_ev_loop = NULL;
     TAILQ_INIT(&driver->m_devices);
     driver->m_sock_process_fun = NULL;
     driver->m_sock_process_ctx = NULL;
@@ -61,12 +62,18 @@ static int net_turn_driver_init(net_driver_t base_driver) {
     driver->m_data_monitor_ctx = NULL;
     driver->m_debug = 0;
 
+    double tcp_timer_interval = ((double)TCP_TMR_INTERVAL / 1000.0);
+    ev_timer_init(&driver->m_tcp_timer, net_turn_driver_tcp_timer_cb, tcp_timer_interval, tcp_timer_interval);
+    ev_timer_start(driver->m_ev_loop, &driver->m_tcp_timer);
+    
     return 0;
 }
 
 static void net_turn_driver_fini(net_driver_t base_driver) {
     net_turn_driver_t driver = net_driver_data(base_driver);
 
+    ev_timer_stop(driver->m_ev_loop, &driver->m_tcp_timer);
+    
     while(!TAILQ_EMPTY(&driver->m_devices)) {
         net_turn_device_free(TAILQ_FIRST(&driver->m_devices));
     }
@@ -101,3 +108,7 @@ void net_turn_driver_set_data_monitor(
     driver->m_data_monitor_ctx = monitor_ctx;
 }
 
+static void net_turn_driver_tcp_timer_cb(EV_P_ ev_timer *watcher, int revents) {
+    tcp_tmr();
+    return;
+}
