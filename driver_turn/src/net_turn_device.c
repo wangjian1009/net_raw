@@ -14,7 +14,7 @@
 static void net_turn_device_rw_cb(EV_P_ ev_io *w, int revents);
 
 net_turn_device_t
-net_turn_device_create(net_turn_driver_t driver, const char * device_path) {
+net_turn_device_create(net_turn_driver_t driver, const char * name) {
     net_turn_device_t device = mem_alloc(driver->m_alloc, sizeof(struct net_turn_device));
     if (device == NULL) {
         CPE_ERROR(driver->m_em, "turn: device alloc fail!");
@@ -27,7 +27,7 @@ net_turn_device_create(net_turn_driver_t driver, const char * device_path) {
 #if CPE_OS_LINUX
 
     if ((device->m_fd = open("/dev/net/tun", O_RDWR)) < 0) {
-        CPE_ERROR(driver->m_em, "turn: device %s: open fail, %d %s", device_path, errno, strerror(errno));
+        CPE_ERROR(driver->m_em, "turn: device %s: open fail, %d %s", name, errno, strerror(errno));
         mem_free(driver->m_alloc, device);
         return NULL;
     }
@@ -35,10 +35,10 @@ net_turn_device_create(net_turn_driver_t driver, const char * device_path) {
     struct ifreq ifr;
     bzero(&ifr, sizeof(ifr));
     ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
-    snprintf(ifr.ifr_name, IFNAMSIZ, "%s", device_path);
+    snprintf(ifr.ifr_name, IFNAMSIZ, "%s", name);
 
     if (ioctl(device->m_fd, TUNSETIFF, (void *) &ifr) < 0) {
-        CPE_ERROR(driver->m_em, "turn: device %s: ioctl fail, %d %s", device_path, errno, strerror(errno));
+        CPE_ERROR(driver->m_em, "turn: device %s: ioctl fail, %d %s", name, errno, strerror(errno));
         close(device->m_fd);
         mem_free(driver->m_alloc, device);
         return NULL;
@@ -48,7 +48,7 @@ net_turn_device_create(net_turn_driver_t driver, const char * device_path) {
     /*mtu*/
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) {
-        CPE_ERROR(driver->m_em, "turn: device %s: socket fail, %d %s", device_path, errno, strerror(errno));
+        CPE_ERROR(driver->m_em, "turn: device %s: socket fail, %d %s", name, errno, strerror(errno));
         close(device->m_fd);
         mem_free(driver->m_alloc, device);
         return NULL;
@@ -57,7 +57,7 @@ net_turn_device_create(net_turn_driver_t driver, const char * device_path) {
     bzero(&ifr, sizeof(ifr));
     strcpy(ifr.ifr_name, device->m_name);
     if (ioctl(sock, SIOCGIFMTU, (void *)&ifr) < 0) {
-        CPE_ERROR(driver->m_em, "turn: device %s: get socket fail, %d %s", device_path, errno, strerror(errno));
+        CPE_ERROR(driver->m_em, "turn: device %s: get socket fail, %d %s", name, errno, strerror(errno));
         close(sock);
         close(device->m_fd);
         mem_free(driver->m_alloc, device);
@@ -68,7 +68,7 @@ net_turn_device_create(net_turn_driver_t driver, const char * device_path) {
     close(sock);
 
     if (fcntl(device->m_fd, F_SETFL, O_NONBLOCK) < 0) {
-        CPE_ERROR(driver->m_em, "turn: device %s: set nonblock fail, %d %s", device_path, errno, strerror(errno));
+        CPE_ERROR(driver->m_em, "turn: device %s: set nonblock fail, %d %s", name, errno, strerror(errno));
         close(device->m_fd);
         mem_free(driver->m_alloc, device);
         return NULL;
@@ -81,7 +81,7 @@ net_turn_device_create(net_turn_driver_t driver, const char * device_path) {
     ev_io_start(driver->m_ev_loop, &device->m_watcher);
     
     if (driver->m_debug) {
-        CPE_INFO(driver->m_em, "turn: device: %s for reading...", device->m_name);
+        CPE_INFO(driver->m_em, "turn: device %s: created, name=%s", name, device->m_name);
     }
     
     TAILQ_INSERT_TAIL(&driver->m_devices, device, m_next_for_driver);
