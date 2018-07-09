@@ -1,8 +1,11 @@
 #include <errno.h>
-#include <net/if.h> 
-#include <linux/if_tun.h>
+#include <net/if.h>
+#if CPE_OS_LINUX
+#    include <linux/if_tun.h>
+#endif
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include "cpe/pal/pal_unistd.h"
 #include "cpe/pal/pal_stdio.h"
 #include "cpe/pal/pal_string.h"
 #include "cpe/pal/pal_strings.h"
@@ -19,6 +22,9 @@ net_turn_device_create(net_turn_driver_t driver, const char * device_path) {
     }
 
     device->m_driver = driver;
+    device->m_fd = -1;
+
+#if CPE_OS_LINUX
 
     if ((device->m_fd = open("/dev/net/tun", O_RDWR)) < 0) {
         CPE_ERROR(driver->m_em, "turn: device %s: open fail, %d %s", device_path, errno, strerror(errno));
@@ -68,12 +74,14 @@ net_turn_device_create(net_turn_driver_t driver, const char * device_path) {
         return NULL;
     }
 
+#endif /*CPE_OS_LINUX*/
+    
     device->m_watcher.data = device;
     ev_io_init(&device->m_watcher, net_turn_device_rw_cb, device->m_fd, EV_READ);
     ev_io_start(driver->m_ev_loop, &device->m_watcher);
     
     if (driver->m_debug) {
-        CPE_INFO(driver->m_em, "turn: device: %s for reading...", ifr.ifr_name);
+        CPE_INFO(driver->m_em, "turn: device: %s for reading...", device->m_name);
     }
     
     TAILQ_INSERT_TAIL(&driver->m_devices, device, m_next_for_driver);

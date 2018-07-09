@@ -41,6 +41,4 @@
     (((uint32_t)(rand() & 0xFF)) << 0) \
 )
 
-#include <endian.h>
-
 #endif
