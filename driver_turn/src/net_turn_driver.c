@@ -44,6 +44,7 @@ net_turn_driver_create(net_schedule_t schedule, struct ev_loop * ev_loop) {
 
     net_turn_driver_t driver = net_driver_data(base_driver);
     driver->m_ev_loop = ev_loop;
+    ev_timer_start(driver->m_ev_loop, &driver->m_tcp_timer);
 
     return net_driver_data(base_driver);
 }
@@ -64,7 +65,6 @@ static int net_turn_driver_init(net_driver_t base_driver) {
 
     double tcp_timer_interval = ((double)TCP_TMR_INTERVAL / 1000.0);
     ev_timer_init(&driver->m_tcp_timer, net_turn_driver_tcp_timer_cb, tcp_timer_interval, tcp_timer_interval);
-    ev_timer_start(driver->m_ev_loop, &driver->m_tcp_timer);
     
     return 0;
 }

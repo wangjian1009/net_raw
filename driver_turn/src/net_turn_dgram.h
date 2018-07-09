@@ -4,8 +4,7 @@
 #include "net_turn_driver_i.h"
 
 struct net_turn_dgram {
-    int m_fd;
-    struct ev_io m_watcher;
+    int dummy;
 };
 
 int net_turn_dgram_init(net_dgram_t base_dgram);
