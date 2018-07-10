@@ -5,9 +5,9 @@
 NET_BEGIN_DECL
 
 typedef struct net_raw_driver * net_raw_driver_t;
-typedef struct net_raw_driver_tun * net_raw_driver_tun_t;
-typedef struct net_raw_driver_raw * net_raw_driver_raw_t;
 typedef struct net_raw_device * net_raw_device_t;
+typedef struct net_raw_device_tun * net_raw_device_tun_t;
+typedef struct net_raw_device_raw * net_raw_device_raw_t;
 
 NET_END_DECL
 

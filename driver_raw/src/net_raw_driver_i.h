@@ -16,6 +16,7 @@
 typedef TAILQ_HEAD(net_raw_device_list, net_raw_device) net_raw_device_list_t;
 typedef TAILQ_HEAD(net_raw_endpoint_list, net_raw_endpoint) net_raw_endpoint_list_t;
 
+typedef struct net_raw_device_type * net_raw_device_type_t;
 typedef struct net_raw_endpoint * net_raw_endpoint_t;
 typedef struct net_raw_dgram * net_raw_dgram_t;
 typedef struct net_raw_timer * net_raw_timer_t;
@@ -27,7 +28,8 @@ struct net_raw_driver {
     uint8_t m_debug;
 
     struct ev_timer m_tcp_timer;
-    
+
+    net_raw_device_t m_default_device;
     net_raw_device_list_t m_devices;
     
     net_raw_driver_sock_create_process_fun_t m_sock_process_fun;
