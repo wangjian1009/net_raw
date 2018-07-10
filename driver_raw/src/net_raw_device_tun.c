@@ -101,6 +101,10 @@ net_raw_device_tun_create(
     return device_tun;
 }
 
+net_raw_device_tun_t net_raw_device_tun_cast(net_raw_device_t device) {
+    return device->m_type == &s_device_type_tun ? (net_raw_device_tun_t)device : NULL;    
+}
+
 static int net_raw_device_tun_send(net_raw_device_t device, uint8_t *data, int data_len) {
     net_raw_device_tun_t device_tun = (net_raw_device_tun_t)device;
     

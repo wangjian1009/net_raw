@@ -5,13 +5,14 @@
 #include "net_raw_device_i.h"
 #include "net_raw_endpoint.h"
 #include "net_raw_dgram.h"
+#include "net_raw_device_raw_capture_i.h"
 
 static int net_raw_driver_init(net_driver_t driver);
 static void net_raw_driver_fini(net_driver_t driver);
 static void net_raw_driver_tcp_timer_cb(EV_P_ ev_timer *watcher, int revents);
 
 net_raw_driver_t
-net_raw_driver_create(net_schedule_t schedule, struct ev_loop * ev_loop, net_raw_driver_match_mode_t mode) {
+net_raw_driver_create(net_schedule_t schedule, void * ev_loop, net_raw_driver_match_mode_t mode) {
     net_driver_t base_driver;
 
     base_driver = net_driver_create(
@@ -53,6 +54,10 @@ net_raw_driver_create(net_schedule_t schedule, struct ev_loop * ev_loop, net_raw
     return net_driver_data(base_driver);
 }
 
+net_raw_driver_t net_raw_driver_cast(net_driver_t driver) {
+    return strcmp(net_driver_name(driver), "raw") == 0 ? net_driver_data(driver) : NULL;
+}
+
 static int net_raw_driver_init(net_driver_t base_driver) {
     net_schedule_t schedule = net_driver_schedule(base_driver);
     net_raw_driver_t driver = net_driver_data(base_driver);
@@ -63,6 +68,7 @@ static int net_raw_driver_init(net_driver_t base_driver) {
     driver->m_mode = net_raw_driver_match_white;
     driver->m_ipset = NULL;
     TAILQ_INIT(&driver->m_devices);
+    TAILQ_INIT(&driver->m_free_device_raw_captures);    
     driver->m_sock_process_fun = NULL;
     driver->m_sock_process_ctx = NULL;
     driver->m_data_monitor_fun = NULL;
@@ -86,6 +92,10 @@ static void net_raw_driver_fini(net_driver_t base_driver) {
 
     if (driver->m_ipset) {
         net_ipset_free(driver->m_ipset);
+    }
+
+    while(!TAILQ_EMPTY(&driver->m_free_device_raw_captures)) {
+        net_raw_device_raw_capture_real_free(TAILQ_FIRST(&driver->m_free_device_raw_captures));
     }
 }
 

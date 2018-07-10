@@ -8,6 +8,8 @@ net_raw_device_tun_t
 net_raw_device_tun_create(
     net_raw_driver_t driver, const char * name, net_address_t ip, net_address_t mask);
 
+net_raw_device_tun_t net_raw_device_tun_cast(net_raw_device_t device);
+
 NET_END_DECL
 
 #endif

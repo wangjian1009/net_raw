@@ -80,6 +80,14 @@ void net_raw_device_free(net_raw_device_t device) {
     mem_free(device->m_driver->m_alloc, device);
 }
 
+const char * net_raw_device_name(net_raw_device_t device) {
+    return device->m_netif.name;
+}
+
+net_raw_device_t net_raw_device_default(net_raw_driver_t driver) {
+    return driver->m_default_device;
+}
+
 static int net_raw_device_init_netif(net_raw_device_t device, net_address_t ip, net_address_t mask) {
     // make addresses for netif
     ip_addr_t addr;

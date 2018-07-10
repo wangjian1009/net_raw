@@ -4,6 +4,7 @@
 
 struct net_raw_device_raw {
     struct net_raw_device m_device;
+    net_raw_device_raw_capture_list_t m_captures;
     int m_fd;
     struct ev_io m_watcher;
 };

@@ -1,13 +1,13 @@
 #ifndef NET_RAW_DRIVER_H_INCLEDED
 #define NET_RAW_DRIVER_H_INCLEDED
-#include "ev.h"
 #include "cpe/utils/utils_types.h"
 #include "net_raw_types.h"
 
 NET_BEGIN_DECL
 
 net_raw_driver_t net_raw_driver_create(
-    net_schedule_t schedule, struct ev_loop * ev_loop, net_raw_driver_match_mode_t mode);
+    net_schedule_t schedule, void * ev_loop, net_raw_driver_match_mode_t mode);
+net_raw_driver_t net_raw_driver_cast(net_driver_t driver);
 
 void net_raw_driver_free(net_raw_driver_t driver);
 
