@@ -3,6 +3,9 @@
 #include <net/if.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#if CPE_OS_LINUX    
+#include <linux/if_ether.h>
+#endif
 #include "cpe/pal/pal_socket.h"
 #include "cpe/pal/pal_string.h"
 #include "cpe/pal/pal_unistd.h"
@@ -34,7 +37,7 @@ net_raw_device_raw_t net_raw_device_raw_create(net_raw_driver_t driver) {
 
 #if CPE_OS_LINUX    
     device_raw->m_fd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_IP));
-    if (device_raw->m_fd == NULL) {
+    if (device_raw->m_fd == -1) {
         CPE_ERROR(driver->m_em, "raw: device raw: create raw socket fail, %d %s",  errno, strerror(errno));
         net_raw_device_fini(&device_raw->m_device);
         mem_free(driver->m_alloc, device_raw);

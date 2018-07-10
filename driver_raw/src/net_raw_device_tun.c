@@ -39,10 +39,10 @@ net_raw_device_tun_create(
     
 #if CPE_OS_LINUX
 
-    if ((device_tun->m_fd = open("/dev/net/tun", O_RDWR)) < 0) {
+    if ((device_tun->m_dev_fd = open("/dev/net/tun", O_RDWR)) < 0) {
         CPE_ERROR(driver->m_em, "raw: device %s: open fail, %d %s", name, errno, strerror(errno));
         net_raw_device_fini(&device_tun->m_device);
-        mem_free(driver->m_alloc, device);
+        mem_free(driver->m_alloc, device_tun);
         return NULL;
     }
             
@@ -51,37 +51,37 @@ net_raw_device_tun_create(
     ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
     snprintf(ifr.ifr_name, IFNAMSIZ, "%s", name);
 
-    if (ioctl(device_tun->m_fd, TUNSETIFF, (void *) &ifr) < 0) {
+    if (ioctl(device_tun->m_dev_fd, TUNSETIFF, (void *) &ifr) < 0) {
         CPE_ERROR(driver->m_em, "raw: device %s: ioctl fail, %d %s", name, errno, strerror(errno));
-        close(device_tun->m_fd);
+        close(device_tun->m_dev_fd);
         net_raw_device_fini(&device_tun->m_device);
-        mem_free(driver->m_alloc, device);
+        mem_free(driver->m_alloc, device_tun);
         return NULL;
     }
-    cpe_str_dup(device_tun->m_name, sizeof(device_tun->m_name), ifr.ifr_name);
+    cpe_str_dup(device_tun->m_dev_name, sizeof(device_tun->m_dev_name), ifr.ifr_name);
 
     /*mtu*/
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) {
         CPE_ERROR(driver->m_em, "raw: device %s: socket fail, %d %s", name, errno, strerror(errno));
-        close(device_tun->m_fd);
+        close(device_tun->m_dev_fd);
         net_raw_device_fini(&device_tun->m_device);
-        mem_free(driver->m_alloc, device);
+        mem_free(driver->m_alloc, device_tun);
         return NULL;
     }
             
     bzero(&ifr, sizeof(ifr));
-    strcpy(ifr.ifr_name, device_tun->m_name);
+    strcpy(ifr.ifr_name, device_tun->m_dev_name);
     if (ioctl(sock, SIOCGIFMTU, (void *)&ifr) < 0) {
         CPE_ERROR(driver->m_em, "raw: device %s: get socket fail, %d %s", name, errno, strerror(errno));
         close(sock);
-        close(device_tun->m_fd);
+        close(device_tun->m_dev_fd);
         net_raw_device_fini(&device_tun->m_device);
-        mem_free(driver->m_alloc, device);
+        mem_free(driver->m_alloc, device_tun);
         return NULL;
     }
             
-    device->m_frame_mtu = ifr.ifr_mtu;
+    device_tun->m_device.m_frame_mtu = ifr.ifr_mtu;
     close(sock);
 
 #endif /*CPE_OS_LINUX*/
