@@ -1,5 +1,6 @@
 #include "net_schedule.h"
 #include "net_driver.h"
+#include "net_ipset.h"
 #include "net_raw_driver_i.h"
 #include "net_raw_device_i.h"
 #include "net_raw_endpoint.h"
@@ -10,7 +11,7 @@ static void net_raw_driver_fini(net_driver_t driver);
 static void net_raw_driver_tcp_timer_cb(EV_P_ ev_timer *watcher, int revents);
 
 net_raw_driver_t
-net_raw_driver_create(net_schedule_t schedule, struct ev_loop * ev_loop) {
+net_raw_driver_create(net_schedule_t schedule, struct ev_loop * ev_loop, net_raw_driver_match_mode_t mode) {
     net_driver_t base_driver;
 
     base_driver = net_driver_create(
@@ -44,6 +45,7 @@ net_raw_driver_create(net_schedule_t schedule, struct ev_loop * ev_loop) {
 
     net_raw_driver_t driver = net_driver_data(base_driver);
     driver->m_ev_loop = ev_loop;
+    driver->m_mode = mode;
     ev_timer_start(driver->m_ev_loop, &driver->m_tcp_timer);
 
     lwip_init();
@@ -58,6 +60,8 @@ static int net_raw_driver_init(net_driver_t base_driver) {
     driver->m_alloc = net_schedule_allocrator(schedule);
     driver->m_em = net_schedule_em(schedule);
     driver->m_ev_loop = NULL;
+    driver->m_mode = net_raw_driver_match_white;
+    driver->m_ipset = NULL;
     TAILQ_INIT(&driver->m_devices);
     driver->m_sock_process_fun = NULL;
     driver->m_sock_process_ctx = NULL;
@@ -79,10 +83,29 @@ static void net_raw_driver_fini(net_driver_t base_driver) {
     while(!TAILQ_EMPTY(&driver->m_devices)) {
         net_raw_device_free(TAILQ_FIRST(&driver->m_devices));
     }
+
+    if (driver->m_ipset) {
+        net_ipset_free(driver->m_ipset);
+    }
 }
 
 void net_raw_driver_free(net_raw_driver_t driver) {
     net_driver_free(net_driver_from_data(driver));
+}
+
+net_raw_driver_match_mode_t net_raw_driver_match_mode(net_raw_driver_t driver) {
+    return driver->m_mode;
+}
+
+net_ipset_t net_raw_driver_ipset(net_raw_driver_t driver) {
+    return driver->m_ipset;
+}
+
+net_ipset_t net_raw_driver_ipset_check_create(net_raw_driver_t driver) {
+    if (driver->m_ipset == NULL) {
+    }
+
+    return driver->m_ipset;
 }
 
 uint8_t net_raw_driver_debug(net_raw_driver_t driver) {

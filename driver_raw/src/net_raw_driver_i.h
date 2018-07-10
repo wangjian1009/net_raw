@@ -25,6 +25,8 @@ struct net_raw_driver {
     struct ev_loop * m_ev_loop;
     mem_allocrator_t m_alloc;
     error_monitor_t m_em;
+    net_raw_driver_match_mode_t m_mode;
+    net_ipset_t m_ipset;
     uint8_t m_debug;
 
     struct ev_timer m_tcp_timer;

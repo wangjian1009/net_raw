@@ -7,9 +7,12 @@
 NET_BEGIN_DECL
 
 net_raw_driver_t net_raw_driver_create(
-    net_schedule_t schedule, struct ev_loop * ev_loop);
+    net_schedule_t schedule, struct ev_loop * ev_loop, net_raw_driver_match_mode_t mode);
 
 void net_raw_driver_free(net_raw_driver_t driver);
+
+net_raw_driver_match_mode_t net_raw_driver_match_mode(net_raw_driver_t driver);
+net_ipset_t net_raw_driver_ipset(net_raw_driver_t driver);
 
 uint8_t net_raw_driver_debug(net_raw_driver_t driver);
 void net_raw_driver_set_debug(net_raw_driver_t driver, uint8_t debug);
