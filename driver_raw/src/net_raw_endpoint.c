@@ -6,36 +6,36 @@
 #include "net_endpoint.h"
 #include "net_address.h"
 #include "net_driver.h"
-#include "net_turn_endpoint.h"
+#include "net_raw_endpoint.h"
 
-int net_turn_endpoint_init(net_endpoint_t base_endpoint) {
-    //net_turn_endpoint_t endpoint = net_endpoint_data(base_endpoint);
+int net_raw_endpoint_init(net_endpoint_t base_endpoint) {
+    //net_raw_endpoint_t endpoint = net_endpoint_data(base_endpoint);
     
     return 0;
 }
 
-void net_turn_endpoint_fini(net_endpoint_t base_endpoint) {
-    /* net_turn_endpoint_t endpoint = net_endpoint_data(base_endpoint); */
-    /* net_turn_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint)); */
+void net_raw_endpoint_fini(net_endpoint_t base_endpoint) {
+    /* net_raw_endpoint_t endpoint = net_endpoint_data(base_endpoint); */
+    /* net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint)); */
 }
 
-int net_turn_endpoint_on_output(net_endpoint_t base_endpoint) {
+int net_raw_endpoint_on_output(net_endpoint_t base_endpoint) {
     if (net_endpoint_state(base_endpoint) != net_endpoint_state_established) return 0;
 
-    /* net_turn_endpoint_t endpoint = net_endpoint_data(base_endpoint); */
-    /* net_turn_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint)); */
+    /* net_raw_endpoint_t endpoint = net_endpoint_data(base_endpoint); */
+    /* net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint)); */
     return 0;
 }
 
-int net_turn_endpoint_connect(net_endpoint_t base_endpoint) {
-    /* net_turn_endpoint_t endpoint = net_endpoint_data(base_endpoint); */
-    /* net_turn_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint)); */
+int net_raw_endpoint_connect(net_endpoint_t base_endpoint) {
+    /* net_raw_endpoint_t endpoint = net_endpoint_data(base_endpoint); */
+    /* net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint)); */
     /* net_schedule_t schedule = net_endpoint_schedule(base_endpoint); */
     /* error_monitor_t em = net_schedule_em(schedule); */
 
     /* if (endpoint->m_fd != -1) { */
     /*     CPE_ERROR( */
-    /*         em, "turn: %s: already connected!", */
+    /*         em, "raw: %s: already connected!", */
     /*         net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint)); */
     /*     return -1; */
     /* } */
@@ -43,7 +43,7 @@ int net_turn_endpoint_connect(net_endpoint_t base_endpoint) {
     /* net_address_t remote_addr = net_endpoint_remote_address(base_endpoint); */
     /* if (remote_addr == NULL) { */
     /*     CPE_ERROR( */
-    /*         em, "turn: %s: connect with no remote address!", */
+    /*         em, "raw: %s: connect with no remote address!", */
     /*         net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint)); */
     /*     return -1; */
     /* } */
@@ -59,14 +59,14 @@ int net_turn_endpoint_connect(net_endpoint_t base_endpoint) {
     /*         break; */
     /*     case net_address_domain: */
     /*         CPE_ERROR( */
-    /*             em, "turn: %s: connect not support domain address!", */
+    /*             em, "raw: %s: connect not support domain address!", */
     /*             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint)); */
     /*         return -1; */
     /*     } */
 
     /*     if (endpoint->m_fd == -1) { */
     /*         CPE_ERROR( */
-    /*             em, "turn: %s: create socket fail, errno=%d (%s)", */
+    /*             em, "raw: %s: create socket fail, errno=%d (%s)", */
     /*             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), */
     /*             cpe_sock_errno(), cpe_sock_errstr(cpe_sock_errno())); */
     /*         return -1; */
@@ -76,14 +76,14 @@ int net_turn_endpoint_connect(net_endpoint_t base_endpoint) {
     /*     socklen_t addr_len = sizeof(addr); */
     /*     if (net_address_to_sockaddr(local_address, (struct sockaddr *)&addr, &addr_len) != 0) { */
     /*         CPE_ERROR( */
-    /*             em, "turn: %s: connect not support connect to domain address!", */
+    /*             em, "raw: %s: connect not support connect to domain address!", */
     /*             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint)); */
     /*         return -1; */
     /*     } */
 
     /*     if(cpe_bind(endpoint->m_fd, (struct sockaddr *)&addr, addr_len) != 0) { */
     /*         CPE_ERROR( */
-    /*             em, "turn: %s: bind fail, errno=%d (%s)", */
+    /*             em, "raw: %s: bind fail, errno=%d (%s)", */
     /*             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), */
     /*             cpe_sock_errno(), cpe_sock_errstr(cpe_sock_errno())); */
     /*         cpe_sock_close(endpoint->m_fd); */
@@ -95,7 +95,7 @@ int net_turn_endpoint_connect(net_endpoint_t base_endpoint) {
     /*     endpoint->m_fd = cpe_sock_open(AF_INET, SOCK_STREAM, 0); */
     /*     if (endpoint->m_fd == -1) { */
     /*         CPE_ERROR( */
-    /*             em, "turn: %s: create ipv4 socket fail, errno=%d (%s)", */
+    /*             em, "raw: %s: create ipv4 socket fail, errno=%d (%s)", */
     /*             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), */
     /*             cpe_sock_errno(), cpe_sock_errstr(cpe_sock_errno())); */
     /*         return -1; */
@@ -104,7 +104,7 @@ int net_turn_endpoint_connect(net_endpoint_t base_endpoint) {
 
     /* if (cpe_sock_set_none_block(endpoint->m_fd, 1) != 0) { */
     /*     CPE_ERROR( */
-    /*         em, "turn: %s: set non-block fail, errno=%d (%s)", */
+    /*         em, "raw: %s: set non-block fail, errno=%d (%s)", */
     /*         net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), */
     /*         cpe_sock_errno(), cpe_sock_errstr(cpe_sock_errno())); */
     /*     cpe_sock_close(endpoint->m_fd); */
@@ -119,7 +119,7 @@ int net_turn_endpoint_connect(net_endpoint_t base_endpoint) {
     /* if (driver->m_sock_process_fun) { */
     /*     if (driver->m_sock_process_fun(driver, driver->m_sock_process_ctx, endpoint->m_fd, remote_addr) != 0) { */
     /*         CPE_ERROR( */
-    /*             em, "turn: %s: sock process fail", */
+    /*             em, "raw: %s: sock process fail", */
     /*             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint)); */
     /*         cpe_sock_close(endpoint->m_fd); */
     /*         endpoint->m_fd = -1; */
@@ -131,14 +131,14 @@ int net_turn_endpoint_connect(net_endpoint_t base_endpoint) {
     /*     if (cpe_sock_errno() == EINPROGRESS || cpe_sock_errno() == EWOULDBLOCK) { */
     /*         if (net_schedule_debug(schedule) >= 2) { */
     /*             CPE_INFO( */
-    /*                 em, "turn: %s: connect start", */
+    /*                 em, "raw: %s: connect start", */
     /*                 net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint)); */
     /*         } */
 
     /*         assert(!ev_is_active(&endpoint->m_watcher)); */
     /*         ev_io_init( */
     /*             &endpoint->m_watcher, */
-    /*             net_turn_endpoint_connect_cb, endpoint->m_fd, */
+    /*             net_raw_endpoint_connect_cb, endpoint->m_fd, */
     /*             EV_READ | EV_WRITE); */
     /*         ev_io_start(driver->m_ev_loop, &endpoint->m_watcher); */
             
@@ -146,7 +146,7 @@ int net_turn_endpoint_connect(net_endpoint_t base_endpoint) {
     /*     } */
     /*     else { */
     /*         CPE_ERROR( */
-    /*             em, "turn: %s: connect error, errno=%d (%s)", */
+    /*             em, "raw: %s: connect error, errno=%d (%s)", */
     /*             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), */
     /*             cpe_sock_errno(), cpe_sock_errstr(cpe_sock_errno())); */
     /*         cpe_sock_close(endpoint->m_fd); */
@@ -157,19 +157,20 @@ int net_turn_endpoint_connect(net_endpoint_t base_endpoint) {
     /* else { */
     /*     if (driver->m_debug || net_schedule_debug(schedule) >= 2) { */
     /*         CPE_INFO( */
-    /*             em, "turn: %s: connect success", */
+    /*             em, "raw: %s: connect success", */
     /*             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint)); */
     /*     } */
 
     /*     if (net_endpoint_address(base_endpoint) == NULL) { */
-    /*         net_turn_endpoint_update_local_address(endpoint); */
+    /*         net_raw_endpoint_update_local_address(endpoint); */
     /*     } */
 
     /*     return net_endpoint_set_state(base_endpoint, net_endpoint_state_established); */
     /* } */
+    return 0;
 }
 
-void net_turn_endpoint_close(net_endpoint_t base_endpoint) {
-    /* net_turn_endpoint_t endpoint = net_endpoint_data(base_endpoint); */
-    /* net_turn_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint)); */
+void net_raw_endpoint_close(net_endpoint_t base_endpoint) {
+    /* net_raw_endpoint_t endpoint = net_endpoint_data(base_endpoint); */
+    /* net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint)); */
 }

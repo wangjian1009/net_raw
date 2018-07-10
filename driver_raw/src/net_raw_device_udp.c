@@ -1,5 +1,5 @@
 
-/* void net_turn_device_(void *unused, BAddr local_addr, BAddr remote_addr, const uint8_t *data, int data_len) { */
+/* void net_raw_device_(void *unused, BAddr local_addr, BAddr remote_addr, const uint8_t *data, int data_len) { */
 /*     /\* assert(options.udpgw_remote_server_addr); *\/ */
 /*     /\* assert(local_addr.type == BADDR_TYPE_IPV4 || local_addr.type == BADDR_TYPE_IPV6) *\/ */
 /*     /\* ASSERT(local_addr.type == remote_addr.type) *\/ */
