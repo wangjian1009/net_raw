@@ -11,6 +11,7 @@
 #include "cpe/utils/memory.h"
 #include "cpe/utils/error.h"
 #include "cpe/utils/buffer.h"
+#include "cpe/utils/hash.h"
 #include "net_schedule.h"
 #include "net_raw_driver.h"
 
@@ -45,5 +46,6 @@ struct net_raw_driver {
 };
 
 mem_buffer_t net_raw_driver_tmp_buffer(net_raw_driver_t driver);
+net_schedule_t net_raw_driver_schedule(net_raw_driver_t driver);
 
 #endif

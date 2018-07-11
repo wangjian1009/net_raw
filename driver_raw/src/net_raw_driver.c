@@ -113,6 +113,11 @@ net_ipset_t net_raw_driver_ipset(net_raw_driver_t driver) {
 
 net_ipset_t net_raw_driver_ipset_check_create(net_raw_driver_t driver) {
     if (driver->m_ipset == NULL) {
+        driver->m_ipset = net_ipset_create(net_raw_driver_schedule(driver));
+        if (driver->m_ipset == NULL) {
+            CPE_ERROR(driver->m_em, "raw: driver create ipset fail!");
+            return NULL;
+        }
     }
 
     return driver->m_ipset;
@@ -141,6 +146,10 @@ void net_raw_driver_set_data_monitor(
 {
     driver->m_data_monitor_fun = monitor_fun;
     driver->m_data_monitor_ctx = monitor_ctx;
+}
+
+net_schedule_t net_raw_driver_schedule(net_raw_driver_t driver) {
+    return net_driver_schedule(net_driver_from_data(driver));
 }
 
 mem_buffer_t net_raw_driver_tmp_buffer(net_raw_driver_t driver) {

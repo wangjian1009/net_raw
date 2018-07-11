@@ -6,10 +6,22 @@
 struct net_raw_device_raw_capture {
     net_raw_device_raw_t m_device;
     TAILQ_ENTRY(net_raw_device_raw_capture) m_next;
+    struct cpe_hash_entry m_hh_for_source;
+    net_address_t m_source_address;
+    struct cpe_hash_entry m_hh_for_target;
+    net_address_t m_target_address;
     int m_fd;
     struct ev_io m_watcher;
 };
 
 void net_raw_device_raw_capture_real_free(net_raw_device_raw_capture_t raw_capture);
+
+net_raw_device_raw_capture_t net_raw_device_raw_capture_find_by_source(net_raw_device_raw_t raw, net_address_t source);
+net_raw_device_raw_capture_t net_raw_device_raw_capture_find_by_target(net_raw_device_raw_t raw, net_address_t target);
+
+uint32_t net_raw_device_raw_source_hash(net_raw_device_raw_capture_t capture, void * user_data);
+int net_raw_device_raw_source_eq(net_raw_device_raw_capture_t l, net_raw_device_raw_capture_t r, void * user_data);
+uint32_t net_raw_device_raw_target_hash(net_raw_device_raw_capture_t capture, void * user_data);
+int net_raw_device_raw_target_eq(net_raw_device_raw_capture_t l, net_raw_device_raw_capture_t r, void * user_data);
 
 #endif

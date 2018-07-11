@@ -10,12 +10,12 @@
 #include "cpe/pal/pal_string.h"
 #include "cpe/pal/pal_unistd.h"
 #include "net_raw_device_raw_i.h"
+#include "net_raw_device_raw_capture_i.h"
+#include "net_raw_utils.h"
 
 static void net_raw_device_raw_rw_cb(EV_P_ ev_io *w, int revents);
 static int net_raw_device_raw_send(net_raw_device_t device, uint8_t *data, int data_len);
 static void net_raw_device_raw_fini(net_raw_device_t device);
-
-static void net_raw_device_raw_dump_raw_data(net_raw_driver_t driver, char * ethhead, char * iphead, char * daata);
 
 static struct net_raw_device_type s_device_type_raw = {
     "raw",
@@ -23,7 +23,7 @@ static struct net_raw_device_type s_device_type_raw = {
     net_raw_device_raw_fini,
 };
 
-net_raw_device_raw_t net_raw_device_raw_create(net_raw_driver_t driver) {
+net_raw_device_raw_t net_raw_device_raw_create(net_raw_driver_t driver, uint8_t capture_all) {
     net_raw_device_raw_t device_raw = mem_alloc(driver->m_alloc, sizeof(struct net_raw_device_raw));
     if (device_raw == NULL) {
         CPE_ERROR(driver->m_em, "raw: device alloc fail!");
@@ -31,25 +31,56 @@ net_raw_device_raw_t net_raw_device_raw_create(net_raw_driver_t driver) {
     }
 
     device_raw->m_fd = -1;
-    
+    device_raw->m_capture_all = capture_all;
+    TAILQ_INIT(&device_raw->m_captures);
+
     if (net_raw_device_init(&device_raw->m_device, driver, &s_device_type_raw, NULL, NULL) != 0) {
         mem_free(driver->m_alloc, device_raw);
         return NULL;
     }
 
-    if (driver->m_mode == net_raw_driver_match_black) {
-#if CPE_OS_LINUX    
-        device_raw->m_fd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_IP));
+    if (cpe_hash_table_init(
+            &device_raw->m_captures_by_source,
+            driver->m_alloc,
+            (cpe_hash_fun_t) net_raw_device_raw_source_hash,
+            (cpe_hash_eq_t) net_raw_device_raw_source_eq,
+            CPE_HASH_OBJ2ENTRY(net_raw_device_raw_capture, m_hh_for_source),
+            -1) != 0)
+    {
+        net_raw_device_fini(&device_raw->m_device);
+        mem_free(driver->m_alloc, device_raw);
+        return NULL;
+    }
+
+    if (cpe_hash_table_init(
+            &device_raw->m_captures_by_target,
+            driver->m_alloc,
+            (cpe_hash_fun_t) net_raw_device_raw_target_hash,
+            (cpe_hash_eq_t) net_raw_device_raw_target_eq,
+            CPE_HASH_OBJ2ENTRY(net_raw_device_raw_capture, m_hh_for_target),
+            -1) != 0)
+    {
+        cpe_hash_table_fini(&device_raw->m_captures_by_source);
+        net_raw_device_fini(&device_raw->m_device);
+        mem_free(driver->m_alloc, device_raw);
+        return NULL;
+    }
+    
+    if (device_raw->m_capture_all) {
+        device_raw->m_fd = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
         if (device_raw->m_fd == -1) {
             CPE_ERROR(driver->m_em, "raw: device raw: create raw socket fail, %d %s",  errno, strerror(errno));
+            cpe_hash_table_fini(&device_raw->m_captures_by_target);
+            cpe_hash_table_fini(&device_raw->m_captures_by_source);
             net_raw_device_fini(&device_raw->m_device);
             mem_free(driver->m_alloc, device_raw);
             return NULL;
         }
-#endif
 
         if (device_raw->m_fd < 0) {
             CPE_ERROR(driver->m_em, "raw: device raw: not support rawsocket!");
+            cpe_hash_table_fini(&device_raw->m_captures_by_target);
+            cpe_hash_table_fini(&device_raw->m_captures_by_source);
             net_raw_device_fini(&device_raw->m_device);
             mem_free(driver->m_alloc, device_raw);
             return NULL;
@@ -58,6 +89,8 @@ net_raw_device_raw_t net_raw_device_raw_create(net_raw_driver_t driver) {
         if (fcntl(device_raw->m_fd, F_SETFL, O_NONBLOCK) < 0) {
             CPE_ERROR(driver->m_em, "raw: device raw: set nonblock fail, %d %s",  errno, strerror(errno));
             close(device_raw->m_fd);
+            cpe_hash_table_fini(&device_raw->m_captures_by_target);
+            cpe_hash_table_fini(&device_raw->m_captures_by_source);
             net_raw_device_fini(&device_raw->m_device);
             mem_free(driver->m_alloc, device_raw);
             return NULL;
@@ -66,10 +99,6 @@ net_raw_device_raw_t net_raw_device_raw_create(net_raw_driver_t driver) {
         device_raw->m_watcher.data = device_raw;
         ev_io_init(&device_raw->m_watcher, net_raw_device_raw_rw_cb, device_raw->m_fd, EV_READ);
         ev_io_start(driver->m_ev_loop, &device_raw->m_watcher);
-    }
-    
-    if (driver->m_debug) {
-        CPE_INFO(driver->m_em, "raw: device raw created");
     }
     
     return device_raw;
@@ -94,25 +123,58 @@ static void net_raw_device_raw_rw_cb(EV_P_ ev_io *w, int revents) {
           8   icmp,tcp or udp header
           = 42
         */
-        if(n_read < 42) {
-            CPE_ERROR(driver->m_em, "Incomplete header, packet corrupt/n");
+        if(n_read < 28) {
+            CPE_ERROR(driver->m_em, "raw: device raw: Incomplete header, packet corrupt/n");
             return;
         }
 
-        char * ethhead = buffer;
-        char * iphead = ethhead + 14;  
-        char * data = iphead + 20;
-        
+        uint8_t * ethhead = NULL;
+        uint8_t * iphead = buffer;  
+        uint8_t * data = iphead + 20;
+
         uint8_t proto = iphead[9];
-        switch(proto) {
-        case IPPROTO_TCP:
-        case IPPROTO_UDP: 
-            break;
-        default:
-            if (driver->m_debug >= 2) {
-                
+        if (proto != IPPROTO_TCP) {
+            if (driver->m_debug >= 3) {
+                CPE_INFO(driver->m_em, "raw: device raw: %s", net_raw_dump_raw_data(net_raw_driver_tmp_buffer(driver), ethhead, iphead, data));
             }
+            return;
         }
+        
+        net_address_t source_addr = net_raw_iphead_source_addr(driver, iphead);
+        if (source_addr == NULL) {
+            CPE_ERROR(driver->m_em, "raw: device raw: read source addr fail");
+            return;
+        }
+        
+        net_address_t target_addr = net_raw_iphead_target_addr(driver, iphead);
+        if (target_addr == NULL) {
+            CPE_ERROR(driver->m_em, "raw: device raw: read target addr fail");
+            net_address_free(source_addr);
+            return;
+        }
+
+        CPE_ERROR(driver->m_em, "   package: source=%s", net_address_dump(net_raw_driver_tmp_buffer(driver), source_addr));
+        CPE_ERROR(driver->m_em, "            target=%s", net_address_dump(net_raw_driver_tmp_buffer(driver), target_addr));
+        
+        if (net_raw_device_raw_capture_find_by_target(device_raw, target_addr) != NULL
+            || net_raw_device_raw_capture_find_by_source(device_raw, source_addr) != NULL)
+        {
+        }
+
+        net_address_free(target_addr);
+        net_address_free(source_addr);
+        
+        //CPE_INFO(driver->m_em, "raw: device raw: %s", net_raw_dump_raw_data(net_raw_driver_tmp_buffer(driver), ethhead, iphead, data));
+        
+        /* switch(proto) { */
+        /* case IPPROTO_TCP: */
+        /* case IPPROTO_UDP:  */
+        /*     break; */
+        /* default: */
+        /*     /\* if (driver->m_debug >= 2) { *\/ */
+        /*         CPE_INFO(driver->m_em, "raw: device raw: %s", net_raw_dump_raw_data(net_raw_driver_tmp_buffer(driver), ethhead, iphead, data)); */
+        /*     /\* } *\/ */
+        /* } */
     }
 }
 
@@ -121,50 +183,19 @@ static int net_raw_device_raw_send(net_raw_device_t device, uint8_t *data, int d
 }
 
 static void net_raw_device_raw_fini(net_raw_device_t device) {
-    
-}
+    net_raw_device_raw_t device_raw = (net_raw_device_raw_t)device;
+    net_raw_driver_t driver = device_raw->m_device.m_driver;
 
-static void net_raw_device_raw_dump_raw_data(net_raw_driver_t driver, char * ethhead, char * iphead, char * data) {
-    CPE_INFO(
-        driver->m_em,
-        "MAC: %.2X:%02X:%02X:%02X:%02X:%02X==>%.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
-        ethhead[6]&0xFF, ethhead[7]&0xFF, ethhead[8]&0xFF, ethhead[9]&0xFF, ethhead[10]&0xFF, ethhead[11]&0xFF,
-        ethhead[0]&0xFF, ethhead[1]&0xFF, ethhead[2]&0xFF,ethhead[3]&0xFF, ethhead[4]&0xFF, ethhead[5]&0xFF);
-
-    CPE_INFO(
-        driver->m_em, "IP: %d.%d.%d.%d => %d.%d.%d.%d",
-        iphead[12]&0XFF, iphead[13]&0XFF, iphead[14]&0XFF, iphead[15]&0XFF,
-        iphead[16]&0XFF, iphead[17]&0XFF, iphead[18]&0XFF, iphead[19]&0XFF);
-
-    uint8_t proto = iphead[9];
-    switch(proto) {
-    case IPPROTO_ICMP:
-        CPE_INFO(driver->m_em, "Protocol: ICMP");
-        break;
-    case IPPROTO_IGMP:
-        CPE_INFO(driver->m_em, "Protocol: IGMP");
-        break;
-    case IPPROTO_IPIP:
-        CPE_INFO(driver->m_em, "Protocol: IPIP");
-        break;
-    case IPPROTO_TCP:
-        CPE_INFO(
-            driver->m_em, "Protocol: TCP, source port: %u, dest port: %u",
-            ((data[0]<<8)&0XFF00 | data[1]&0XFF),
-            ((data[2]<<8)&0XFF00 | data[3]&0XFF));
-        break;
-    case IPPROTO_UDP: 
-        CPE_INFO(
-            driver->m_em, "Protocol: UDP, source port: %u, dest port: %u",
-            ((data[0]<<8)&0XFF00 | data[1]&0XFF),
-            ((data[2]<<8)&0XFF00 | data[3]&0XFF));
-        break;
-    case IPPROTO_RAW:
-        CPE_INFO(driver->m_em, "Protocol: RAW");
-        break;
-    default:
-        CPE_INFO(driver->m_em, "Protocol: Unkown, please query in include/linux/in.h");
-        break;
+    if (device_raw->m_fd != -1) {
+        close(device_raw->m_fd);
+        device_raw->m_fd = -1;
+        ev_io_stop(driver->m_ev_loop, &device_raw->m_watcher);
     }
+
+    while(!TAILQ_EMPTY(&device_raw->m_captures)) {
+        net_raw_device_raw_capture_free(TAILQ_FIRST(&device_raw->m_captures));
+    }
+
+    cpe_hash_table_fini(&device_raw->m_captures_by_source);
+    cpe_hash_table_fini(&device_raw->m_captures_by_target);
 }
-                                      
