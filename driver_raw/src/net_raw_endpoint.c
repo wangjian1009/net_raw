@@ -26,6 +26,7 @@ static err_t net_raw_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
     net_raw_endpoint_t endpoint = arg;
     net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
     net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+    net_schedule_t schedule = net_endpoint_schedule(base_endpoint);
     
     assert(err == ERR_OK); /* checked in lwIP source. Otherwise, I've no idea what should
                               be done with the pbuf in case of an error.*/
@@ -37,8 +38,14 @@ static err_t net_raw_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
                 net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint),
                 err);
         }
-        net_endpoint_free(base_endpoint);
-        return ERR_ABRT;
+
+        if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
+            net_endpoint_free(base_endpoint);
+            return ERR_ABRT;
+        }
+        else {
+            return ERR_OK;
+        }
     }
 
     assert(p->tot_len > 0);
@@ -54,11 +61,14 @@ static err_t net_raw_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
     }
 
     if (net_endpoint_rbuf_supply(base_endpoint, size) != 0) {
-        CPE_ERROR(
-            driver->m_em, "raw: %s: process fail",
-            net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint),
-            data);
-        return ERR_ABRT;
+        if (net_endpoint_set_state(base_endpoint, net_endpoint_state_logic_error) != 0) {
+            if (driver->m_debug || net_schedule_debug(schedule) >= 2) {
+                CPE_INFO(
+                    driver->m_em, "raw: %s: free for process fail!",
+                    net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
+            }
+            net_endpoint_free(base_endpoint);
+        }
     }
 
     pbuf_free(p);
@@ -117,25 +127,25 @@ int net_raw_endpoint_on_output(net_endpoint_t base_endpoint) {
 }
 
 int net_raw_endpoint_connect(net_endpoint_t base_endpoint) {
-    /* net_raw_endpoint_t endpoint = net_endpoint_data(base_endpoint); */
-    /* net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint)); */
-    /* net_schedule_t schedule = net_endpoint_schedule(base_endpoint); */
-    /* error_monitor_t em = net_schedule_em(schedule); */
+    net_raw_endpoint_t endpoint = net_endpoint_data(base_endpoint);
+    net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+    net_schedule_t schedule = net_endpoint_schedule(base_endpoint);
+    error_monitor_t em = net_schedule_em(schedule);
 
-    /* if (endpoint->m_fd != -1) { */
-    /*     CPE_ERROR( */
-    /*         em, "raw: %s: already connected!", */
-    /*         net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint)); */
-    /*     return -1; */
-    /* } */
+    if (endpoint->m_pcb == NULL) {
+        CPE_ERROR(
+            em, "raw: %s: already connected!",
+            net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
+        return -1;
+    }
 
-    /* net_address_t remote_addr = net_endpoint_remote_address(base_endpoint); */
-    /* if (remote_addr == NULL) { */
-    /*     CPE_ERROR( */
-    /*         em, "raw: %s: connect with no remote address!", */
-    /*         net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint)); */
-    /*     return -1; */
-    /* } */
+    net_address_t remote_addr = net_endpoint_remote_address(base_endpoint);
+    if (remote_addr == NULL) {
+        CPE_ERROR(
+            em, "raw: %s: connect with no remote address!",
+            net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
+        return -1;
+    }
         
     /* net_address_t local_address = net_endpoint_address(base_endpoint); */
     /* if (local_address) { */
@@ -260,6 +270,18 @@ int net_raw_endpoint_connect(net_endpoint_t base_endpoint) {
 }
 
 void net_raw_endpoint_close(net_endpoint_t base_endpoint) {
-    /* net_raw_endpoint_t endpoint = net_endpoint_data(base_endpoint); */
-    /* net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint)); */
+    net_raw_endpoint_t endpoint = net_endpoint_data(base_endpoint);
+    net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+
+    if (endpoint->m_pcb == NULL) return;
+
+    err_t err = tcp_close(endpoint->m_pcb);
+    if (err != ERR_OK) {
+        CPE_ERROR(
+            driver->m_em, "raw: %s: tcp close failed (%d)",
+            net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint),
+            err);
+        tcp_abort(endpoint->m_pcb);
+    }
+    endpoint->m_pcb = NULL;
 }

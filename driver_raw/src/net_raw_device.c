@@ -263,6 +263,10 @@ static err_t net_raw_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_
     struct net_raw_endpoint * endpoint = net_endpoint_data(base_endpoint);
     net_raw_endpoint_set_pcb(endpoint, newpcb);
 
+    if (net_endpoint_set_state(base_endpoint, net_endpoint_state_established) != 0) {
+        goto accept_error;
+    }
+
     if (driver->m_debug >= 2) {
         CPE_INFO(device->m_driver->m_em, "device %s: accept: success", device->m_netif.name);
     }
