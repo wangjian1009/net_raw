@@ -8,6 +8,9 @@
 #include "net_driver.h"
 #include "net_raw_endpoint.h"
 
+static err_t net_raw_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
+static void net_raw_endpoint_err_func(void *arg, err_t err);
+
 void net_raw_endpoint_set_pcb(struct net_raw_endpoint * endpoint, struct tcp_pcb * pcb) {
     assert(endpoint->m_pcb == NULL);
 
@@ -15,8 +18,65 @@ void net_raw_endpoint_set_pcb(struct net_raw_endpoint * endpoint, struct tcp_pcb
 
     tcp_nagle_disable(endpoint->m_pcb);
     tcp_arg(endpoint->m_pcb, endpoint);
-    /* tcp_err(endpoint->m_pcb, client_err_func); */
-    /* tcp_recv(endpoint->m_pcb, client_recv_func); */
+    tcp_err(endpoint->m_pcb, net_raw_endpoint_err_func);
+    tcp_recv(endpoint->m_pcb, net_raw_endpoint_recv_func);
+}
+
+static err_t net_raw_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
+    net_raw_endpoint_t endpoint = arg;
+    net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
+    net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+    
+    assert(err == ERR_OK); /* checked in lwIP source. Otherwise, I've no idea what should
+                              be done with the pbuf in case of an error.*/
+
+    if (!p) {
+        if (driver->m_debug >= 2) {
+            CPE_INFO(
+                driver->m_em, "raw: %s: client closed",
+                net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint),
+                err);
+        }
+        net_endpoint_free(base_endpoint);
+        return ERR_ABRT;
+    }
+
+    assert(p->tot_len > 0);
+
+    uint32_t size = p->tot_len;
+    void * data = net_endpoint_rbuf_alloc(base_endpoint, &size);
+    if (data == NULL) {
+        CPE_ERROR(
+            driver->m_em, "raw: %s: no buffer for data, size=%d",
+            net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint),
+            data);
+        return ERR_MEM;
+    }
+
+    if (net_endpoint_rbuf_supply(base_endpoint, size) != 0) {
+        CPE_ERROR(
+            driver->m_em, "raw: %s: process fail",
+            net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint),
+            data);
+        return ERR_ABRT;
+    }
+
+    pbuf_free(p);
+
+    return ERR_OK;
+}
+
+static void net_raw_endpoint_err_func(void *arg, err_t err) {
+    net_raw_endpoint_t endpoint = arg;
+    net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
+    net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+
+    if (driver->m_debug) {
+        CPE_INFO(
+            driver->m_em, "raw: %s: client error (%d)",
+            net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint),
+            (int)err);
+    }
 }
 
 int net_raw_endpoint_init(net_endpoint_t base_endpoint) {
@@ -27,10 +87,23 @@ int net_raw_endpoint_init(net_endpoint_t base_endpoint) {
 
 void net_raw_endpoint_fini(net_endpoint_t base_endpoint) {
     net_raw_endpoint_t endpoint = net_endpoint_data(base_endpoint);
-    //net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+    net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
 
     if (endpoint->m_pcb) {
-        //tcp_pcb_free(endpoint->m_pcb);
+        // remove callbacks
+        tcp_err(endpoint->m_pcb, NULL);
+        tcp_recv(endpoint->m_pcb, NULL);
+        tcp_sent(endpoint->m_pcb, NULL);
+
+        // free pcb
+        err_t err = tcp_close(endpoint->m_pcb);
+        if (err != ERR_OK) {
+            CPE_ERROR(
+                driver->m_em, "raw: %s: tcp close failed (%d)",
+                net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint),
+                err);
+            tcp_abort(endpoint->m_pcb);
+        }
         endpoint->m_pcb = NULL;
     }
 }
