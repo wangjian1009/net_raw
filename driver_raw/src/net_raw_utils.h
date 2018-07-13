@@ -8,4 +8,6 @@ const char * net_raw_dump_raw_data(mem_buffer_t tmp_buffer, uint8_t * ethhead, u
 net_address_t net_raw_iphead_source_addr(net_raw_driver_t driver, uint8_t * iphead);
 net_address_t net_raw_iphead_target_addr(net_raw_driver_t driver, uint8_t * iphead);
 
+net_address_t net_address_from_lwip(net_raw_driver_t driver, uint8_t is_v6, ipX_addr_t * addr, uint16_t port);
+
 #endif

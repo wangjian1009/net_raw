@@ -33,12 +33,13 @@ struct net_raw_driver {
     uint8_t m_debug;
 
     struct ev_timer m_tcp_timer;
+    struct mem_buffer m_data_buffer;
 
     net_raw_device_t m_default_device;
     net_raw_device_list_t m_devices;
 
     net_raw_device_raw_capture_list_t m_free_device_raw_captures;
-    
+
     net_raw_driver_sock_create_process_fun_t m_sock_process_fun;
     void * m_sock_process_ctx;
     net_data_monitor_fun_t m_data_monitor_fun;

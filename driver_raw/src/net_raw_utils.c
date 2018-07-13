@@ -82,3 +82,11 @@ net_address_t net_raw_iphead_target_addr(net_raw_driver_t driver, uint8_t * iphe
     uint16_t port =  (((uint16_t)iphead[22])<<8) | iphead[23];
     return net_address_create_from_data_ipv4(net_raw_driver_schedule(driver), &addr_data, port);
 }
+
+net_address_t net_address_from_lwip(net_raw_driver_t driver, uint8_t is_ipv6, ipX_addr_t * addr, uint16_t port) {
+    if (is_ipv6) {
+    }
+    else {
+        //BAddr_InitIPv4(&addr, ipx_addr->ip4.addr, port);
+    }
+}

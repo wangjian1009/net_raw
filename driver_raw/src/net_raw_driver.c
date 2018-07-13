@@ -77,6 +77,8 @@ static int net_raw_driver_init(net_driver_t base_driver) {
 
     double tcp_timer_interval = ((double)TCP_TMR_INTERVAL / 1000.0);
     ev_timer_init(&driver->m_tcp_timer, net_raw_driver_tcp_timer_cb, tcp_timer_interval, tcp_timer_interval);
+
+    mem_buffer_init(&driver->m_data_buffer, driver->m_alloc);
     
     return 0;
 }
@@ -97,6 +99,8 @@ static void net_raw_driver_fini(net_driver_t base_driver) {
     while(!TAILQ_EMPTY(&driver->m_free_device_raw_captures)) {
         net_raw_device_raw_capture_real_free(TAILQ_FIRST(&driver->m_free_device_raw_captures));
     }
+
+    mem_buffer_clear(&driver->m_data_buffer);
 }
 
 void net_raw_driver_free(net_raw_driver_t driver) {

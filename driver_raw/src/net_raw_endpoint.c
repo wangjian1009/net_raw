@@ -8,15 +8,31 @@
 #include "net_driver.h"
 #include "net_raw_endpoint.h"
 
+void net_raw_endpoint_set_pcb(struct net_raw_endpoint * endpoint, struct tcp_pcb * pcb) {
+    assert(endpoint->m_pcb == NULL);
+
+    endpoint->m_pcb = pcb;
+
+    tcp_nagle_disable(endpoint->m_pcb);
+    tcp_arg(endpoint->m_pcb, endpoint);
+    /* tcp_err(endpoint->m_pcb, client_err_func); */
+    /* tcp_recv(endpoint->m_pcb, client_recv_func); */
+}
+
 int net_raw_endpoint_init(net_endpoint_t base_endpoint) {
-    //net_raw_endpoint_t endpoint = net_endpoint_data(base_endpoint);
-    
+    net_raw_endpoint_t endpoint = net_endpoint_data(base_endpoint);
+    endpoint->m_pcb = NULL;
     return 0;
 }
 
 void net_raw_endpoint_fini(net_endpoint_t base_endpoint) {
-    /* net_raw_endpoint_t endpoint = net_endpoint_data(base_endpoint); */
-    /* net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint)); */
+    net_raw_endpoint_t endpoint = net_endpoint_data(base_endpoint);
+    //net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+
+    if (endpoint->m_pcb) {
+        //tcp_pcb_free(endpoint->m_pcb);
+        endpoint->m_pcb = NULL;
+    }
 }
 
 int net_raw_endpoint_on_output(net_endpoint_t base_endpoint) {

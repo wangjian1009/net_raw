@@ -3,7 +3,12 @@
 #include "cpe/pal/pal_stdio.h"
 #include "cpe/pal/pal_string.h"
 #include "cpe/pal/pal_strings.h"
+#include "net_endpoint.h"
+#include "net_driver.h"
+#include "net_address.h"
 #include "net_raw_device_i.h"
+#include "net_raw_utils.h"
+#include "net_raw_endpoint.h"
 
 static int net_raw_device_init_netif(net_raw_device_t device, net_address_t ip, net_address_t mask);
 static int net_raw_device_init_listener_ip4(net_raw_device_t device);
@@ -91,9 +96,19 @@ net_raw_device_t net_raw_device_default(net_raw_driver_t driver) {
 static int net_raw_device_init_netif(net_raw_device_t device, net_address_t ip, net_address_t mask) {
     // make addresses for netif
     ip_addr_t addr;
-    //addr.addr = netif_ipaddr.ipv4;
+    if (ip) {
+    }
+    else {
+        ip_addr_set_any(&addr);
+    }
+    
     ip_addr_t netmask;
-    //netmask.addr = netif_netmask.ipv4;
+    if (mask) {
+    }
+    else {
+        ip_addr_set_any(&netmask);
+    }
+    
     ip_addr_t gw;
     ip_addr_set_any(&gw);
 
@@ -116,7 +131,7 @@ static int net_raw_device_init_listener_ip4(net_raw_device_t device) {
         CPE_ERROR(device->m_driver->m_em, "device %s: init listener 4: tcp_new failed", device->m_netif.name);
         return -1;
     }
-
+        
     if (tcp_bind_to_netif(l, "ho0") != ERR_OK) {
         CPE_ERROR(device->m_driver->m_em, "device %s: init listener 4: bind_to_netif fail", device->m_netif.name);
         tcp_close(l);
@@ -130,6 +145,7 @@ static int net_raw_device_init_listener_ip4(net_raw_device_t device) {
         return -1;
     }
 
+    tcp_arg(device->m_listener_ip4, device);
     tcp_accept(device->m_listener_ip4, net_raw_device_netif_accept);
 
     return 0;
@@ -207,5 +223,56 @@ static err_t net_raw_device_netif_input(struct pbuf *p, struct netif *inp) {
 }
 
 static err_t net_raw_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
+    net_raw_device_t device = arg;
+    net_raw_driver_t driver = device->m_driver;
+    net_driver_t base_driver = net_driver_from_data(driver);
+    net_schedule_t schedule = net_raw_driver_schedule(driver);
+    
+    assert(err == ERR_OK);
+
+    uint8_t is_ipv6 = PCB_ISIPV6(newpcb) ? 1 : 0;
+
+    struct tcp_pcb *this_listener = is_ipv6 ? device->m_listener_ip6 : device->m_listener_ip4;
+    tcp_accepted(this_listener);
+
+    net_endpoint_t base_endpoint = net_endpoint_create(base_driver, net_endpoint_inbound, NULL);
+    if (base_endpoint) {
+        CPE_ERROR(device->m_driver->m_em, "device %s: accept: create endpoint fail", device->m_netif.name);
+        goto accept_error; 
+    }
+
+    net_address_t local_addr = net_address_from_lwip(driver, is_ipv6, &newpcb->local_ip, newpcb->local_port);
+    if (local_addr == NULL) {
+        CPE_ERROR(device->m_driver->m_em, "device %s: accept: create local address fail", device->m_netif.name);
+        goto accept_error; 
+    }
+    
+    if (net_endpoint_set_address(base_endpoint, local_addr, 1) != 0) {
+        CPE_ERROR(device->m_driver->m_em, "device %s: accept: set address fail", device->m_netif.name);
+        net_address_free(local_addr);
+        goto accept_error; 
+    }
+    
+    net_address_t remote_addr = net_address_from_lwip(driver, is_ipv6, &newpcb->remote_ip, newpcb->remote_port);
+    if (net_endpoint_set_address(base_endpoint, remote_addr, 1) != 0) {
+        CPE_ERROR(device->m_driver->m_em, "device %s: accept: set address fail", device->m_netif.name);
+        net_address_free(remote_addr);
+        goto accept_error; 
+    }
+
+    struct net_raw_endpoint * endpoint = net_endpoint_data(base_endpoint);
+    net_raw_endpoint_set_pcb(endpoint, newpcb);
+
+    if (driver->m_debug >= 2) {
+        CPE_INFO(device->m_driver->m_em, "device %s: accept: success", device->m_netif.name);
+    }
+
     return ERR_OK;
+
+accept_error:
+    if (base_endpoint) {
+        net_endpoint_free(base_endpoint);
+    }
+
+    return ERR_MEM;
 }

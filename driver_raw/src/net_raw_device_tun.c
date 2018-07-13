@@ -9,6 +9,7 @@
 #include "cpe/pal/pal_string.h"
 #include "cpe/pal/pal_unistd.h"
 #include "net_raw_device_tun_i.h"
+#include "net_raw_utils.h"
 
 static void net_raw_device_tun_rw_cb(EV_P_ ev_io *w, int revents);
 static int net_raw_device_tun_send(net_raw_device_t device, uint8_t *data, int data_len);
@@ -134,8 +135,71 @@ static void net_raw_device_tun_fini(net_raw_device_t device) {
 }
 
 static void net_raw_device_tun_rw_cb(EV_P_ ev_io *w, int revents) {
-    /* if (revents & EV_READ) { */
+    net_raw_device_tun_t device_tun = w->data;
+    net_raw_device_t device = &device_tun->m_device;
+    net_raw_driver_t driver = device->m_driver;
+
+    CPE_ERROR(driver->m_em, "xxxx rw_cb");
+    
+    if (revents & EV_READ) {
+        mem_buffer_clear_data(&driver->m_data_buffer);
+        void * data = mem_buffer_alloc(&driver->m_data_buffer, device->m_frame_mtu);
+        if (data == NULL) {
+            CPE_ERROR(
+                driver->m_em, "device %s: rw: alloc data, size=%d fail",
+                device->m_netif.name, device->m_frame_mtu);
+            return;
+        }
         
-    /* } */
+        do {
+            int bytes = read(device_tun->m_dev_fd, data, device->m_frame_mtu);
+            if (bytes <= 0) {
+                if (bytes == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
+                    break;
+                }
+                else {
+                    CPE_ERROR(
+                        driver->m_em, "device %s: rw: read data error, errno=%d %s",
+                        device->m_netif.name, errno, strerror(errno));
+                    break;
+                }
+            }
+    
+            assert(bytes <= device->m_frame_mtu);
+
+            if (bytes > UINT16_MAX) {
+                CPE_ERROR(driver->m_em, "device %s: rw: packet too large", device->m_netif.name);
+                break;
+            }
+            
+            uint8_t * ethhead = NULL;
+            uint8_t * iphead = data;  
+            uint8_t * data = iphead + 20;
+
+            CPE_INFO(
+                driver->m_em, "device %s: rw: %s",
+                device->m_netif.name,
+                net_raw_dump_raw_data(net_raw_driver_tmp_buffer(driver), ethhead, iphead, data));
+            
+            struct pbuf *p = pbuf_alloc(PBUF_RAW, bytes, PBUF_POOL);
+            if (!p) {
+                CPE_ERROR(driver->m_em, "device %s: rw: pbuf_alloc fail", device->m_netif.name);
+                break;
+            }
+
+            err_t e = pbuf_take(p, data, bytes);
+            if (e != ERR_OK) {
+                CPE_ERROR(driver->m_em, "device %s: rw: pbuf_take fail", device->m_netif.name);
+                pbuf_free(p);
+                continue;
+            }
+            
+            if (device->m_netif.input(p, &device->m_netif) != ERR_OK) {
+                CPE_ERROR(driver->m_em, "device %s: rw: input fail", device->m_netif.name);
+                pbuf_free(p);
+                continue;
+            }
+        } while(1);
+    }
 }
 
