@@ -9,6 +9,7 @@
 #include "net_raw_device_i.h"
 #include "net_raw_utils.h"
 #include "net_raw_endpoint.h"
+#include "net_raw_device_listener_i.h"
 
 static int net_raw_device_init_netif(net_raw_device_t device, net_address_t ip, net_address_t mask);
 static int net_raw_device_init_listener_ip4(net_raw_device_t device);
@@ -31,9 +32,24 @@ int net_raw_device_init(
     device->m_listener_ip6 = NULL;
     device->m_quitting = 0;
 
-    if (net_raw_device_init_netif(device, ip, mask) != 0) return -1;
+    if (cpe_hash_table_init(
+            &device->m_listeners,
+            driver->m_alloc,
+            (cpe_hash_fun_t) net_raw_device_listener_hash,
+            (cpe_hash_eq_t) net_raw_device_listener_eq,
+            CPE_HASH_OBJ2ENTRY(net_raw_device_listener, m_hh),
+            -1) != 0)
+    {
+        return -1;
+    }
+    
+    if (net_raw_device_init_netif(device, ip, mask) != 0) {
+        cpe_hash_table_fini(&device->m_listeners);
+        return -1;
+    }
 
     if (net_raw_device_init_listener_ip4(device) != 0) {
+        cpe_hash_table_fini(&device->m_listeners);
         netif_remove(&device->m_netif);
         return -1;
     }
@@ -51,6 +67,9 @@ void net_raw_device_fini(net_raw_device_t device) {
     net_raw_driver_t driver = device->m_driver;
 
     device->m_quitting = 1;
+
+    net_raw_device_listener_free_all(device);
+    cpe_hash_table_fini(&device->m_listeners);
     
     if (device->m_listener_ip4) {
         tcp_close(device->m_listener_ip4);
@@ -246,6 +265,9 @@ static err_t net_raw_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_
     net_raw_driver_t driver = device->m_driver;
     net_driver_t base_driver = net_driver_from_data(driver);
     net_schedule_t schedule = net_raw_driver_schedule(driver);
+    net_endpoint_t base_endpoint = NULL;
+    net_address_t local_addr = NULL;
+    net_address_t remote_addr = NULL;
     
     assert(err == ERR_OK);
 
@@ -254,31 +276,41 @@ static err_t net_raw_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_
     struct tcp_pcb *this_listener = is_ipv6 ? device->m_listener_ip6 : device->m_listener_ip4;
     tcp_accepted(this_listener);
 
-    net_endpoint_t base_endpoint = net_endpoint_create(base_driver, net_endpoint_inbound, NULL);
+    local_addr = net_address_from_lwip(driver, is_ipv6, &newpcb->local_ip, newpcb->local_port);
+    if (local_addr == NULL) {
+        CPE_ERROR(device->m_driver->m_em, "device %s: accept: create local address fail", device->m_netif.name);
+        goto accept_error; 
+    }
+
+    net_raw_device_listener_t listener = net_raw_device_listener_find(device, local_addr);
+    if (listener == NULL) {
+        if (driver->m_debug) {
+            CPE_INFO(driver->m_em, "device %s: accept: no listener", device->m_netif.name);
+        }
+        net_address_free(local_addr);
+        return ERR_RTE;
+    }
+
+    base_endpoint = net_endpoint_create(base_driver, net_endpoint_inbound, NULL);
     if (base_endpoint) {
         CPE_ERROR(device->m_driver->m_em, "device %s: accept: create endpoint fail", device->m_netif.name);
         goto accept_error; 
     }
 
-    net_address_t local_addr = net_address_from_lwip(driver, is_ipv6, &newpcb->local_ip, newpcb->local_port);
-    if (local_addr == NULL) {
-        CPE_ERROR(device->m_driver->m_em, "device %s: accept: create local address fail", device->m_netif.name);
-        goto accept_error; 
-    }
-    
     if (net_endpoint_set_address(base_endpoint, local_addr, 1) != 0) {
         CPE_ERROR(device->m_driver->m_em, "device %s: accept: set address fail", device->m_netif.name);
         net_address_free(local_addr);
         goto accept_error; 
     }
-    
-    net_address_t remote_addr = net_address_from_lwip(driver, is_ipv6, &newpcb->remote_ip, newpcb->remote_port);
+    local_addr = NULL;
+
+    remote_addr = net_address_from_lwip(driver, is_ipv6, &newpcb->remote_ip, newpcb->remote_port);
     if (net_endpoint_set_address(base_endpoint, remote_addr, 1) != 0) {
         CPE_ERROR(device->m_driver->m_em, "device %s: accept: set address fail", device->m_netif.name);
-        net_address_free(remote_addr);
         goto accept_error; 
     }
-
+    remote_addr = NULL;
+    
     struct net_raw_endpoint * endpoint = net_endpoint_data(base_endpoint);
     net_raw_endpoint_set_pcb(endpoint, newpcb);
 
@@ -297,5 +329,13 @@ accept_error:
         net_endpoint_free(base_endpoint);
     }
 
+    if (local_addr) {
+        net_address_free(local_addr);
+    }
+
+    if (remote_addr) {
+        net_address_free(remote_addr);
+    }
+    
     return ERR_MEM;
 }

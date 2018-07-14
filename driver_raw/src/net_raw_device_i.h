@@ -18,6 +18,7 @@ struct net_raw_device {
     struct tcp_pcb * m_listener_ip4;
     struct tcp_pcb * m_listener_ip6;
     uint8_t m_quitting;
+    struct cpe_hash_table m_listeners;
 };
 
 int net_raw_device_init(

@@ -10,7 +10,6 @@
 #include "cpe/pal/pal_unistd.h"
 #include "net_address.h"
 #include "net_raw_device_tun_i.h"
-#include "net_raw_device_tun_listener_i.h"
 #include "net_raw_utils.h"
 
 static void net_raw_device_tun_rw_cb(EV_P_ ev_io *w, int revents);
@@ -35,18 +34,6 @@ net_raw_device_tun_create(net_raw_driver_t driver, const char * name) {
     device_tun->m_dev_fd = -1;
     device_tun->m_address = NULL;
     device_tun->m_mask = NULL;
-
-    if (cpe_hash_table_init(
-            &device_tun->m_listeners,
-            driver->m_alloc,
-            (cpe_hash_fun_t) net_raw_device_tun_listener_hash,
-            (cpe_hash_eq_t) net_raw_device_tun_listener_eq,
-            CPE_HASH_OBJ2ENTRY(net_raw_device_tun_listener, m_hh),
-            -1) != 0)
-    {
-        mem_free(driver->m_alloc, device_tun);
-        return NULL;
-    }
     
     uint16_t mtu = 0;
 
@@ -157,8 +144,6 @@ create_error:
         net_address_free(device_tun->m_mask);
     }
 
-    cpe_hash_table_fini(&device_tun->m_listeners);
-
     mem_free(driver->m_alloc, device_tun);
     return NULL;
 }
@@ -190,9 +175,6 @@ static int net_raw_device_tun_send(net_raw_device_t device, uint8_t *data, int d
 static void net_raw_device_tun_fini(net_raw_device_t device) {
     net_raw_driver_t driver = device->m_driver;
     net_raw_device_tun_t device_tun = (net_raw_device_tun_t)device;
-
-    net_raw_device_tun_listener_free_all(device_tun);
-    cpe_hash_table_fini(&device_tun->m_listeners);
 
     ev_io_stop(driver->m_ev_loop, &device_tun->m_watcher);
     close(device_tun->m_dev_fd);
