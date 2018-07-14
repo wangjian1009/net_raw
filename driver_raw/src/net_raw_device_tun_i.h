@@ -7,6 +7,8 @@ struct net_raw_device_tun {
     struct net_raw_device m_device;
     char m_dev_name[16];
     int m_dev_fd;
+    net_address_t m_address;
+    net_address_t m_mask;
     struct ev_io m_watcher;
 };
 
