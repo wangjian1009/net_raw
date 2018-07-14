@@ -34,7 +34,9 @@ net_raw_device_tun_create(net_raw_driver_t driver, const char * name) {
     device_tun->m_dev_fd = -1;
     device_tun->m_address = NULL;
     device_tun->m_mask = NULL;
-    
+
+    uint16_t mtu = 0;
+
 #if CPE_OS_LINUX
 
     if ((device_tun->m_dev_fd = open("/dev/net/tun", O_RDWR)) < 0) {
@@ -68,7 +70,7 @@ net_raw_device_tun_create(net_raw_driver_t driver, const char * name) {
         close(sock);
         goto create_error;
     }
-    device_tun->m_device.m_frame_mtu = ifr.ifr_mtu;
+    mtu = ifr.ifr_mtu;
 
     /*address*/
     if (ioctl(sock, SIOCGIFADDR, (void *)&ifr) < 0) {
@@ -98,7 +100,10 @@ net_raw_device_tun_create(net_raw_driver_t driver, const char * name) {
         return NULL;
     }
     
-    if (net_raw_device_init(&device_tun->m_device, driver, &s_device_type_tun, device_tun->m_address, device_tun->m_mask) != 0) {
+    if (net_raw_device_init(
+            &device_tun->m_device, driver, &s_device_type_tun,
+            device_tun->m_address, device_tun->m_mask, mtu) != 0)
+    {
         mem_free(driver->m_alloc, device_tun);
         return NULL;
     }

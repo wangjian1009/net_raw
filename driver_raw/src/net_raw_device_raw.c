@@ -34,7 +34,7 @@ net_raw_device_raw_t net_raw_device_raw_create(net_raw_driver_t driver, uint8_t 
     device_raw->m_capture_all = capture_all;
     TAILQ_INIT(&device_raw->m_captures);
 
-    if (net_raw_device_init(&device_raw->m_device, driver, &s_device_type_raw, NULL, NULL) != 0) {
+    if (net_raw_device_init(&device_raw->m_device, driver, &s_device_type_raw, NULL, NULL, 0) != 0) {
         mem_free(driver->m_alloc, device_raw);
         return NULL;
     }

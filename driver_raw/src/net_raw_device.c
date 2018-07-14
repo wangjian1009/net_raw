@@ -22,11 +22,11 @@ static err_t net_raw_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_
 
 int net_raw_device_init(
     net_raw_device_t device, net_raw_driver_t driver, net_raw_device_type_t type, 
-    net_address_t ip, net_address_t mask)
+    net_address_t ip, net_address_t mask, uint16_t frame_mtu)
 {
     device->m_driver = driver;
     device->m_type = type;
-    device->m_frame_mtu = 0;
+    device->m_frame_mtu = frame_mtu;
     device->m_listener_ip4 = NULL;
     device->m_listener_ip6 = NULL;
     device->m_quitting = 0;
@@ -172,7 +172,9 @@ static err_t net_raw_device_netif_do_output(struct netif *netif, struct pbuf *p)
 
     if (!p->next) {
         if (p->len > device->m_frame_mtu) {
-            CPE_ERROR(driver->m_em, "device %s: netif func output: no space left", device->m_netif.name);
+            CPE_ERROR(
+                driver->m_em, "device %s: output: len %d overflow, mtu=%d",
+                device->m_netif.name, p->len, device->m_frame_mtu);
             goto out;
         }
 
@@ -190,7 +192,9 @@ static err_t net_raw_device_netif_do_output(struct netif *netif, struct pbuf *p)
         int len = 0;
         do {
             if (p->len > device->m_frame_mtu - len) {
-                CPE_ERROR(device->m_driver->m_em, "device %s: netif func output: no space left", device->m_netif.name);
+                CPE_ERROR(
+                    device->m_driver->m_em, "device %s: output: len %d overflow, mtu=%d",
+                    device->m_netif.name, p->len + len, device->m_frame_mtu);
                 goto out;
             }
             memcpy(device_write_buf + len, p->payload, p->len);

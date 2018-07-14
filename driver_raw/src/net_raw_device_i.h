@@ -13,14 +13,16 @@ struct net_raw_device {
     net_raw_driver_t m_driver;
     TAILQ_ENTRY(net_raw_device) m_next_for_driver;
     net_raw_device_type_t m_type;
-    int m_frame_mtu;
+    uint16_t m_frame_mtu;
     struct netif m_netif;
     struct tcp_pcb * m_listener_ip4;
     struct tcp_pcb * m_listener_ip6;
     uint8_t m_quitting;
 };
 
-int net_raw_device_init(net_raw_device_t device, net_raw_driver_t driver, net_raw_device_type_t type, net_address_t ip, net_address_t mask);
+int net_raw_device_init(
+    net_raw_device_t device, net_raw_driver_t driver, net_raw_device_type_t type,
+    net_address_t ip, net_address_t mask, uint16_t frame_mtu);
 void net_raw_device_fini(net_raw_device_t device);
 
 #endif

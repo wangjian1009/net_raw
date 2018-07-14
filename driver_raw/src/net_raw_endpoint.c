@@ -111,6 +111,17 @@ static void net_raw_endpoint_err_func(void *arg, err_t err) {
             net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint),
             (int)err, lwip_strerr(err));
     }
+
+    if (err != ERR_ABRT) {
+        net_raw_endpoint_set_pcb(endpoint, NULL);
+    }
+    else {
+        endpoint->m_pcb = NULL;
+    }
+
+    if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
+        net_endpoint_free(base_endpoint);
+    }
 }
 
 static err_t net_raw_endpoint_poll_func(void *arg, struct tcp_pcb *pcb) {
