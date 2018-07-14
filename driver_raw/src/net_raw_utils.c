@@ -4,6 +4,13 @@
 #include "net_raw_utils.h"
 
 void net_raw_print_raw_data(write_stream_t ws, uint8_t * ethhead, uint8_t * iphead, uint8_t * data) {
+    if (iphead == NULL && ethhead) {
+    }
+
+    if (data == NULL && iphead) {
+        data = iphead + 20;
+    }
+
     if (ethhead) {
         stream_printf(
             ws,

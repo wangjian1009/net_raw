@@ -107,9 +107,9 @@ static void net_raw_endpoint_err_func(void *arg, err_t err) {
 
     if (driver->m_debug) {
         CPE_INFO(
-            driver->m_em, "raw: %s: client error (%d)",
+            driver->m_em, "raw: %s: client error %d (%s)",
             net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint),
-            (int)err);
+            (int)err, lwip_strerr(err));
     }
 }
 

@@ -162,8 +162,7 @@ static err_t net_raw_device_netif_init(struct netif *netif) {
 
 static err_t net_raw_device_netif_do_output(struct netif *netif, struct pbuf *p) {
     net_raw_device_t device = netif->state;
-    
-    CPE_INFO(device->m_driver->m_em, "device %s: send packet", device->m_netif.name);
+    net_raw_driver_t driver = device->m_driver;
 
     if (device->m_quitting) {
         return ERR_OK;
@@ -171,8 +170,15 @@ static err_t net_raw_device_netif_do_output(struct netif *netif, struct pbuf *p)
 
     if (!p->next) {
         if (p->len > device->m_frame_mtu) {
-            CPE_ERROR(device->m_driver->m_em, "device %s: netif func output: no space left", device->m_netif.name);
+            CPE_ERROR(driver->m_em, "device %s: netif func output: no space left", device->m_netif.name);
             goto out;
+        }
+
+        if (driver->m_debug) {
+            CPE_INFO(
+                device->m_driver->m_em,
+                "device %s: send packet %d bytes %s", device->m_netif.name, p->len,
+                net_raw_dump_raw_data(net_raw_driver_tmp_buffer(driver), NULL, (uint8_t *)p->payload, NULL));
         }
 
         device->m_type->send(device, (uint8_t *)p->payload, p->len);
@@ -189,6 +195,13 @@ static err_t net_raw_device_netif_do_output(struct netif *netif, struct pbuf *p)
             len += p->len;
         } while ((p = p->next));
 
+        if (driver->m_debug) {
+            CPE_INFO(
+                device->m_driver->m_em,
+                "device %s: send packet %d bytes %s", device->m_netif.name, len,
+                net_raw_dump_raw_data(net_raw_driver_tmp_buffer(driver), NULL, device_write_buf, NULL));
+        }
+        
         device->m_type->send(device, device_write_buf, len);
     }
 

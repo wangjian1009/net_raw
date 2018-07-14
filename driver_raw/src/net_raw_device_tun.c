@@ -115,7 +115,7 @@ static int net_raw_device_tun_send(net_raw_device_t device, uint8_t *data, int d
     
     assert(data_len >= 0);
     assert(data_len <= device->m_frame_mtu);
-    
+
     int bytes = write(device_tun->m_dev_fd, data, data_len);
     if (bytes < 0) {
         // malformed packets will cause errors, ignore them and act like
@@ -191,15 +191,16 @@ static void net_raw_device_tun_rw_cb(EV_P_ ev_io *w, int revents) {
                 break;
             }
 
-            err_t e = pbuf_take(p, data, bytes);
-            if (e != ERR_OK) {
-                CPE_ERROR(driver->m_em, "device %s: rw: pbuf_take fail", device->m_netif.name);
+            err_t err = pbuf_take(p, data, bytes);
+            if (err != ERR_OK) {
+                CPE_ERROR(driver->m_em, "device %s: rw: pbuf_take fail, error=%d (%s)", device->m_netif.name, err, lwip_strerr(err));
                 pbuf_free(p);
                 continue;
             }
-            
-            if (device->m_netif.input(p, &device->m_netif) != ERR_OK) {
-                CPE_ERROR(driver->m_em, "device %s: rw: input fail", device->m_netif.name);
+
+            err = device->m_netif.input(p, &device->m_netif);
+            if (err != ERR_OK) {
+                CPE_ERROR(driver->m_em, "device %s: rw: input fail, error=%d (%s)", device->m_netif.name, err, lwip_strerr(err));
                 pbuf_free(p);
                 continue;
             }
