@@ -10,6 +10,7 @@ struct net_raw_device_tun {
     net_address_t m_address;
     net_address_t m_mask;
     struct ev_io m_watcher;
+    struct cpe_hash_table m_listeners;
 };
 
 #endif

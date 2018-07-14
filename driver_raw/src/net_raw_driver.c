@@ -6,6 +6,7 @@
 #include "net_raw_endpoint.h"
 #include "net_raw_dgram.h"
 #include "net_raw_device_raw_capture_i.h"
+#include "net_raw_device_tun_listener_i.h"
 
 static int net_raw_driver_init(net_driver_t driver);
 static void net_raw_driver_fini(net_driver_t driver);
@@ -69,6 +70,7 @@ static int net_raw_driver_init(net_driver_t base_driver) {
     driver->m_ipset = NULL;
     TAILQ_INIT(&driver->m_devices);
     TAILQ_INIT(&driver->m_free_device_raw_captures);    
+    TAILQ_INIT(&driver->m_free_device_tun_listeners);    
     driver->m_sock_process_fun = NULL;
     driver->m_sock_process_ctx = NULL;
     driver->m_data_monitor_fun = NULL;
@@ -98,6 +100,10 @@ static void net_raw_driver_fini(net_driver_t base_driver) {
 
     while(!TAILQ_EMPTY(&driver->m_free_device_raw_captures)) {
         net_raw_device_raw_capture_real_free(TAILQ_FIRST(&driver->m_free_device_raw_captures));
+    }
+
+    while(!TAILQ_EMPTY(&driver->m_free_device_tun_listeners)) {
+        net_raw_device_tun_listener_real_free(TAILQ_FIRST(&driver->m_free_device_tun_listeners));
     }
 
     mem_buffer_clear(&driver->m_data_buffer);
