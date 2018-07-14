@@ -4,7 +4,8 @@ lwip_cpp_flags:=-I$(lwip_base)/../../../cpe/include \
                 -I$(lwip_base)/src/include \
                 -I$(lwip_base)/src/include/ipv4 \
                 -I$(lwip_base)/src/include/ipv6 \
-                -I$(lwip_base)/custom
+                -I$(lwip_base)/../../buildtools/custom/lwip \
+                $(if $(filter 1,$D), -DLWIP_DEBUG)
 lwip_c_flags:=-Wno-unused-value -Wno-bitwise-op-parentheses
 lwip_src:=$(addprefix $(lwip_base)/, \
               src/core/timers.c \
@@ -30,7 +31,8 @@ lwip_src:=$(addprefix $(lwip_base)/, \
               src/core/ipv6/icmp6.c \
               src/core/ipv6/ip6_addr.c \
               src/core/ipv6/ip6_frag.c \
-              custom/sys.c \
+              src/api/err.c \
+              ../../buildtools/custom/lwip/sys.c \
            )
 
 $(eval $(call def_library,lwip))

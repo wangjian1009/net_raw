@@ -19,7 +19,7 @@
 #define PACK_STRUCT_END CPE_END_PACKED
 #define PACK_STRUCT_STRUCT CPE_PACKED
 
-#define LWIP_PLATFORM_DIAG(x) { if (BLog_WouldLog(BLOG_CHANNEL_lwip, BLOG_INFO)) { BLog_Begin(); BLog_Append x; BLog_Finish(BLOG_CHANNEL_lwip, BLOG_INFO); } }
+#define LWIP_PLATFORM_DIAG(x) { CPE_INFO(x); }
 #define LWIP_PLATFORM_ASSERT(x) { fprintf(stderr, "%s: lwip assertion failure: %s\n", __FUNCTION__, (x)); abort(); }
 
 #define U16_F PRIu16
