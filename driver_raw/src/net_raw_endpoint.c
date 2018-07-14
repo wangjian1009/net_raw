@@ -138,6 +138,34 @@ static err_t net_raw_endpoint_poll_func(void *arg, struct tcp_pcb *pcb) {
 }
 
 static err_t net_raw_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, err_t err) {
+    net_raw_endpoint_t endpoint = arg;
+    net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
+    net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+    net_schedule_t schedule = net_endpoint_schedule(base_endpoint);
+    error_monitor_t em = net_schedule_em(schedule);
+
+    if (err != ERR_OK) {
+        CPE_ERROR(
+            em, "ev: %s: connect error, errno=%d (%s)",
+            net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), err, lwip_strerr(err));
+        if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
+            net_endpoint_free(base_endpoint);
+            return ERR_ABRT;
+        }
+        return ERR_OK;
+    }
+
+    if (driver->m_debug || net_schedule_debug(schedule) >= 2) {
+        CPE_INFO(
+            em, "ev: %s: connect success",
+            net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
+    }
+
+    if (net_endpoint_set_state(base_endpoint, net_endpoint_state_established) != 0) {
+        net_endpoint_free(base_endpoint);
+        return ERR_ABRT;
+    }
+
     return ERR_OK;
 }
 
