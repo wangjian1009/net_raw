@@ -97,6 +97,7 @@ static int net_raw_device_init_netif(net_raw_device_t device, net_address_t ip, 
     // make addresses for netif
     ip_addr_t addr;
     if (ip) {
+        net_address_to_lwip_ipv4(&addr, ip);
     }
     else {
         ip_addr_set_any(&addr);
@@ -104,6 +105,7 @@ static int net_raw_device_init_netif(net_raw_device_t device, net_address_t ip, 
     
     ip_addr_t netmask;
     if (mask) {
+        net_address_to_lwip_ipv4(&netmask, mask);
     }
     else {
         ip_addr_set_any(&netmask);
