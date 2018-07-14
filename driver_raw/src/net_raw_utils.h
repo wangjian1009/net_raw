@@ -10,4 +10,6 @@ net_address_t net_raw_iphead_target_addr(net_raw_driver_t driver, uint8_t * iphe
 
 net_address_t net_address_from_lwip(net_raw_driver_t driver, uint8_t is_v6, ipX_addr_t * addr, uint16_t port);
 
+void net_address_to_lwip_ipv4(ip_addr_t * addr, net_address_t address);
+
 #endif
