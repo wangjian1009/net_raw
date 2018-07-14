@@ -99,6 +99,10 @@ net_raw_device_tun_create(
     ev_io_init(&device_tun->m_watcher, net_raw_device_tun_rw_cb, device_tun->m_dev_fd, EV_READ);
     ev_io_start(driver->m_ev_loop, &device_tun->m_watcher);
 
+    if (driver->m_debug > 0) {
+        CPE_INFO(driver->m_em, "raw: device %s: created", name);
+    }
+    
     return device_tun;
 }
 
