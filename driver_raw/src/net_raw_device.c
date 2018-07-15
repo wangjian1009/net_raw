@@ -149,19 +149,19 @@ static int net_raw_device_init_netif(net_raw_device_t device, net_address_t ip, 
 static int net_raw_device_init_listener_ip4(net_raw_device_t device) {
     struct tcp_pcb * l = tcp_new();
     if (l == NULL) {
-        CPE_ERROR(device->m_driver->m_em, "device %s: init listener 4: tcp_new failed", device->m_netif.name);
+        CPE_ERROR(device->m_driver->m_em, "%s: init listener 4: tcp_new failed", device->m_netif.name);
         return -1;
     }
         
     if (tcp_bind_to_netif(l, "ho0") != ERR_OK) {
-        CPE_ERROR(device->m_driver->m_em, "device %s: init listener 4: bind_to_netif fail", device->m_netif.name);
+        CPE_ERROR(device->m_driver->m_em, "%s: init listener 4: bind_to_netif fail", device->m_netif.name);
         tcp_close(l);
         return -1;
     }
 
     device->m_listener_ip4 = tcp_listen(l);
     if (device->m_listener_ip4 == NULL) {
-        CPE_ERROR(device->m_driver->m_em, "device %s: init listener 4: tcp_listen fail", device->m_netif.name);
+        CPE_ERROR(device->m_driver->m_em, "%s: init listener 4: tcp_listen fail", device->m_netif.name);
         tcp_close(l);
         return -1;
     }
@@ -192,7 +192,7 @@ static err_t net_raw_device_netif_do_output(struct netif *netif, struct pbuf *p)
     if (!p->next) {
         if (p->len > device->m_frame_mtu) {
             CPE_ERROR(
-                driver->m_em, "device %s: output: len %d overflow, mtu=%d",
+                driver->m_em, "%s: output: len %d overflow, mtu=%d",
                 device->m_netif.name, p->len, device->m_frame_mtu);
             goto out;
         }
@@ -200,7 +200,7 @@ static err_t net_raw_device_netif_do_output(struct netif *netif, struct pbuf *p)
         if (driver->m_debug >= 2) {
             CPE_INFO(
                 device->m_driver->m_em,
-                "device %s: send packet %d bytes %s", device->m_netif.name, p->len,
+                "%s: send packet %d bytes %s", device->m_netif.name, p->len,
                 net_raw_dump_raw_data(net_raw_driver_tmp_buffer(driver), NULL, (uint8_t *)p->payload, NULL));
         }
 
@@ -212,7 +212,7 @@ static err_t net_raw_device_netif_do_output(struct netif *netif, struct pbuf *p)
         do {
             if (p->len > device->m_frame_mtu - len) {
                 CPE_ERROR(
-                    device->m_driver->m_em, "device %s: output: len %d overflow, mtu=%d",
+                    device->m_driver->m_em, "%s: output: len %d overflow, mtu=%d",
                     device->m_netif.name, p->len + len, device->m_frame_mtu);
                 goto out;
             }
@@ -223,7 +223,7 @@ static err_t net_raw_device_netif_do_output(struct netif *netif, struct pbuf *p)
         if (driver->m_debug >= 2) {
             CPE_INFO(
                 device->m_driver->m_em,
-                "device %s: send packet %d bytes %s", device->m_netif.name, len,
+                "%s: send packet %d bytes %s", device->m_netif.name, len,
                 net_raw_dump_raw_data(net_raw_driver_tmp_buffer(driver), NULL, device_write_buf, NULL));
         }
         
@@ -282,26 +282,26 @@ static err_t net_raw_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_
 
     local_addr = net_address_from_lwip(driver, is_ipv6, &newpcb->local_ip, newpcb->local_port);
     if (local_addr == NULL) {
-        CPE_ERROR(device->m_driver->m_em, "device %s: accept: create local address fail", device->m_netif.name);
+        CPE_ERROR(device->m_driver->m_em, "%s: accept: create local address fail", device->m_netif.name);
         goto accept_error; 
     }
 
     net_raw_device_listener_t listener = net_raw_device_listener_find(device, local_addr);
     if (listener == NULL) {
         if (driver->m_debug) {
-            CPE_INFO(driver->m_em, "device %s: accept: no listener", device->m_netif.name);
+            CPE_INFO(driver->m_em, "%s: accept: no listener", device->m_netif.name);
         }
         goto accept_error;
     }
 
     base_endpoint = net_endpoint_create(base_driver, net_endpoint_inbound, listener->m_protocol);
     if (base_endpoint == NULL) {
-        CPE_ERROR(device->m_driver->m_em, "device %s: accept: create endpoint fail", device->m_netif.name);
+        CPE_ERROR(device->m_driver->m_em, "%s: accept: create endpoint fail", device->m_netif.name);
         goto accept_error; 
     }
 
     if (net_endpoint_set_address(base_endpoint, local_addr, 1) != 0) {
-        CPE_ERROR(device->m_driver->m_em, "device %s: accept: set address fail", device->m_netif.name);
+        CPE_ERROR(device->m_driver->m_em, "%s: accept: set address fail", device->m_netif.name);
         net_address_free(local_addr);
         goto accept_error; 
     }
@@ -309,14 +309,14 @@ static err_t net_raw_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_
 
     remote_addr = net_address_from_lwip(driver, is_ipv6, &newpcb->remote_ip, newpcb->remote_port);
     if (net_endpoint_set_address(base_endpoint, remote_addr, 1) != 0) {
-        CPE_ERROR(device->m_driver->m_em, "device %s: accept: set address fail", device->m_netif.name);
+        CPE_ERROR(device->m_driver->m_em, "%s: accept: set address fail", device->m_netif.name);
         goto accept_error; 
     }
     remote_addr = NULL;
 
     if (listener->m_on_accept) {
         if (listener->m_on_accept(listener->m_on_accept_ctx, base_endpoint) != 0) {
-            CPE_ERROR(device->m_driver->m_em, "device %s: accept: on accept fail", device->m_netif.name);
+            CPE_ERROR(device->m_driver->m_em, "%s: accept: on accept fail", device->m_netif.name);
             goto accept_error; 
         }
     }
@@ -330,7 +330,7 @@ static err_t net_raw_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_
     }
 
     if (driver->m_debug) {
-        CPE_INFO(device->m_driver->m_em, "device %s: accept: success", device->m_netif.name);
+        CPE_INFO(device->m_driver->m_em, "%s: accept: success", device->m_netif.name);
     }
 
     return ERR_OK;
