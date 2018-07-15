@@ -2,7 +2,10 @@
 #include "net_raw_device_listener_i.h"
 
 net_raw_device_listener_t
-net_raw_device_listener_create(net_raw_device_t device, net_address_t address, net_protocol_t protocol) {
+net_raw_device_listener_create(
+    net_raw_device_t device, net_address_t address, net_protocol_t protocol,
+    net_raw_device_on_accept_fun_t on_accept, void * on_accept_ctx)
+{
     net_raw_driver_t driver = device->m_driver;
     net_schedule_t schedule = net_raw_driver_schedule(driver);
 
@@ -21,7 +24,9 @@ net_raw_device_listener_create(net_raw_device_t device, net_address_t address, n
     listener->m_device = device;
     listener->m_address = NULL;
     listener->m_protocol = protocol;
-
+    listener->m_on_accept = on_accept;
+    listener->m_on_accept_ctx = on_accept_ctx;
+    
     listener->m_address = net_address_copy(schedule, address);
     if (listener->m_address == NULL) {
         CPE_ERROR(driver->m_em, "raw: device tun listener: dup address fail");

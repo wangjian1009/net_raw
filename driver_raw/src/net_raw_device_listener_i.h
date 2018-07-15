@@ -11,6 +11,8 @@ struct net_raw_device_listener {
     };
     net_address_t m_address;
     net_protocol_t m_protocol;
+    net_raw_device_on_accept_fun_t m_on_accept;
+    void * m_on_accept_ctx;
 };
 
 void net_raw_device_listener_free_all(net_raw_device_t device);

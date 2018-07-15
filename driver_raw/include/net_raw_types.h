@@ -17,6 +17,8 @@ typedef struct net_raw_device_tun * net_raw_device_tun_t;
 typedef struct net_raw_device_raw * net_raw_device_raw_t;
 typedef struct net_raw_device_raw_capture * net_raw_device_raw_capture_t;
 
+typedef int (*net_raw_device_on_accept_fun_t)(void * ctx, net_endpoint_t endpoint);
+
 NET_END_DECL
 
 #endif

@@ -197,7 +197,7 @@ static err_t net_raw_device_netif_do_output(struct netif *netif, struct pbuf *p)
             goto out;
         }
 
-        if (driver->m_debug) {
+        if (driver->m_debug >= 2) {
             CPE_INFO(
                 device->m_driver->m_em,
                 "device %s: send packet %d bytes %s", device->m_netif.name, p->len,
@@ -220,7 +220,7 @@ static err_t net_raw_device_netif_do_output(struct netif *netif, struct pbuf *p)
             len += p->len;
         } while ((p = p->next));
 
-        if (driver->m_debug) {
+        if (driver->m_debug >= 2) {
             CPE_INFO(
                 device->m_driver->m_em,
                 "device %s: send packet %d bytes %s", device->m_netif.name, len,
@@ -272,13 +272,12 @@ static err_t net_raw_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_
     net_address_t local_addr = NULL;
     net_address_t remote_addr = NULL;
 
-    CPE_INFO(driver->m_em, "xxxxx: accept");
-    
     assert(err == ERR_OK);
 
     uint8_t is_ipv6 = PCB_ISIPV6(newpcb) ? 1 : 0;
 
     struct tcp_pcb *this_listener = is_ipv6 ? device->m_listener_ip6 : device->m_listener_ip4;
+    assert(this_listener);
     tcp_accepted(this_listener);
 
     local_addr = net_address_from_lwip(driver, is_ipv6, &newpcb->local_ip, newpcb->local_port);
@@ -292,12 +291,11 @@ static err_t net_raw_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_
         if (driver->m_debug) {
             CPE_INFO(driver->m_em, "device %s: accept: no listener", device->m_netif.name);
         }
-        net_address_free(local_addr);
-        return ERR_RTE;
+        goto accept_error;
     }
 
-    base_endpoint = net_endpoint_create(base_driver, net_endpoint_inbound, NULL);
-    if (base_endpoint) {
+    base_endpoint = net_endpoint_create(base_driver, net_endpoint_inbound, listener->m_protocol);
+    if (base_endpoint == NULL) {
         CPE_ERROR(device->m_driver->m_em, "device %s: accept: create endpoint fail", device->m_netif.name);
         goto accept_error; 
     }
@@ -315,15 +313,23 @@ static err_t net_raw_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_
         goto accept_error; 
     }
     remote_addr = NULL;
+
+    if (listener->m_on_accept) {
+        if (listener->m_on_accept(listener->m_on_accept_ctx, base_endpoint) != 0) {
+            CPE_ERROR(device->m_driver->m_em, "device %s: accept: on accept fail", device->m_netif.name);
+            goto accept_error; 
+        }
+    }
     
     struct net_raw_endpoint * endpoint = net_endpoint_data(base_endpoint);
     net_raw_endpoint_set_pcb(endpoint, newpcb);
-
+    newpcb = NULL;
+    
     if (net_endpoint_set_state(base_endpoint, net_endpoint_state_established) != 0) {
         goto accept_error;
     }
 
-    if (driver->m_debug >= 2) {
+    if (driver->m_debug) {
         CPE_INFO(device->m_driver->m_em, "device %s: accept: success", device->m_netif.name);
     }
 
@@ -341,6 +347,10 @@ accept_error:
     if (remote_addr) {
         net_address_free(remote_addr);
     }
+
+    if (newpcb) {
+        tcp_abort(newpcb);
+    }
     
-    return ERR_MEM;
+    return ERR_ABRT;
 }
