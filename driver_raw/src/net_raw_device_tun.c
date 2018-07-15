@@ -193,8 +193,6 @@ static void net_raw_device_tun_rw_cb(EV_P_ ev_io *w, int revents) {
     net_raw_device_t device = &device_tun->m_device;
     net_raw_driver_t driver = device->m_driver;
 
-    CPE_ERROR(driver->m_em, "xxxx rw_cb");
-    
     if (revents & EV_READ) {
         mem_buffer_clear_data(&driver->m_data_buffer);
         void * data = mem_buffer_alloc(&driver->m_data_buffer, device->m_frame_mtu);
@@ -241,7 +239,7 @@ static void net_raw_device_tun_rw_cb(EV_P_ ev_io *w, int revents) {
                 break;
             }
 
-            err_t err = pbuf_take(p, data, bytes);
+            err_t err = pbuf_take(p, iphead, bytes);
             if (err != ERR_OK) {
                 CPE_ERROR(driver->m_em, "device %s: rw: pbuf_take fail, error=%d (%s)", device->m_netif.name, err, lwip_strerr(err));
                 pbuf_free(p);

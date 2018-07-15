@@ -11,50 +11,79 @@ void net_raw_print_raw_data(write_stream_t ws, uint8_t * ethhead, uint8_t * iphe
         data = iphead + 20;
     }
 
+    if (iphead == NULL) return;
+
+    char mac_from[32];
+    char mac_to[32];
     if (ethhead) {
-        stream_printf(
-            ws,
-            "MAC: %.2X:%02X:%02X:%02X:%02X:%02X==>%.2X:%.2X:%.2X:%.2X:%.2X:%.2X\n",
-            ethhead[6]&0xFF, ethhead[7]&0xFF, ethhead[8]&0xFF, ethhead[9]&0xFF, ethhead[10]&0xFF, ethhead[11]&0xFF,
+        snprintf(
+            mac_from, sizeof(mac_from), "(%.2X:%02X:%02X:%02X:%02X:%02X)",
+            ethhead[6]&0xFF, ethhead[7]&0xFF, ethhead[8]&0xFF, ethhead[9]&0xFF, ethhead[10]&0xFF, ethhead[11]&0xFF);
+        snprintf(
+            mac_to, sizeof(mac_to), "(%.2X:%02X:%02X:%02X:%02X:%02X)",
             ethhead[0]&0xFF, ethhead[1]&0xFF, ethhead[2]&0xFF,ethhead[3]&0xFF, ethhead[4]&0xFF, ethhead[5]&0xFF);
     }
+    else {
+        mac_from[0] = 0;
+        mac_to[0] = 0;
+    }
+    
+    char ip_from[32];
+    char ip_to[32];
+    snprintf(ip_from, sizeof(ip_from), "%d.%d.%d.%d", iphead[12]&0XFF, iphead[13]&0XFF, iphead[14]&0XFF, iphead[15]&0XFF);
+    snprintf(ip_to, sizeof(ip_to), "%d.%d.%d.%d", iphead[16]&0XFF, iphead[17]&0XFF, iphead[18]&0XFF, iphead[19]&0XFF);
 
-    if (iphead) {
-        stream_printf(
-            ws, "IP: %d.%d.%d.%d => %d.%d.%d.%d\n",
-            iphead[12]&0XFF, iphead[13]&0XFF, iphead[14]&0XFF, iphead[15]&0XFF,
-            iphead[16]&0XFF, iphead[17]&0XFF, iphead[18]&0XFF, iphead[19]&0XFF);
+    const char * protocol = NULL;
 
-        uint8_t proto = iphead[9];
-        switch(proto) {
-        case IPPROTO_ICMP:
-            stream_printf(ws, "Protocol: ICMP");
-            break;
-        case IPPROTO_IGMP:
-            stream_printf(ws, "Protocol: IGMP");
-            break;
-        case IPPROTO_IPIP:
-            stream_printf(ws, "Protocol: IPIP");
-            break;
-        case IPPROTO_TCP:
-            stream_printf(
-                ws, "Protocol: TCP, source port: %u, dest port: %u",
-                ((data[0]<<8)&0XFF00 | data[1]&0XFF),
-                ((data[2]<<8)&0XFF00 | data[3]&0XFF));
-            break;
-        case IPPROTO_UDP: 
-            stream_printf(
-                ws, "Protocol: UDP, source port: %u, dest port: %u",
-                ((data[0]<<8)&0XFF00 | data[1]&0XFF),
-                ((data[2]<<8)&0XFF00 | data[3]&0XFF));
-            break;
-        case IPPROTO_RAW:
-            stream_printf(ws, "Protocol: RAW");
-            break;
-        default:
-            stream_printf(ws, "Protocol: Unkown, please query in include/linux/in.h");
-            break;
+    uint8_t proto = iphead[9];
+    switch(proto) {
+    case IPPROTO_ICMP:
+        protocol = "ICMP";
+        goto print_with_protocol;
+    case IPPROTO_IGMP:
+        protocol = "IGMP";
+        goto print_with_protocol;
+    case IPPROTO_IPIP:
+        protocol = "IPIP";
+        goto print_with_protocol;
+    case IPPROTO_TCP: {
+        uint16_t port_from = (data[0]<<8)&0XFF00 | data[1]&0XFF;
+        uint16_t port_to = (data[2]<<8)&0XFF00 | data[3]&0XFF;
+        if (ethhead) {
+            stream_printf(ws, "TCP: %s:%d(%s) ==> %s:%d(%s)", ip_from, port_from, mac_from, ip_to, port_to, mac_to);
         }
+        else {
+            stream_printf(ws, "TCP: %s:%d ==> %s:%d", ip_from, port_from, ip_to, port_to);
+        }
+        break;
+    }
+    case IPPROTO_UDP: {
+        uint16_t port_from = (data[0]<<8)&0XFF00 | data[1]&0XFF;
+        uint16_t port_to = (data[2]<<8)&0XFF00 | data[3]&0XFF;
+        if (ethhead) {
+            stream_printf(ws, "UDP: %s:%d(%s) ==> %s:%d(%s)", ip_from, port_from, mac_from, ip_to, port_to, mac_to);
+        }
+        else {
+            stream_printf(ws, "UDP: %s:%d ==> %s:%d", ip_from, port_from, ip_to, port_to);
+        }
+        break;
+    }
+    case IPPROTO_RAW:
+        protocol = "RAW";
+        goto print_with_protocol;
+    default:
+        stream_printf(ws, "Protocol: Unkown, please query in include/linux/in.h");
+        break;
+    }
+
+    return;
+    
+print_with_protocol:
+    if (ethhead) {
+        stream_printf(ws, "%s: %s(%s) ==> %s(%s)", protocol, ip_from, mac_from, ip_to, mac_to);
+    }
+    else {
+        stream_printf(ws, "%s: %s ==> %s", protocol, ip_from, ip_to);
     }
 }
 

@@ -242,7 +242,10 @@ static err_t net_raw_device_netif_output_ip6(struct netif *netif, struct pbuf *p
     return net_raw_device_netif_do_output(netif, p);
 }
 
-static err_t net_raw_device_netif_input(struct pbuf *p, struct netif *inp) {
+static err_t net_raw_device_netif_input(struct pbuf *p, struct netif * netif) {
+    net_raw_device_t device = netif->state;
+    net_raw_driver_t driver = device->m_driver;
+    
     uint8_t ip_version = 0;
     if (p->len > 0) {
         ip_version = (((uint8_t *)p->payload)[0] >> 4);
@@ -250,9 +253,9 @@ static err_t net_raw_device_netif_input(struct pbuf *p, struct netif *inp) {
 
     switch(ip_version) {
     case 4:
-        return ip_input(p, inp);
+        return ip_input(p, netif);
     case 6:
-        return ip6_input(p, inp);
+        return ip6_input(p, netif);
     }
 
     pbuf_free(p);
@@ -268,6 +271,8 @@ static err_t net_raw_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_
     net_endpoint_t base_endpoint = NULL;
     net_address_t local_addr = NULL;
     net_address_t remote_addr = NULL;
+
+    CPE_INFO(driver->m_em, "xxxxx: accept");
     
     assert(err == ERR_OK);
 

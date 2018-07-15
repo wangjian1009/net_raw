@@ -9,6 +9,7 @@
 #include "net_raw_endpoint.h"
 
 static err_t net_raw_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
+static err_t net_raw_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t len);
 static void net_raw_endpoint_err_func(void *arg, err_t err);
 static err_t net_raw_endpoint_poll_func(void *arg, struct tcp_pcb *pcb);
 static err_t net_raw_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, err_t err);
@@ -42,6 +43,7 @@ void net_raw_endpoint_set_pcb(struct net_raw_endpoint * endpoint, struct tcp_pcb
         tcp_arg(endpoint->m_pcb, endpoint);
         tcp_err(endpoint->m_pcb, net_raw_endpoint_err_func);
         tcp_recv(endpoint->m_pcb, net_raw_endpoint_recv_func);
+        tcp_sent(endpoint->m_pcb, net_raw_endpoint_sent_func);
         tcp_poll(endpoint->m_pcb, net_raw_endpoint_poll_func, 4);
     }
 }
@@ -100,6 +102,20 @@ static err_t net_raw_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
     return ERR_OK;
 }
 
+static err_t net_raw_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t len) {
+    net_raw_endpoint_t endpoint = arg;
+    net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
+
+    if (net_raw_endpoint_do_write(endpoint) != 0) {
+        if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
+            net_endpoint_free(base_endpoint);
+            return ERR_ABRT; 
+        }
+    }
+
+    return ERR_OK;
+}
+
 static void net_raw_endpoint_err_func(void *arg, err_t err) {
     net_raw_endpoint_t endpoint = arg;
     net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
@@ -125,8 +141,14 @@ static void net_raw_endpoint_err_func(void *arg, err_t err) {
 }
 
 static err_t net_raw_endpoint_poll_func(void *arg, struct tcp_pcb *pcb) {
-    net_raw_endpoint_t endpoint = arg;
+    /* net_raw_endpoint_t endpoint = arg; */
+    /* net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint); */
+    /* net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint)); */
 
+    /* CPE_INFO( */
+    /*     driver->m_em, "raw: %s: poll", */
+    /*     net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint)); */
+    
     /* if (conn->state == NETCONN_WRITE) { */
     /*     lwip_netconn_do_writemore(conn); */
     /* } */
@@ -213,7 +235,48 @@ int net_raw_endpoint_on_output(net_endpoint_t base_endpoint) {
 }
 
 static int net_raw_endpoint_do_write(struct net_raw_endpoint * endpoint) {
-    /*err_t err = tcp_write(endpoint->m_pcb, const void *dataptr, u16_t len, 0);*/
+    net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
+    net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+
+    while(net_endpoint_state(base_endpoint) == net_endpoint_state_established && !net_endpoint_wbuf_is_empty(base_endpoint)) {
+        uint32_t data_size;
+        void * data = net_endpoint_wbuf(base_endpoint, &data_size);
+
+        assert(data_size > 0);
+        assert(data);
+
+        if (data_size > tcp_sndbuf(endpoint->m_pcb)) {
+            data_size = tcp_sndbuf(endpoint->m_pcb);
+        }
+        
+        if (data_size == 0) {
+            break;
+        }
+
+        err_t err = tcp_write(endpoint->m_pcb, data, data_size, TCP_WRITE_FLAG_COPY);
+        if (err != ERR_OK) {
+            if (err == ERR_MEM) {
+                break;
+            }
+
+            CPE_ERROR(
+                driver->m_em, "raw: %s: write: tcp_write fail %d (%s)!",
+                net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint), err, lwip_strerr(err));
+            
+            return -1;
+        }
+
+        net_endpoint_wbuf_consume(base_endpoint, data_size);
+    }
+
+    err_t err = tcp_output(endpoint->m_pcb);
+    if (err != ERR_OK) {
+        CPE_ERROR(
+            driver->m_em, "raw: %s: write: tcp_output fail %d (%s)!",
+            net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint), err, lwip_strerr(err));
+        return -1;
+    }
+
     return 0;
 }
 
