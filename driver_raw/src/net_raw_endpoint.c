@@ -22,11 +22,8 @@ void net_raw_endpoint_set_pcb(struct net_raw_endpoint * endpoint, struct tcp_pcb
         tcp_sent(endpoint->m_pcb, NULL);
         tcp_poll(endpoint->m_pcb, NULL, 0);
 
-        printf("xxxxx fini 1\n");
-        
         err_t err = tcp_close(endpoint->m_pcb);
         if (err != ERR_OK) {
-            printf("xxxxx fini 2\n");
             net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
             net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
         
@@ -34,9 +31,7 @@ void net_raw_endpoint_set_pcb(struct net_raw_endpoint * endpoint, struct tcp_pcb
                 driver->m_em, "raw: %s: tcp close failed (%d)",
                 net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint),
                 err);
-            printf("xxxxx fini 3\n");
             tcp_abort(endpoint->m_pcb);
-            printf("xxxxx fini 4\n");
         }
         endpoint->m_pcb = NULL;
     }
@@ -58,8 +53,6 @@ static err_t net_raw_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
     net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
     net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
     net_schedule_t schedule = net_endpoint_schedule(base_endpoint);
-
-    CPE_INFO(driver->m_em, "xxxxx: recv");
 
     assert(err == ERR_OK); /* checked in lwIP source. Otherwise, I've no idea what should
                               be done with the pbuf in case of an error.*/
@@ -92,6 +85,8 @@ static err_t net_raw_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
             data);
         return ERR_MEM;
     }
+
+    pbuf_copy_partial(p, data, size, 0);
 
     if (net_endpoint_rbuf_supply(base_endpoint, size) != 0) {
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_logic_error) != 0) {
