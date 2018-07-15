@@ -230,8 +230,8 @@ static void net_raw_device_tun_rw_cb(EV_P_ ev_io *w, int revents) {
 
             if (driver->m_debug >= 2) {
                 CPE_INFO(
-                    driver->m_em, "%s: rw: %s",
-                    device->m_netif.name,
+                    driver->m_em, "%s: IN: %d |      %s",
+                    device->m_netif.name, bytes,
                     net_raw_dump_raw_data(net_raw_driver_tmp_buffer(driver), ethhead, iphead, data));
             }
             

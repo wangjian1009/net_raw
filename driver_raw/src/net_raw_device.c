@@ -200,7 +200,7 @@ static err_t net_raw_device_netif_do_output(struct netif *netif, struct pbuf *p)
         if (driver->m_debug >= 2) {
             CPE_INFO(
                 device->m_driver->m_em,
-                "%s: send packet %d bytes %s", device->m_netif.name, p->len,
+                "%s: OUT: %d |      %s", device->m_netif.name, p->len,
                 net_raw_dump_raw_data(net_raw_driver_tmp_buffer(driver), NULL, (uint8_t *)p->payload, NULL));
         }
 
@@ -223,7 +223,7 @@ static err_t net_raw_device_netif_do_output(struct netif *netif, struct pbuf *p)
         if (driver->m_debug >= 2) {
             CPE_INFO(
                 device->m_driver->m_em,
-                "%s: send packet %d bytes %s", device->m_netif.name, len,
+                "%s: OUT: %d |       %s", device->m_netif.name, len,
                 net_raw_dump_raw_data(net_raw_driver_tmp_buffer(driver), NULL, device_write_buf, NULL));
         }
         
