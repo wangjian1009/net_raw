@@ -14,6 +14,9 @@ void net_raw_device_listener_free(net_raw_device_listener_t listener);
 net_raw_device_listener_t
 net_raw_device_listener_find(net_raw_device_t device, net_address_t address);
 
+net_raw_device_t
+net_raw_device_listener_device(net_raw_device_listener_t listener);
+
 NET_END_DECL
 
 #endif

@@ -88,6 +88,11 @@ net_raw_device_listener_find(net_raw_device_t tun, net_address_t address) {
     return cpe_hash_table_find(&tun->m_listeners, &key);
 }
 
+net_raw_device_t
+net_raw_device_listener_device(net_raw_device_listener_t listener) {
+    return listener->m_device;
+}
+
 uint32_t net_raw_device_listener_hash(net_raw_device_listener_t listener, void * user_data) {
     return net_address_hash(listener->m_address);
 }

@@ -31,7 +31,22 @@ int net_raw_device_init(
     device->m_listener_ip4 = NULL;
     device->m_listener_ip6 = NULL;
     device->m_quitting = 0;
+    device->m_address = NULL;
+    device->m_mask = NULL;
 
+    if (ip) {
+        device->m_address = net_address_copy(net_raw_driver_schedule(driver), ip);
+        if (device->m_address == NULL) return -1;
+    }
+
+    if (mask) {
+        device->m_mask = net_address_copy(net_raw_driver_schedule(driver), mask);
+        if (device->m_mask == NULL) {
+            if (device->m_address) net_address_free(device->m_address);
+            return -1;
+        }
+    }
+    
     if (cpe_hash_table_init(
             &device->m_listeners,
             driver->m_alloc,
@@ -40,15 +55,21 @@ int net_raw_device_init(
             CPE_HASH_OBJ2ENTRY(net_raw_device_listener, m_hh),
             -1) != 0)
     {
+        if (device->m_mask) net_address_free(device->m_mask);
+        if (device->m_address) net_address_free(device->m_address);
         return -1;
     }
     
     if (net_raw_device_init_netif(device, ip, mask) != 0) {
+        if (device->m_mask) net_address_free(device->m_mask);
+        if (device->m_address) net_address_free(device->m_address);
         cpe_hash_table_fini(&device->m_listeners);
         return -1;
     }
 
     if (net_raw_device_init_listener_ip4(device) != 0) {
+        if (device->m_mask) net_address_free(device->m_mask);
+        if (device->m_address) net_address_free(device->m_address);
         cpe_hash_table_fini(&device->m_listeners);
         netif_remove(&device->m_netif);
         return -1;
@@ -96,6 +117,16 @@ void net_raw_device_fini(net_raw_device_t device) {
     if (driver->m_default_device) {
         netif_set_default(&driver->m_default_device->m_netif);
     }
+
+    if (device->m_address) {
+        net_address_free(device->m_address);
+        device->m_address = NULL;
+    }
+
+    if (device->m_mask) {
+        net_address_free(device->m_mask);
+        device->m_mask = NULL;
+    }
 }
 
 void net_raw_device_free(net_raw_device_t device) {
@@ -110,6 +141,23 @@ const char * net_raw_device_name(net_raw_device_t device) {
 
 net_raw_device_t net_raw_device_default(net_raw_driver_t driver) {
     return driver->m_default_device;
+}
+
+net_address_t net_raw_driver_address(net_raw_device_t device) {
+    return device->m_address;
+}
+
+net_address_t net_raw_driver_mask(net_raw_device_t device) {
+    return device->m_mask;
+}
+
+net_address_t net_raw_device_gen_local_address(net_raw_device_t device) {
+    if (device->m_address == NULL || device->m_mask == NULL) {
+        CPE_ERROR(device->m_driver->m_em, "%s: gen local address: no ip or mask!", device->m_netif.name);
+        return NULL;
+    }
+
+    return net_address_rand_same_network(device->m_address, device->m_mask);
 }
 
 static int net_raw_device_init_netif(net_raw_device_t device, net_address_t ip, net_address_t mask) {
