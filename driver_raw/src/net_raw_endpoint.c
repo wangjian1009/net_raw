@@ -21,18 +21,7 @@ void net_raw_endpoint_set_pcb(struct net_raw_endpoint * endpoint, struct tcp_pcb
         tcp_recv(endpoint->m_pcb, NULL);
         tcp_sent(endpoint->m_pcb, NULL);
         tcp_poll(endpoint->m_pcb, NULL, 0);
-
-        err_t err = tcp_close(endpoint->m_pcb);
-        if (err != ERR_OK) {
-            net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
-            net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
-        
-            CPE_ERROR(
-                driver->m_em, "raw: %s: tcp close failed (%d)",
-                net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint),
-                err);
-            tcp_abort(endpoint->m_pcb);
-        }
+        tcp_abort(endpoint->m_pcb);
         endpoint->m_pcb = NULL;
     }
 
@@ -398,8 +387,22 @@ void net_raw_endpoint_close(net_endpoint_t base_endpoint) {
 
     if (endpoint->m_pcb == NULL) return;
 
-    net_raw_endpoint_set_pcb(endpoint, NULL);
-
+    tcp_err(endpoint->m_pcb, NULL);
+    tcp_recv(endpoint->m_pcb, NULL);
+    tcp_sent(endpoint->m_pcb, NULL);
+    tcp_poll(endpoint->m_pcb, NULL, 0);
+    
+    err_t err = tcp_close(endpoint->m_pcb);
+    if (err != ERR_OK) {
+        CPE_ERROR(
+            driver->m_em, "raw: %s: tcp close failed (%d)",
+            net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint),
+            err);
+        net_raw_endpoint_set_pcb(endpoint, NULL);
+        return;
+    }
+    endpoint->m_pcb = NULL;
+    
     if (driver->m_debug >= 2) {
         CPE_INFO(
             driver->m_em, "raw: %s: tcp closed",

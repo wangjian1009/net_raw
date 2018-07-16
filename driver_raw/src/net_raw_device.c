@@ -282,7 +282,7 @@ static err_t net_raw_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_
 
     local_addr = net_address_from_lwip(driver, is_ipv6, &newpcb->local_ip, newpcb->local_port);
     if (local_addr == NULL) {
-        CPE_ERROR(device->m_driver->m_em, "%s: accept: create local address fail", device->m_netif.name);
+        CPE_ERROR(driver->m_em, "%s: accept: create local address fail", device->m_netif.name);
         goto accept_error; 
     }
 
@@ -296,19 +296,19 @@ static err_t net_raw_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_
 
     base_endpoint = net_endpoint_create(base_driver, net_endpoint_inbound, listener->m_protocol);
     if (base_endpoint == NULL) {
-        CPE_ERROR(device->m_driver->m_em, "%s: accept: create endpoint fail", device->m_netif.name);
+        CPE_ERROR(driver->m_em, "%s: accept: create endpoint fail", device->m_netif.name);
         goto accept_error; 
     }
 
     if (net_endpoint_set_address(base_endpoint, local_addr, 1) != 0) {
-        CPE_ERROR(device->m_driver->m_em, "%s: accept: set address fail", device->m_netif.name);
+        CPE_ERROR(driver->m_em, "%s: accept: set address fail", device->m_netif.name);
         net_address_free(local_addr);
         goto accept_error; 
     }
     local_addr = NULL;
 
     remote_addr = net_address_from_lwip(driver, is_ipv6, &newpcb->remote_ip, newpcb->remote_port);
-    if (net_endpoint_set_address(base_endpoint, remote_addr, 1) != 0) {
+    if (net_endpoint_set_remote_address(base_endpoint, remote_addr, 1) != 0) {
         CPE_ERROR(device->m_driver->m_em, "%s: accept: set address fail", device->m_netif.name);
         goto accept_error; 
     }
@@ -324,7 +324,7 @@ static err_t net_raw_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_
     struct net_raw_endpoint * endpoint = net_endpoint_data(base_endpoint);
     net_raw_endpoint_set_pcb(endpoint, newpcb);
     newpcb = NULL;
-    
+
     if (net_endpoint_set_state(base_endpoint, net_endpoint_state_established) != 0) {
         goto accept_error;
     }
