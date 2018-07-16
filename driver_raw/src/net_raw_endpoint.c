@@ -349,9 +349,12 @@ int net_raw_endpoint_connect(net_endpoint_t base_endpoint) {
 
             err_t err = tcp_bind(pcb, &local_lwip_addr, net_address_port(local_address));
             if (err != ERR_OK) {
+                char ip_buf[64];
+                cpe_str_dup(ip_buf, sizeof(ip_buf), net_address_dump(net_schedule_tmp_buffer(schedule), local_address));
+                
                 CPE_ERROR(
-                    em, "raw: %s: bind fail, errno=%d",
-                    net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), err);
+                    em, "raw: %s: bind %s fail, error=%d (%s)",
+                    net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), ip_buf, err, lwip_strerr(err));
                 tcp_abort(pcb);
                 return -1;
             }
@@ -363,8 +366,8 @@ int net_raw_endpoint_connect(net_endpoint_t base_endpoint) {
         err_t err = tcp_connect(pcb, &remote_iwip_addr, net_address_port(remote_addr), net_raw_endpoint_connected_func);
         if (err != ERR_OK) {
             CPE_ERROR(
-                em, "raw: %s: connect error, errno=%d",
-                net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), err);
+                em, "raw: %s: connect error, error=%d (%s)",
+                net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), err, lwip_strerr(err));
             tcp_abort(pcb);
             return -1;
         }
@@ -395,9 +398,9 @@ void net_raw_endpoint_close(net_endpoint_t base_endpoint) {
     err_t err = tcp_close(endpoint->m_pcb);
     if (err != ERR_OK) {
         CPE_ERROR(
-            driver->m_em, "raw: %s: tcp close failed (%d)",
+            driver->m_em, "raw: %s: tcp close failed, error=%d (%s)",
             net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint),
-            err);
+            err, lwip_strerr(err));
         net_raw_endpoint_set_pcb(endpoint, NULL);
         return;
     }

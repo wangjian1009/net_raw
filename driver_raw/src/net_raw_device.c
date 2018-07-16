@@ -329,7 +329,7 @@ static err_t net_raw_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_
         goto accept_error;
     }
 
-    if (driver->m_debug) {
+    if (driver->m_debug >= 2) {
         CPE_INFO(device->m_driver->m_em, "%s: accept: success", device->m_netif.name);
     }
 
