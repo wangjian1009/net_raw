@@ -7,6 +7,7 @@
 #include "net_address.h"
 #include "net_driver.h"
 #include "net_raw_endpoint.h"
+#include "net_raw_utils.h"
 
 static err_t net_raw_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
 static err_t net_raw_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t len);
@@ -370,6 +371,22 @@ int net_raw_endpoint_connect(net_endpoint_t base_endpoint) {
                 net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), err, lwip_strerr(err));
             tcp_abort(pcb);
             return -1;
+        }
+
+        if (local_address) {
+            net_address_set_port(local_address, pcb->local_port);
+        }
+        else {
+            local_address = net_address_from_lwip(driver, is_ipv6, &pcb->local_ip, pcb->local_port);
+            if (local_address == NULL) {
+                CPE_ERROR(
+                    em, "raw: %s: connect success, create local address fail",
+                    net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
+                tcp_abort(pcb);
+                return -1;
+            }
+
+            net_endpoint_set_address(base_endpoint, local_address, 1);
         }
     }
 
