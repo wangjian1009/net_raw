@@ -47,8 +47,8 @@ void net_raw_print_raw_data(write_stream_t ws, uint8_t * ethhead, uint8_t * iphe
         protocol = "IPIP";
         goto print_with_protocol;
     case IPPROTO_TCP: {
-        uint16_t port_from = (data[0]<<8)&0XFF00 | data[1]&0XFF;
-        uint16_t port_to = (data[2]<<8)&0XFF00 | data[3]&0XFF;
+        uint16_t port_from = ((((uint16_t)data[0])<<8) & 0XFF00) | (((uint16_t)data[1]) & 0XFF);
+        uint16_t port_to = ((((uint16_t)data[2])<<8) & 0XFF00) | (((uint16_t)data[3]) & 0XFF);
         if (ethhead) {
             stream_printf(ws, "TCP: %s:%d(%s) ==> %s:%d(%s)", ip_from, port_from, mac_from, ip_to, port_to, mac_to);
         }
@@ -58,8 +58,8 @@ void net_raw_print_raw_data(write_stream_t ws, uint8_t * ethhead, uint8_t * iphe
         break;
     }
     case IPPROTO_UDP: {
-        uint16_t port_from = (data[0]<<8)&0XFF00 | data[1]&0XFF;
-        uint16_t port_to = (data[2]<<8)&0XFF00 | data[3]&0XFF;
+        uint16_t port_from = ((((uint16_t)data[0])<<8) & 0XFF00) | (((uint16_t)data[1]) & 0XFF);
+        uint16_t port_to = ((((uint16_t)data[2])<<8) & 0XFF00) | (((uint16_t)data[3]) & 0XFF);
         if (ethhead) {
             stream_printf(ws, "UDP: %s:%d(%s) ==> %s:%d(%s)", ip_from, port_from, mac_from, ip_to, port_to, mac_to);
         }

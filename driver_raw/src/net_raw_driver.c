@@ -1,3 +1,4 @@
+#include "cpe/pal/pal_string.h"
 #include "net_schedule.h"
 #include "net_driver.h"
 #include "net_ipset.h"

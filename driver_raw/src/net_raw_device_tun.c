@@ -8,6 +8,7 @@
 #include <sys/ioctl.h>
 #include "cpe/pal/pal_string.h"
 #include "cpe/pal/pal_unistd.h"
+#include "cpe/utils/string_utils.h"
 #include "net_address.h"
 #include "net_raw_device_tun_i.h"
 #include "net_raw_utils.h"

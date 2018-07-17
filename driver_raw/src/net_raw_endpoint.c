@@ -2,6 +2,7 @@
 #include "cpe/pal/pal_socket.h"
 #include "cpe/pal/pal_string.h"
 #include "cpe/pal/pal_strings.h"
+#include "cpe/utils/string_utils.h"
 #include "cpe/utils_sock/sock_utils.h"
 #include "net_endpoint.h"
 #include "net_address.h"
@@ -51,8 +52,7 @@ static err_t net_raw_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
         if (driver->m_debug >= 2) {
             CPE_INFO(
                 driver->m_em, "raw: %s: client closed",
-                net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint),
-                err);
+                net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint));
         }
 
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
@@ -71,8 +71,7 @@ static err_t net_raw_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
     if (data == NULL) {
         CPE_ERROR(
             driver->m_em, "raw: %s: no buffer for data, size=%d",
-            net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint),
-            data);
+            net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint), size);
         return ERR_MEM;
     }
 

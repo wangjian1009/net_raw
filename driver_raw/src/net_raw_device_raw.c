@@ -9,6 +9,7 @@
 #include "cpe/pal/pal_socket.h"
 #include "cpe/pal/pal_string.h"
 #include "cpe/pal/pal_unistd.h"
+#include "net_address.h"
 #include "net_raw_device_raw_i.h"
 #include "net_raw_device_raw_capture_i.h"
 #include "net_raw_utils.h"
@@ -129,7 +130,7 @@ static void net_raw_device_raw_rw_cb(EV_P_ ev_io *w, int revents) {
         }
 
         uint8_t * ethhead = NULL;
-        uint8_t * iphead = buffer;  
+        uint8_t * iphead = (uint8_t * )buffer;  
         uint8_t * data = iphead + 20;
 
         uint8_t proto = iphead[9];

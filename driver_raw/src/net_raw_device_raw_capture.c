@@ -1,5 +1,6 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include "cpe/pal/pal_string.h"
 #include "net_address.h"
 #include "net_raw_device_raw_capture_i.h"
 #include "net_raw_utils.h"
@@ -181,7 +182,7 @@ static void net_raw_device_raw_capture_rw_cb(EV_P_ ev_io *w, int revents) {
     net_raw_driver_t driver = device_raw->m_device.m_driver;
 
     if (revents & EV_READ) {
-        char buffer[2048];
+        uint8_t buffer[2048];
         struct sockaddr_storage from_addr;
         socklen_t from_addr_len = sizeof(from_addr);
         int n_read = recvfrom(raw_capture->m_fd, buffer, sizeof(buffer), 0, (struct sockaddr *)&from_addr, &from_addr_len);
@@ -196,8 +197,8 @@ static void net_raw_device_raw_capture_rw_cb(EV_P_ ev_io *w, int revents) {
             return;
         }
 
-        char * iphead = buffer;  
-        char * data = iphead + 20;
+        uint8_t * iphead = buffer;  
+        uint8_t * data = iphead + 20;
         
         uint8_t proto = iphead[9];
         switch(proto) {
