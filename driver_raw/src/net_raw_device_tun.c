@@ -16,7 +16,12 @@ static struct net_raw_device_type s_device_type_tun = {
 };
 
 net_raw_device_tun_t
-net_raw_device_tun_create(net_raw_driver_t driver, const char * name) {
+net_raw_device_tun_create(
+    net_raw_driver_t driver, const char * name
+#if NET_RAW_USE_DEV_NE
+    , void * tunnelFlow
+#endif
+    ) {
     net_raw_device_tun_t device_tun = mem_alloc(driver->m_alloc, sizeof(struct net_raw_device_tun));
     if (device_tun == NULL) {
         CPE_ERROR(driver->m_em, "raw: device alloc fail!");
@@ -30,6 +35,13 @@ net_raw_device_tun_create(net_raw_driver_t driver, const char * name) {
 
 #if NET_RAW_USE_DEV_TUN
     if (net_raw_device_tun_init_dev(driver, device_tun, name, &mtu) != 0) {
+        mem_free(driver->m_alloc, device_tun);
+        return NULL;
+    }
+#endif
+
+#if NET_RAW_USE_DEV_NE
+    if (net_raw_device_tun_init_dev(driver, device_tun, name, tunnelFlow, &mtu) != 0) {
         mem_free(driver->m_alloc, device_tun);
         return NULL;
     }

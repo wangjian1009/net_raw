@@ -210,13 +210,12 @@ static int net_raw_device_raw_send(net_raw_device_t device, uint8_t *data, int d
 
 static void net_raw_device_raw_fini(net_raw_device_t device) {
     net_raw_device_raw_t device_raw = (net_raw_device_raw_t)device;
-    //net_raw_driver_t driver = device_raw->m_device.m_driver;
 
     if (device_raw->m_fd != -1) {
         close(device_raw->m_fd);
         device_raw->m_fd = -1;
 #if NET_RAW_USE_EV
-        ev_io_stop(driver->m_ev_loop, &device_raw->m_watcher);
+        ev_io_stop(device_raw->m_device.m_driver->m_ev_loop, &device_raw->m_watcher);
 #endif
 #if NET_RAW_USE_DQ
         net_raw_device_raw_stop_r(device_raw);

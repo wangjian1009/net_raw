@@ -5,7 +5,12 @@
 NET_BEGIN_DECL
 
 net_raw_device_tun_t
-net_raw_device_tun_create(net_raw_driver_t driver, const char * name);
+net_raw_device_tun_create(
+    net_raw_driver_t driver, const char * name
+#if NET_RAW_USE_DEV_NE
+    , void *  tunnelFlow
+#endif
+    );
 
 net_raw_device_tun_t net_raw_device_tun_cast(net_raw_device_t device);
 
