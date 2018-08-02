@@ -6,6 +6,7 @@
 #include "cpe/pal/pal_platform.h"
 #include "cpe/pal/pal_stdio.h"
 #include "cpe/pal/pal_stdlib.h"
+#include "cpe/pal/pal_string.h"
 
 #define u8_t uint8_t
 #define s8_t int8_t
