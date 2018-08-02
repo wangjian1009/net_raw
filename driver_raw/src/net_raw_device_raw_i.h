@@ -9,7 +9,13 @@ struct net_raw_device_raw {
     struct cpe_hash_table m_captures_by_source;
     struct cpe_hash_table m_captures_by_target;
     int m_fd;
+#if NET_RAW_USE_EV
     struct ev_io m_watcher;
+#endif    
+#if NET_RAW_USE_DQ
+    __unsafe_unretained dispatch_source_t m_source_r;
+    __unsafe_unretained dispatch_source_t m_source_w;
+#endif    
 };
 
 #endif

@@ -2,6 +2,9 @@
 #define NET_RAW_DEVICE_I_H_INCLEDED
 #include "net_raw_device.h"
 #include "net_raw_driver_i.h"
+#if NET_RAW_USE_DQ
+#include "dispatch/dispatch.h"
+#endif
 
 struct net_raw_device_type {
     char m_name[16];

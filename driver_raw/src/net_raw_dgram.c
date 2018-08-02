@@ -114,5 +114,5 @@ void net_raw_dgram_fini(net_dgram_t base_dgram) {
 
 int net_raw_dgram_send(net_dgram_t base_dgram, net_address_t target, void const * data, size_t data_len) {
     printf("xxxxx: send %d\n", (int)data_len);
-    return data_len;
+    return (int)data_len;
 }

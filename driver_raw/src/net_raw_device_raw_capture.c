@@ -5,7 +5,16 @@
 #include "net_raw_device_raw_capture_i.h"
 #include "net_raw_utils.h"
 
+static void net_raw_device_raw_capture_on_read(net_raw_device_raw_capture_t raw_capture);
+
+#if NET_RAW_USE_EV
 static void net_raw_device_raw_capture_rw_cb(EV_P_ ev_io *w, int revents);
+#endif
+
+#if NET_RAW_USE_DQ
+static void net_raw_device_raw_capture_start_r(net_raw_device_raw_capture_t raw_capture);
+static void net_raw_device_raw_capture_stop_r(net_raw_device_raw_capture_t raw_capture);
+#endif
 
 net_raw_device_raw_capture_t
 net_raw_device_raw_capture_create(
@@ -35,6 +44,9 @@ net_raw_device_raw_capture_create(
     raw_capture->m_source_address = NULL;
     raw_capture->m_target_address = NULL;
     raw_capture->m_fd = -1;
+#if NET_RAW_USE_DQ
+    raw_capture->m_source_r = NULL;
+#endif
 
     if (source) {
         raw_capture->m_source_address = net_address_copy(schedule, source);
@@ -101,9 +113,15 @@ net_raw_device_raw_capture_create(
             cpe_hash_table_insert(&raw->m_captures_by_target, raw_capture);
         }
 
+#if NET_RAW_USE_EV
         raw_capture->m_watcher.data = raw_capture;
         ev_io_init(&raw_capture->m_watcher, net_raw_device_raw_capture_rw_cb, raw_capture->m_fd, EV_READ);
         ev_io_start(driver->m_ev_loop, &raw_capture->m_watcher);
+#endif
+
+#if NET_RAW_USE_DQ
+        net_raw_device_raw_capture_start_r(raw_capture);
+#endif
     }
     
     TAILQ_INSERT_TAIL(&raw->m_captures, raw_capture, m_next);
@@ -151,7 +169,12 @@ void net_raw_device_raw_capture_free(net_raw_device_raw_capture_t raw_capture) {
     if (raw_capture->m_fd != -1) {
         close(raw_capture->m_fd);
         raw_capture->m_fd = -1;
+#if NET_RAW_USE_EV
         ev_io_stop(driver->m_ev_loop, &raw_capture->m_watcher);
+#endif
+#if NET_RAW_USE_DQ
+        net_raw_device_raw_capture_stop_r(raw_capture);
+#endif
     }
 
     if (raw_capture->m_target_address) {
@@ -176,41 +199,38 @@ void net_raw_device_raw_capture_real_free(net_raw_device_raw_capture_t raw_captu
     mem_free(driver->m_alloc, raw_capture);
 }
 
-static void net_raw_device_raw_capture_rw_cb(EV_P_ ev_io *w, int revents) {
-    net_raw_device_raw_capture_t raw_capture = w->data;
+static void net_raw_device_raw_capture_on_read(net_raw_device_raw_capture_t raw_capture) {
     net_raw_device_raw_t device_raw = raw_capture->m_device;
     net_raw_driver_t driver = device_raw->m_device.m_driver;
 
-    if (revents & EV_READ) {
-        uint8_t buffer[2048];
-        struct sockaddr_storage from_addr;
-        socklen_t from_addr_len = sizeof(from_addr);
-        int n_read = recvfrom(raw_capture->m_fd, buffer, sizeof(buffer), 0, (struct sockaddr *)&from_addr, &from_addr_len);
-        /*
-          20   ip header 
-          +
-          8   icmp,tcp or udp header
-          = 28
-        */
-        if(n_read < 28) {
-            CPE_ERROR(driver->m_em, "raw: device raw: capture: Incomplete header, packet corrupt");
-            return;
-        }
+    uint8_t buffer[2048];
+    struct sockaddr_storage from_addr;
+    socklen_t from_addr_len = sizeof(from_addr);
+    ssize_t n_read = recvfrom(raw_capture->m_fd, buffer, sizeof(buffer), 0, (struct sockaddr *)&from_addr, &from_addr_len);
+    /*
+      20   ip header 
+      +
+      8   icmp,tcp or udp header
+      = 28
+    */
+    if(n_read < 28) {
+        CPE_ERROR(driver->m_em, "raw: device raw: capture: Incomplete header, packet corrupt");
+        return;
+    }
 
-        uint8_t * iphead = buffer;  
-        uint8_t * data = iphead + 20;
+    uint8_t * iphead = buffer;  
+    uint8_t * data = iphead + 20;
         
-        uint8_t proto = iphead[9];
-        switch(proto) {
-        case IPPROTO_TCP:
-        case IPPROTO_UDP: 
-            break;
-        default:
-            if (driver->m_debug >= 2) {
-                CPE_ERROR(
-                    driver->m_em, "raw: device raw: capture: %s",
-                    net_raw_dump_raw_data(net_raw_driver_tmp_buffer(driver), NULL, iphead, data));
-            }
+    uint8_t proto = iphead[9];
+    switch(proto) {
+    case IPPROTO_TCP:
+    case IPPROTO_UDP: 
+        break;
+    default:
+        if (driver->m_debug >= 2) {
+            CPE_ERROR(
+                driver->m_em, "raw: device raw: capture: %s",
+                net_raw_dump_raw_data(net_raw_driver_tmp_buffer(driver), NULL, iphead, data));
         }
     }
 }
@@ -242,3 +262,32 @@ uint32_t net_raw_device_raw_target_hash(net_raw_device_raw_capture_t capture, vo
 int net_raw_device_raw_target_eq(net_raw_device_raw_capture_t l, net_raw_device_raw_capture_t r, void * user_data) {
     return net_address_cmp(l->m_target_address, r->m_target_address) == 0 ? 1 : 0;
 }
+
+#if NET_RAW_USE_EV
+static void net_raw_device_raw_capture_rw_cb(EV_P_ ev_io *w, int revents) {
+    if (revents & EV_READ) {
+        net_raw_device_raw_capture_on_read(w->data);
+    }
+}
+#endif
+
+#if NET_RAW_USE_DQ
+static void net_raw_device_raw_capture_start_r(net_raw_device_raw_capture_t raw_capture) {
+    if (raw_capture->m_source_r == NULL) {
+        raw_capture->m_source_r = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, raw_capture->m_fd, 0, dispatch_get_main_queue());
+        dispatch_retain(raw_capture->m_source_r);
+        dispatch_source_set_event_handler(raw_capture->m_source_r, ^{ net_raw_device_raw_capture_on_read(raw_capture); });
+        dispatch_resume(raw_capture->m_source_r);
+    }
+}
+
+static void net_raw_device_raw_capture_stop_r(net_raw_device_raw_capture_t raw_capture) {
+    if (raw_capture->m_source_r) {
+        dispatch_source_set_event_handler(raw_capture->m_source_r, NULL);
+        dispatch_source_cancel(raw_capture->m_source_r);
+        dispatch_release(raw_capture->m_source_r);
+        raw_capture->m_source_r = NULL;
+    }
+}
+
+#endif

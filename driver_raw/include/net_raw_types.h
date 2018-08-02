@@ -19,6 +19,14 @@ typedef struct net_raw_device_raw_capture * net_raw_device_raw_capture_t;
 
 typedef int (*net_raw_device_on_accept_fun_t)(void * ctx, net_endpoint_t endpoint);
 
+#if defined __APPLE__
+#  define NET_RAW_USE_DQ 1
+#  define NET_RAW_USE_DEV_NE 1
+#elif defined CPE_OS_LINUX
+#  define NET_RAW_USE_EV 1
+#  define NET_RAW_USE_DEV_TUN 1
+#endif
+
 NET_END_DECL
 
 #endif

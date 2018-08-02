@@ -291,8 +291,8 @@ static err_t net_raw_device_netif_output_ip6(struct netif *netif, struct pbuf *p
 }
 
 static err_t net_raw_device_netif_input(struct pbuf *p, struct netif * netif) {
-    net_raw_device_t device = netif->state;
-    net_raw_driver_t driver = device->m_driver;
+    //net_raw_device_t device = netif->state;
+    //net_raw_driver_t driver = device->m_driver;
     
     uint8_t ip_version = 0;
     if (p->len > 0) {
@@ -315,7 +315,6 @@ static err_t net_raw_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_
     net_raw_device_t device = arg;
     net_raw_driver_t driver = device->m_driver;
     net_driver_t base_driver = net_driver_from_data(driver);
-    net_schedule_t schedule = net_raw_driver_schedule(driver);
     net_endpoint_t base_endpoint = NULL;
     net_address_t local_addr = NULL;
     net_address_t remote_addr = NULL;

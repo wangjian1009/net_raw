@@ -11,7 +11,12 @@ struct net_raw_device_raw_capture {
     struct cpe_hash_entry m_hh_for_target;
     net_address_t m_target_address;
     int m_fd;
+#if NET_RAW_USE_EV
     struct ev_io m_watcher;
+#endif    
+#if NET_RAW_USE_DQ
+    __unsafe_unretained dispatch_source_t m_source_r;
+#endif    
 };
 
 void net_raw_device_raw_capture_real_free(net_raw_device_raw_capture_t raw_capture);

@@ -96,7 +96,7 @@ static err_t net_raw_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
 static err_t net_raw_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t len) {
     net_raw_endpoint_t endpoint = arg;
     net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
-    net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+    //net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
 
     if (net_raw_endpoint_do_write(endpoint) != 0) {
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {

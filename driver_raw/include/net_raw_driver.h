@@ -6,7 +6,12 @@
 NET_BEGIN_DECL
 
 net_raw_driver_t net_raw_driver_create(
-    net_schedule_t schedule, void * ev_loop, net_raw_driver_match_mode_t mode);
+    net_schedule_t schedule,
+#if NET_RAW_USE_EV
+    void * ev_loop,
+#endif    
+    net_raw_driver_match_mode_t mode);
+
 net_raw_driver_t net_raw_driver_cast(net_driver_t driver);
 
 void net_raw_driver_free(net_raw_driver_t driver);

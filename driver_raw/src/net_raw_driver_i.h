@@ -4,7 +4,6 @@
 #include "lwip/init.h"
 #include "lwip/netif.h"
 #include "lwip/tcp.h"
-#include "ev.h"
 #undef mem_free
 #undef mem_calloc
 #include "cpe/pal/pal_queue.h"
@@ -14,6 +13,9 @@
 #include "cpe/utils/hash.h"
 #include "net_schedule.h"
 #include "net_raw_driver.h"
+#if NET_RAW_USE_EV
+#include "ev.h"
+#endif
 
 typedef TAILQ_HEAD(net_raw_device_list, net_raw_device) net_raw_device_list_t;
 typedef TAILQ_HEAD(net_raw_endpoint_list, net_raw_endpoint) net_raw_endpoint_list_t;
@@ -26,14 +28,20 @@ typedef struct net_raw_dgram * net_raw_dgram_t;
 typedef struct net_raw_timer * net_raw_timer_t;
 
 struct net_raw_driver {
+#if NET_RAW_USE_EV
     struct ev_loop * m_ev_loop;
+#endif
     mem_allocrator_t m_alloc;
     error_monitor_t m_em;
     net_raw_driver_match_mode_t m_mode;
     net_ipset_t m_ipset;
     uint8_t m_debug;
 
+#if NET_RAW_USE_EV
     struct ev_timer m_tcp_timer;
+#else
+    net_timer_t m_tcp_timer;
+#endif
     struct mem_buffer m_data_buffer;
 
     net_raw_device_t m_default_device;

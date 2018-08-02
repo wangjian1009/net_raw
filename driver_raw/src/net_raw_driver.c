@@ -2,6 +2,7 @@
 #include "net_schedule.h"
 #include "net_driver.h"
 #include "net_ipset.h"
+#include "net_timer.h"
 #include "net_raw_driver_i.h"
 #include "net_raw_device_i.h"
 #include "net_raw_endpoint.h"
@@ -11,10 +12,20 @@
 
 static int net_raw_driver_init(net_driver_t driver);
 static void net_raw_driver_fini(net_driver_t driver);
+#if NET_RAW_USE_EV
 static void net_raw_driver_tcp_timer_cb(EV_P_ ev_timer *watcher, int revents);
+#else
+static void net_raw_driver_tcp_timer_cb(net_timer_t timer, void * ctx);
+#endif
 
 net_raw_driver_t
-net_raw_driver_create(net_schedule_t schedule, void * ev_loop, net_raw_driver_match_mode_t mode) {
+net_raw_driver_create(
+    net_schedule_t schedule,
+#if NET_RAW_USE_EV
+    void * ev_loop,
+#endif
+    net_raw_driver_match_mode_t mode)
+{
     net_driver_t base_driver;
 
     base_driver = net_driver_create(
@@ -29,6 +40,10 @@ net_raw_driver_create(net_schedule_t schedule, void * ev_loop, net_raw_driver_ma
         NULL,
         NULL,
         NULL,
+        NULL,
+        NULL,
+        /*acceptor*/
+        0,
         NULL,
         NULL,
         /*endpoint*/
@@ -47,9 +62,14 @@ net_raw_driver_create(net_schedule_t schedule, void * ev_loop, net_raw_driver_ma
     if (base_driver == NULL) return NULL;
 
     net_raw_driver_t driver = net_driver_data(base_driver);
-    driver->m_ev_loop = ev_loop;
+
     driver->m_mode = mode;
+#if NET_RAW_USE_EV
+    driver->m_ev_loop = ev_loop;
     ev_timer_start(driver->m_ev_loop, &driver->m_tcp_timer);
+#else
+    net_timer_active(driver->m_tcp_timer, TCP_TMR_INTERVAL);
+#endif
 
     lwip_init();
     
@@ -66,7 +86,9 @@ static int net_raw_driver_init(net_driver_t base_driver) {
 
     driver->m_alloc = net_schedule_allocrator(schedule);
     driver->m_em = net_schedule_em(schedule);
+#if NET_RAW_USE_EV
     driver->m_ev_loop = NULL;
+#endif    
     driver->m_mode = net_raw_driver_match_white;
     driver->m_ipset = NULL;
     TAILQ_INIT(&driver->m_devices);
@@ -78,8 +100,12 @@ static int net_raw_driver_init(net_driver_t base_driver) {
     driver->m_data_monitor_ctx = NULL;
     driver->m_debug = 0;
 
+#if NET_RAW_USE_EV
     double tcp_timer_interval = ((double)TCP_TMR_INTERVAL / 1000.0);
     ev_timer_init(&driver->m_tcp_timer, net_raw_driver_tcp_timer_cb, tcp_timer_interval, tcp_timer_interval);
+#else
+    driver->m_tcp_timer = net_timer_auto_create(schedule, net_raw_driver_tcp_timer_cb, driver);
+#endif
 
     mem_buffer_init(&driver->m_data_buffer, driver->m_alloc);
     
@@ -89,7 +115,12 @@ static int net_raw_driver_init(net_driver_t base_driver) {
 static void net_raw_driver_fini(net_driver_t base_driver) {
     net_raw_driver_t driver = net_driver_data(base_driver);
 
+#if NET_RAW_USE_EV
     ev_timer_stop(driver->m_ev_loop, &driver->m_tcp_timer);
+#else
+    net_timer_free(driver->m_tcp_timer);
+    driver->m_tcp_timer = NULL;
+#endif
     
     while(!TAILQ_EMPTY(&driver->m_devices)) {
         net_raw_device_free(TAILQ_FIRST(&driver->m_devices));
@@ -167,7 +198,18 @@ mem_buffer_t net_raw_driver_tmp_buffer(net_raw_driver_t driver) {
     return net_schedule_tmp_buffer(net_driver_schedule(net_driver_from_data(driver)));
 }
 
+#if NET_RAW_USE_EV
+
 static void net_raw_driver_tcp_timer_cb(EV_P_ ev_timer *watcher, int revents) {
     tcp_tmr();
     return;
 }
+
+#else
+
+static void net_raw_driver_tcp_timer_cb(net_timer_t timer, void * ctx) {
+    tcp_tmr();
+    net_timer_active(timer, TCP_TMR_INTERVAL);
+}
+
+#endif
