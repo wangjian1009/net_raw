@@ -50,6 +50,7 @@
 		C9F7B23421129C1D00D5007A /* ip6_addr.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B19921129C1D00D5007A /* ip6_addr.c */; };
 		C9F7B23521129C1D00D5007A /* ip6_frag.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B19A21129C1D00D5007A /* ip6_frag.c */; };
 		C9F7B24921129C1D00D5007A /* err.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B20221129C1D00D5007A /* err.c */; };
+		C9F7B2582112A37300D5007A /* sys.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B2532112A37300D5007A /* sys.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -187,6 +188,10 @@
 		C9F7B1FC21129C1D00D5007A /* dhcp6.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dhcp6.h; sourceTree = "<group>"; };
 		C9F7B1FD21129C1D00D5007A /* mld6.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mld6.h; sourceTree = "<group>"; };
 		C9F7B20221129C1D00D5007A /* err.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = err.c; sourceTree = "<group>"; };
+		C9F7B2532112A37300D5007A /* sys.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sys.c; sourceTree = "<group>"; };
+		C9F7B2552112A37300D5007A /* cc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cc.h; sourceTree = "<group>"; };
+		C9F7B2562112A37300D5007A /* perf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = perf.h; sourceTree = "<group>"; };
+		C9F7B2572112A37300D5007A /* lwipopts.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lwipopts.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -210,6 +215,7 @@
 		C9CE6FA52111F2ED0099A50C = {
 			isa = PBXGroup;
 			children = (
+				C9F7B2502112A33F00D5007A /* buildtools */,
 				C9F7B14421129C1D00D5007A /* depends */,
 				C9CE6FB02111F2ED0099A50C /* driver_raw */,
 				C9CE6FAF2111F2ED0099A50C /* Products */,
@@ -464,6 +470,42 @@
 			path = api;
 			sourceTree = "<group>";
 		};
+		C9F7B2502112A33F00D5007A /* buildtools */ = {
+			isa = PBXGroup;
+			children = (
+				C9F7B2512112A37300D5007A /* custom */,
+			);
+			name = buildtools;
+			path = ..;
+			sourceTree = "<group>";
+		};
+		C9F7B2512112A37300D5007A /* custom */ = {
+			isa = PBXGroup;
+			children = (
+				C9F7B2522112A37300D5007A /* lwip */,
+			);
+			path = custom;
+			sourceTree = "<group>";
+		};
+		C9F7B2522112A37300D5007A /* lwip */ = {
+			isa = PBXGroup;
+			children = (
+				C9F7B2532112A37300D5007A /* sys.c */,
+				C9F7B2542112A37300D5007A /* arch */,
+				C9F7B2572112A37300D5007A /* lwipopts.h */,
+			);
+			path = lwip;
+			sourceTree = "<group>";
+		};
+		C9F7B2542112A37300D5007A /* arch */ = {
+			isa = PBXGroup;
+			children = (
+				C9F7B2552112A37300D5007A /* cc.h */,
+				C9F7B2562112A37300D5007A /* perf.h */,
+			);
+			path = arch;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -587,6 +629,7 @@
 				C9F7B22821129C1D00D5007A /* ip4_addr.c in Sources */,
 				C9F7B21221129C1D00D5007A /* sys.c in Sources */,
 				C9F7B21A21129C1D00D5007A /* raw.c in Sources */,
+				C9F7B2582112A37300D5007A /* sys.c in Sources */,
 				C9F7B24921129C1D00D5007A /* err.c in Sources */,
 				C9F7B21F21129C1D00D5007A /* def.c in Sources */,
 				C9F7B21E21129C1D00D5007A /* mem.c in Sources */,
