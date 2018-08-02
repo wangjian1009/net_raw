@@ -16,6 +16,9 @@
 #if NET_TUN_USE_EV
 #include "ev.h"
 #endif
+#if NET_TUN_USE_DQ
+#include <dispatch/source.h>
+#endif
 
 typedef TAILQ_HEAD(net_tun_device_list, net_tun_device) net_tun_device_list_t;
 
@@ -34,8 +37,10 @@ struct net_tun_driver {
 
 #if NET_TUN_USE_EV
     struct ev_timer m_tcp_timer;
-#else
-    net_timer_t m_tcp_timer;
+#endif
+    
+#if NET_TUN_USE_DQ
+    __unsafe_unretained dispatch_source_t m_tcp_timer;    
 #endif
     struct mem_buffer m_data_buffer;
 

@@ -13,8 +13,6 @@ static int net_tun_driver_init(net_driver_t driver);
 static void net_tun_driver_fini(net_driver_t driver);
 #if NET_TUN_USE_EV
 static void net_tun_driver_tcp_timer_cb(EV_P_ ev_timer *watcher, int revents);
-#else
-static void net_tun_driver_tcp_timer_cb(net_timer_t timer, void * ctx);
 #endif
 
 net_tun_driver_t
@@ -65,13 +63,11 @@ net_tun_driver_create(
 #if NET_TUN_USE_EV
     driver->m_ev_loop = ev_loop;
     ev_timer_start(driver->m_ev_loop, &driver->m_tcp_timer);
-#else
-    net_timer_active(driver->m_tcp_timer, TCP_TMR_INTERVAL);
 #endif
 
     lwip_init();
     
-    return net_driver_data(base_driver);
+    return driver;
 }
 
 net_tun_driver_t net_tun_driver_cast(net_driver_t driver) {
@@ -109,8 +105,19 @@ static int net_tun_driver_init(net_driver_t base_driver) {
 #if NET_TUN_USE_EV
     double tcp_timer_interval = ((double)TCP_TMR_INTERVAL / 1000.0);
     ev_timer_init(&driver->m_tcp_timer, net_tun_driver_tcp_timer_cb, tcp_timer_interval, tcp_timer_interval);
-#else
-    driver->m_tcp_timer = net_timer_auto_create(schedule, net_tun_driver_tcp_timer_cb, driver);
+#endif
+
+#if NET_TUN_USE_DQ
+    driver->m_tcp_timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
+    dispatch_retain(driver->m_tcp_timer);
+    dispatch_source_set_event_handler(driver->m_tcp_timer, ^{ tcp_tmr(); });
+    uint64_t tcp_timer_interval = ((uint64_t)TCP_TMR_INTERVAL) * 1000000u;
+    dispatch_source_set_timer(
+        driver->m_tcp_timer,
+        dispatch_time(DISPATCH_TIME_NOW, tcp_timer_interval),
+        tcp_timer_interval,
+        0ULL);
+    dispatch_resume(driver->m_tcp_timer);
 #endif
 
     mem_buffer_init(&driver->m_data_buffer, driver->m_alloc);
@@ -123,9 +130,13 @@ static void net_tun_driver_fini(net_driver_t base_driver) {
 
 #if NET_TUN_USE_EV
     ev_timer_stop(driver->m_ev_loop, &driver->m_tcp_timer);
-#else
-    net_timer_free(driver->m_tcp_timer);
-    driver->m_tcp_timer = NULL;
+#endif
+
+#if NET_TUN_USE_DQ
+    dispatch_source_set_event_handler(driver->m_tcp_timer, nil);
+    dispatch_source_cancel(driver->m_tcp_timer);
+    dispatch_release(driver->m_tcp_timer);
+    driver->m_tcp_timer = nil;
 #endif
 
     net_tun_acceptor_free_all(driver);
@@ -200,13 +211,6 @@ mem_buffer_t net_tun_driver_tmp_buffer(net_tun_driver_t driver) {
 static void net_tun_driver_tcp_timer_cb(EV_P_ ev_timer *watcher, int revents) {
     tcp_tmr();
     return;
-}
-
-#else
-
-static void net_tun_driver_tcp_timer_cb(net_timer_t timer, void * ctx) {
-    tcp_tmr();
-    net_timer_active(timer, TCP_TMR_INTERVAL);
 }
 
 #endif
