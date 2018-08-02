@@ -6,13 +6,13 @@
 #include "net_dgram.h"
 #include "net_address.h"
 #include "net_driver.h"
-#include "net_raw_dgram.h"
+#include "net_tun_dgram.h"
 
-int net_raw_dgram_init(net_dgram_t base_dgram) {
+int net_tun_dgram_init(net_dgram_t base_dgram) {
     /* net_schedule_t schedule = net_dgram_schedule(base_dgram); */
     /* error_monitor_t em = net_schedule_em(schedule); */
-    /* net_raw_dgram_t dgram = net_dgram_data(base_dgram); */
-    /* net_raw_driver_t driver = net_driver_data(net_dgram_driver(base_dgram)); */
+    /* net_tun_dgram_t dgram = net_dgram_data(base_dgram); */
+    /* net_tun_driver_t driver = net_driver_data(net_dgram_driver(base_dgram)); */
     /* net_address_t address = net_dgram_address(base_dgram); */
 
     /* if (address) { */
@@ -107,12 +107,12 @@ int net_raw_dgram_init(net_dgram_t base_dgram) {
     return 0;
 }
 
-void net_raw_dgram_fini(net_dgram_t base_dgram) {
-    /* net_raw_dgram_t dgram = net_dgram_data(base_dgram); */
-    /* net_raw_driver_t driver = net_driver_data(net_dgram_driver(base_dgram)); */
+void net_tun_dgram_fini(net_dgram_t base_dgram) {
+    /* net_tun_dgram_t dgram = net_dgram_data(base_dgram); */
+    /* net_tun_driver_t driver = net_driver_data(net_dgram_driver(base_dgram)); */
 }
 
-int net_raw_dgram_send(net_dgram_t base_dgram, net_address_t target, void const * data, size_t data_len) {
+int net_tun_dgram_send(net_dgram_t base_dgram, net_address_t target, void const * data, size_t data_len) {
     printf("xxxxx: send %d\n", (int)data_len);
     return (int)data_len;
 }

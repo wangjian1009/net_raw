@@ -7,17 +7,17 @@
 #include "net_endpoint.h"
 #include "net_address.h"
 #include "net_driver.h"
-#include "net_raw_endpoint.h"
-#include "net_raw_utils.h"
+#include "net_tun_endpoint.h"
+#include "net_tun_utils.h"
 
-static err_t net_raw_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
-static err_t net_raw_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t len);
-static void net_raw_endpoint_err_func(void *arg, err_t err);
-static err_t net_raw_endpoint_poll_func(void *arg, struct tcp_pcb *pcb);
-static err_t net_raw_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, err_t err);
-static int net_raw_endpoint_do_write(struct net_raw_endpoint * endpoint);
+static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
+static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t len);
+static void net_tun_endpoint_err_func(void *arg, err_t err);
+static err_t net_tun_endpoint_poll_func(void *arg, struct tcp_pcb *pcb);
+static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, err_t err);
+static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint);
 
-void net_raw_endpoint_set_pcb(struct net_raw_endpoint * endpoint, struct tcp_pcb * pcb) {
+void net_tun_endpoint_set_pcb(struct net_tun_endpoint * endpoint, struct tcp_pcb * pcb) {
     if (endpoint->m_pcb) {
         tcp_err(endpoint->m_pcb, NULL);
         tcp_recv(endpoint->m_pcb, NULL);
@@ -32,17 +32,17 @@ void net_raw_endpoint_set_pcb(struct net_raw_endpoint * endpoint, struct tcp_pcb
     if (endpoint->m_pcb) {
         tcp_nagle_disable(endpoint->m_pcb);
         tcp_arg(endpoint->m_pcb, endpoint);
-        tcp_err(endpoint->m_pcb, net_raw_endpoint_err_func);
-        tcp_recv(endpoint->m_pcb, net_raw_endpoint_recv_func);
-        tcp_sent(endpoint->m_pcb, net_raw_endpoint_sent_func);
-        tcp_poll(endpoint->m_pcb, net_raw_endpoint_poll_func, 4);
+        tcp_err(endpoint->m_pcb, net_tun_endpoint_err_func);
+        tcp_recv(endpoint->m_pcb, net_tun_endpoint_recv_func);
+        tcp_sent(endpoint->m_pcb, net_tun_endpoint_sent_func);
+        tcp_poll(endpoint->m_pcb, net_tun_endpoint_poll_func, 4);
     }
 }
 
-static err_t net_raw_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
-    net_raw_endpoint_t endpoint = arg;
+static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
+    net_tun_endpoint_t endpoint = arg;
     net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
-    net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+    net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
     net_schedule_t schedule = net_endpoint_schedule(base_endpoint);
 
     assert(err == ERR_OK); /* checked in lwIP source. Otherwise, I've no idea what should
@@ -52,7 +52,7 @@ static err_t net_raw_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
         if (driver->m_debug >= 2) {
             CPE_INFO(
                 driver->m_em, "raw: %s: client closed",
-                net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint));
+                net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
         }
 
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
@@ -71,7 +71,7 @@ static err_t net_raw_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
     if (data == NULL) {
         CPE_ERROR(
             driver->m_em, "raw: %s: no buffer for data, size=%d",
-            net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint), size);
+            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint), size);
         return ERR_MEM;
     }
 
@@ -93,12 +93,12 @@ static err_t net_raw_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
     return ERR_OK;
 }
 
-static err_t net_raw_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t len) {
-    net_raw_endpoint_t endpoint = arg;
+static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t len) {
+    net_tun_endpoint_t endpoint = arg;
     net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
-    //net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+    //net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
 
-    if (net_raw_endpoint_do_write(endpoint) != 0) {
+    if (net_tun_endpoint_do_write(endpoint) != 0) {
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
             net_endpoint_free(base_endpoint);
             return ERR_ABRT; 
@@ -108,20 +108,20 @@ static err_t net_raw_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t l
     return ERR_OK;
 }
 
-static void net_raw_endpoint_err_func(void *arg, err_t err) {
-    net_raw_endpoint_t endpoint = arg;
+static void net_tun_endpoint_err_func(void *arg, err_t err) {
+    net_tun_endpoint_t endpoint = arg;
     net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
-    net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+    net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
 
     if (driver->m_debug) {
         CPE_INFO(
             driver->m_em, "raw: %s: client error %d (%s)",
-            net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint),
+            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
             (int)err, lwip_strerr(err));
     }
 
     if (err != ERR_ABRT) {
-        net_raw_endpoint_set_pcb(endpoint, NULL);
+        net_tun_endpoint_set_pcb(endpoint, NULL);
     }
     else {
         endpoint->m_pcb = NULL;
@@ -132,14 +132,14 @@ static void net_raw_endpoint_err_func(void *arg, err_t err) {
     }
 }
 
-static err_t net_raw_endpoint_poll_func(void *arg, struct tcp_pcb *pcb) {
-    /* net_raw_endpoint_t endpoint = arg; */
+static err_t net_tun_endpoint_poll_func(void *arg, struct tcp_pcb *pcb) {
+    /* net_tun_endpoint_t endpoint = arg; */
     /* net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint); */
-    /* net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint)); */
+    /* net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint)); */
 
     /* CPE_INFO( */
     /*     driver->m_em, "raw: %s: poll", */
-    /*     net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint)); */
+    /*     net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint)); */
     
     /* if (conn->state == NETCONN_WRITE) { */
     /*     lwip_netconn_do_writemore(conn); */
@@ -162,10 +162,10 @@ static err_t net_raw_endpoint_poll_func(void *arg, struct tcp_pcb *pcb) {
     return ERR_OK;
 }
 
-static err_t net_raw_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, err_t err) {
-    net_raw_endpoint_t endpoint = arg;
+static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, err_t err) {
+    net_tun_endpoint_t endpoint = arg;
     net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
-    net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+    net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
     net_schedule_t schedule = net_endpoint_schedule(base_endpoint);
     error_monitor_t em = net_schedule_em(schedule);
 
@@ -194,41 +194,41 @@ static err_t net_raw_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, er
     return ERR_OK;
 }
 
-int net_raw_endpoint_init(net_endpoint_t base_endpoint) {
-    net_raw_endpoint_t endpoint = net_endpoint_data(base_endpoint);
+int net_tun_endpoint_init(net_endpoint_t base_endpoint) {
+    net_tun_endpoint_t endpoint = net_endpoint_data(base_endpoint);
     endpoint->m_pcb = NULL;
     return 0;
 }
 
-void net_raw_endpoint_fini(net_endpoint_t base_endpoint) {
-    net_raw_endpoint_t endpoint = net_endpoint_data(base_endpoint);
-    net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+void net_tun_endpoint_fini(net_endpoint_t base_endpoint) {
+    net_tun_endpoint_t endpoint = net_endpoint_data(base_endpoint);
+    //net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
 
     if (endpoint->m_pcb) {
-        net_raw_endpoint_set_pcb(endpoint, NULL);
+        net_tun_endpoint_set_pcb(endpoint, NULL);
         assert(endpoint->m_pcb == NULL);
     }
 }
 
-int net_raw_endpoint_on_output(net_endpoint_t base_endpoint) {
+int net_tun_endpoint_on_output(net_endpoint_t base_endpoint) {
     if (net_endpoint_state(base_endpoint) != net_endpoint_state_established) return 0;
 
-    net_raw_endpoint_t endpoint = net_endpoint_data(base_endpoint);
-    net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+    net_tun_endpoint_t endpoint = net_endpoint_data(base_endpoint);
+    net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
 
     if (endpoint->m_pcb == NULL) {
         CPE_ERROR(
             driver->m_em, "raw: %s: on output: not connected!",
-            net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint));
+            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
         return -1;
     }
 
-    return net_raw_endpoint_do_write(endpoint);
+    return net_tun_endpoint_do_write(endpoint);
 }
 
-static int net_raw_endpoint_do_write(struct net_raw_endpoint * endpoint) {
+static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
     net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
-    net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+    net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
 
     while(net_endpoint_state(base_endpoint) == net_endpoint_state_established && !net_endpoint_wbuf_is_empty(base_endpoint)) {
         uint32_t data_size;
@@ -253,7 +253,7 @@ static int net_raw_endpoint_do_write(struct net_raw_endpoint * endpoint) {
 
             CPE_ERROR(
                 driver->m_em, "raw: %s: write: tcp_write fail %d (%s)!",
-                net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint), err, lwip_strerr(err));
+                net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint), err, lwip_strerr(err));
             
             return -1;
         }
@@ -265,16 +265,16 @@ static int net_raw_endpoint_do_write(struct net_raw_endpoint * endpoint) {
     if (err != ERR_OK) {
         CPE_ERROR(
             driver->m_em, "raw: %s: write: tcp_output fail %d (%s)!",
-            net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint), err, lwip_strerr(err));
+            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint), err, lwip_strerr(err));
         return -1;
     }
 
     return 0;
 }
 
-int net_raw_endpoint_connect(net_endpoint_t base_endpoint) {
-    net_raw_endpoint_t endpoint = net_endpoint_data(base_endpoint);
-    net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+int net_tun_endpoint_connect(net_endpoint_t base_endpoint) {
+    net_tun_endpoint_t endpoint = net_endpoint_data(base_endpoint);
+    net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
     net_schedule_t schedule = net_endpoint_schedule(base_endpoint);
     error_monitor_t em = net_schedule_em(schedule);
 
@@ -363,7 +363,7 @@ int net_raw_endpoint_connect(net_endpoint_t base_endpoint) {
         ip_addr_t remote_iwip_addr;
         net_address_to_lwip_ipv4(&remote_iwip_addr, remote_addr);
 
-        err_t err = tcp_connect(pcb, &remote_iwip_addr, net_address_port(remote_addr), net_raw_endpoint_connected_func);
+        err_t err = tcp_connect(pcb, &remote_iwip_addr, net_address_port(remote_addr), net_tun_endpoint_connected_func);
         if (err != ERR_OK) {
             CPE_ERROR(
                 em, "raw: %s: connect error, error=%d (%s)",
@@ -395,14 +395,14 @@ int net_raw_endpoint_connect(net_endpoint_t base_endpoint) {
             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
     }
 
-    net_raw_endpoint_set_pcb(endpoint, pcb);
+    net_tun_endpoint_set_pcb(endpoint, pcb);
     
     return net_endpoint_set_state(base_endpoint, net_endpoint_state_connecting);
 }
 
-void net_raw_endpoint_close(net_endpoint_t base_endpoint) {
-    net_raw_endpoint_t endpoint = net_endpoint_data(base_endpoint);
-    net_raw_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+void net_tun_endpoint_close(net_endpoint_t base_endpoint) {
+    net_tun_endpoint_t endpoint = net_endpoint_data(base_endpoint);
+    net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
 
     if (endpoint->m_pcb == NULL) return;
 
@@ -415,9 +415,9 @@ void net_raw_endpoint_close(net_endpoint_t base_endpoint) {
     if (err != ERR_OK) {
         CPE_ERROR(
             driver->m_em, "raw: %s: tcp close failed, error=%d (%s)",
-            net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint),
+            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
             err, lwip_strerr(err));
-        net_raw_endpoint_set_pcb(endpoint, NULL);
+        net_tun_endpoint_set_pcb(endpoint, NULL);
         return;
     }
     endpoint->m_pcb = NULL;
@@ -425,7 +425,7 @@ void net_raw_endpoint_close(net_endpoint_t base_endpoint) {
     if (driver->m_debug >= 2) {
         CPE_INFO(
             driver->m_em, "raw: %s: tcp closed",
-            net_endpoint_dump(net_raw_driver_tmp_buffer(driver), base_endpoint));
+            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
     }
 }
 
