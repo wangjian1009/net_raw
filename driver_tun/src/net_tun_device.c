@@ -33,13 +33,22 @@ net_tun_device_create(
         return NULL;
     }
 
-    device->m_driver = NULL;
-    device->m_address = NULL;
-    device->m_mask = NULL;
-    device->m_quitting = 0;
-    device->m_mtu = 0;
+    device->m_driver = driver;
     device->m_listener_ip4 = NULL;
     device->m_listener_ip6 = NULL;
+    device->m_mtu = 0;
+    device->m_quitting = 0;
+    device->m_address = NULL;
+    device->m_mask = NULL;
+    device->m_dev_name[0] = 0;
+    
+#if NET_TUN_USE_DEV_TUN
+    device->m_dev_fd = -1;
+#endif
+
+#if NET_TUN_USE_DEV_NE
+    device->m_tunnelFlow = NULL;
+#endif
 
 #if NET_TUN_USE_DEV_TUN
     if (net_tun_device_init_dev(driver, device, name) != 0) {
