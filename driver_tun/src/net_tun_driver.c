@@ -154,7 +154,7 @@ net_ipset_t net_tun_driver_ipset_check_create(net_tun_driver_t driver) {
     if (driver->m_ipset == NULL) {
         driver->m_ipset = net_ipset_create(net_tun_driver_schedule(driver));
         if (driver->m_ipset == NULL) {
-            CPE_ERROR(driver->m_em, "raw: driver create ipset fail!");
+            CPE_ERROR(driver->m_em, "tun: driver create ipset fail!");
             return NULL;
         }
     }

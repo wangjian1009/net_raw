@@ -51,7 +51,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
     if (!p) {
         if (driver->m_debug >= 2) {
             CPE_INFO(
-                driver->m_em, "raw: %s: client closed",
+                driver->m_em, "tun: %s: client closed",
                 net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
         }
 
@@ -70,7 +70,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
     void * data = net_endpoint_rbuf_alloc(base_endpoint, &size);
     if (data == NULL) {
         CPE_ERROR(
-            driver->m_em, "raw: %s: no buffer for data, size=%d",
+            driver->m_em, "tun: %s: no buffer for data, size=%d",
             net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint), size);
         return ERR_MEM;
     }
@@ -81,7 +81,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_logic_error) != 0) {
             if (driver->m_debug || net_schedule_debug(schedule) >= 2) {
                 CPE_INFO(
-                    driver->m_em, "raw: %s: free for process fail!",
+                    driver->m_em, "tun: %s: free for process fail!",
                     net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
             }
             net_endpoint_free(base_endpoint);
@@ -115,7 +115,7 @@ static void net_tun_endpoint_err_func(void *arg, err_t err) {
 
     if (driver->m_debug) {
         CPE_INFO(
-            driver->m_em, "raw: %s: client error %d (%s)",
+            driver->m_em, "tun: %s: client error %d (%s)",
             net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
             (int)err, lwip_strerr(err));
     }
@@ -138,7 +138,7 @@ static err_t net_tun_endpoint_poll_func(void *arg, struct tcp_pcb *pcb) {
     /* net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint)); */
 
     /* CPE_INFO( */
-    /*     driver->m_em, "raw: %s: poll", */
+    /*     driver->m_em, "tun: %s: poll", */
     /*     net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint)); */
     
     /* if (conn->state == NETCONN_WRITE) { */
@@ -218,7 +218,7 @@ int net_tun_endpoint_on_output(net_endpoint_t base_endpoint) {
 
     if (endpoint->m_pcb == NULL) {
         CPE_ERROR(
-            driver->m_em, "raw: %s: on output: not connected!",
+            driver->m_em, "tun: %s: on output: not connected!",
             net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
         return -1;
     }
@@ -252,7 +252,7 @@ static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
             }
 
             CPE_ERROR(
-                driver->m_em, "raw: %s: write: tcp_write fail %d (%s)!",
+                driver->m_em, "tun: %s: write: tcp_write fail %d (%s)!",
                 net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint), err, lwip_strerr(err));
             
             return -1;
@@ -264,7 +264,7 @@ static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
     err_t err = tcp_output(endpoint->m_pcb);
     if (err != ERR_OK) {
         CPE_ERROR(
-            driver->m_em, "raw: %s: write: tcp_output fail %d (%s)!",
+            driver->m_em, "tun: %s: write: tcp_output fail %d (%s)!",
             net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint), err, lwip_strerr(err));
         return -1;
     }
@@ -280,7 +280,7 @@ int net_tun_endpoint_connect(net_endpoint_t base_endpoint) {
 
     if (endpoint->m_pcb != NULL) {
         CPE_ERROR(
-            em, "raw: %s: already connected!",
+            em, "tun: %s: already connected!",
             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
         return -1;
     }
@@ -288,7 +288,7 @@ int net_tun_endpoint_connect(net_endpoint_t base_endpoint) {
     net_address_t remote_addr = net_endpoint_remote_address(base_endpoint);
     if (remote_addr == NULL) {
         CPE_ERROR(
-            em, "raw: %s: connect with no remote address!",
+            em, "tun: %s: connect with no remote address!",
             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
         return -1;
     }
@@ -306,7 +306,7 @@ int net_tun_endpoint_connect(net_endpoint_t base_endpoint) {
             break;
         case net_address_domain:
             CPE_ERROR(
-                em, "raw: %s: connect not support domain address!",
+                em, "tun: %s: connect not support domain address!",
                 net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
             return -1;
         }
@@ -321,7 +321,7 @@ int net_tun_endpoint_connect(net_endpoint_t base_endpoint) {
             break;
         case net_address_domain:
             CPE_ERROR(
-                em, "raw: %s: connect not support domain address!",
+                em, "tun: %s: connect not support domain address!",
                 net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
             return -1;
         }
@@ -330,7 +330,7 @@ int net_tun_endpoint_connect(net_endpoint_t base_endpoint) {
     struct tcp_pcb * pcb = NULL;
     if (is_ipv6) {
         CPE_ERROR(
-            em, "raw: %s: connect: not support ipv6 yet!",
+            em, "tun: %s: connect: not support ipv6 yet!",
             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
         return -1;
     }
@@ -338,7 +338,7 @@ int net_tun_endpoint_connect(net_endpoint_t base_endpoint) {
         pcb = tcp_new();
         if (pcb == NULL) {
             CPE_ERROR(
-                em, "raw: %s: connect: create pcb fail!",
+                em, "tun: %s: connect: create pcb fail!",
                 net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
             return -1;
         }
@@ -353,7 +353,7 @@ int net_tun_endpoint_connect(net_endpoint_t base_endpoint) {
                 cpe_str_dup(ip_buf, sizeof(ip_buf), net_address_dump(net_schedule_tmp_buffer(schedule), local_address));
                 
                 CPE_ERROR(
-                    em, "raw: %s: bind %s fail, error=%d (%s)",
+                    em, "tun: %s: bind %s fail, error=%d (%s)",
                     net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), ip_buf, err, lwip_strerr(err));
                 tcp_abort(pcb);
                 return -1;
@@ -366,7 +366,7 @@ int net_tun_endpoint_connect(net_endpoint_t base_endpoint) {
         err_t err = tcp_connect(pcb, &remote_iwip_addr, net_address_port(remote_addr), net_tun_endpoint_connected_func);
         if (err != ERR_OK) {
             CPE_ERROR(
-                em, "raw: %s: connect error, error=%d (%s)",
+                em, "tun: %s: connect error, error=%d (%s)",
                 net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), err, lwip_strerr(err));
             tcp_abort(pcb);
             return -1;
@@ -379,7 +379,7 @@ int net_tun_endpoint_connect(net_endpoint_t base_endpoint) {
             local_address = net_address_from_lwip(driver, is_ipv6, &pcb->local_ip, pcb->local_port);
             if (local_address == NULL) {
                 CPE_ERROR(
-                    em, "raw: %s: connect success, create local address fail",
+                    em, "tun: %s: connect success, create local address fail",
                     net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
                 tcp_abort(pcb);
                 return -1;
@@ -391,7 +391,7 @@ int net_tun_endpoint_connect(net_endpoint_t base_endpoint) {
 
     if (net_schedule_debug(schedule) >= 2) {
         CPE_INFO(
-            em, "raw: %s: connect start",
+            em, "tun: %s: connect start",
             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
     }
 
@@ -414,7 +414,7 @@ void net_tun_endpoint_close(net_endpoint_t base_endpoint) {
     err_t err = tcp_close(endpoint->m_pcb);
     if (err != ERR_OK) {
         CPE_ERROR(
-            driver->m_em, "raw: %s: tcp close failed, error=%d (%s)",
+            driver->m_em, "tun: %s: tcp close failed, error=%d (%s)",
             net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
             err, lwip_strerr(err));
         net_tun_endpoint_set_pcb(endpoint, NULL);
@@ -424,7 +424,7 @@ void net_tun_endpoint_close(net_endpoint_t base_endpoint) {
     
     if (driver->m_debug >= 2) {
         CPE_INFO(
-            driver->m_em, "raw: %s: tcp closed",
+            driver->m_em, "tun: %s: tcp closed",
             net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
     }
 }

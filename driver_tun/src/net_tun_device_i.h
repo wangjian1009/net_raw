@@ -2,9 +2,6 @@
 #define NET_TUN_DEVICE_I_H_INCLEDED
 #include "net_tun_device.h"
 #include "net_tun_driver_i.h"
-#if NET_TUN_USE_DEV_NE
-#import <NetworkExtension/NEPacketTunnelFlow.h>
-#endif
 
 struct net_tun_device {
     net_tun_driver_t m_driver;
@@ -34,7 +31,7 @@ int net_tun_device_init_dev(net_tun_driver_t driver, net_tun_device_t device_tun
 #endif
 
 #if NET_TUN_USE_DEV_NE
-int net_tun_device_init_dev(net_tun_driver_t driver, net_tun_device_t device_tun, const char * name, void * tunnelFlow);
+int net_tun_device_init_dev(net_tun_driver_t driver, net_tun_device_t device_tun, const char * name, NEPacketTunnelFlow * tunnelFlow);
 #endif
 
 void net_tun_device_fini_dev(net_tun_driver_t driver, net_tun_device_t device_tun);

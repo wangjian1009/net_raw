@@ -23,13 +23,13 @@ net_tun_device_t
 net_tun_device_create(
     net_tun_driver_t driver, const char * name
 #if NET_TUN_USE_DEV_NE
-    , void * tunnelFlow
+    , NEPacketTunnelFlow * tunnelFlow
 #endif
     )
 {
     net_tun_device_t device = mem_alloc(driver->m_alloc, sizeof(struct net_tun_device));
     if (device == NULL) {
-        CPE_ERROR(driver->m_em, "raw: device alloc fail!");
+        CPE_ERROR(driver->m_em, "tun: device alloc fail!");
         return NULL;
     }
 
@@ -79,7 +79,7 @@ net_tun_device_create(
         cpe_str_dup(mask, sizeof(mask), device->m_mask ? net_address_dump(net_tun_driver_tmp_buffer(driver), device->m_mask) : "");
         
         CPE_INFO(
-            driver->m_em, "raw: %s: created: mtu=%d, address=%s, mask=%s",
+            driver->m_em, "tun: %s: created: mtu=%d, address=%s, mask=%s",
             device->m_dev_name, device->m_mtu, address, mask);
     }
     

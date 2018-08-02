@@ -22,7 +22,7 @@ int net_tun_device_init_tun(net_tun_driver_t driver, net_tun_device_t device, co
     
 #if CPE_OS_LINUX
     if ((device->m_dev_fd = open("/dev/net/tun", O_RDWR)) < 0) {
-        CPE_ERROR(driver->m_em, "raw: %s: open fail, %d %s", name, errno, strerror(errno));
+        CPE_ERROR(driver->m_em, "tun: %s: open fail, %d %s", name, errno, strerror(errno));
         goto create_error;
     }
             
@@ -32,14 +32,14 @@ int net_tun_device_init_tun(net_tun_driver_t driver, net_tun_device_t device, co
     snprintf(ifr.ifr_name, IFNAMSIZ, "%s", name);
                             
     if (ioctl(device->m_dev_fd, TUNSETIFF, (void *) &ifr) < 0) {
-        CPE_ERROR(driver->m_em, "raw: %s: ioctl fail, %d %s", name, errno, strerror(errno));
+        CPE_ERROR(driver->m_em, "tun: %s: ioctl fail, %d %s", name, errno, strerror(errno));
         goto create_error;
     }
     cpe_str_dup(device->m_dev_name, sizeof(device->m_dev_name), ifr.ifr_name);
 
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) {
-        CPE_ERROR(driver->m_em, "raw: %s: socket fail, %d %s", device->m_dev_name, errno, strerror(errno));
+        CPE_ERROR(driver->m_em, "tun: %s: socket fail, %d %s", device->m_dev_name, errno, strerror(errno));
         goto create_error;
     }
             
@@ -48,7 +48,7 @@ int net_tun_device_init_tun(net_tun_driver_t driver, net_tun_device_t device, co
 
     /*mtu*/
     if (ioctl(sock, SIOCGIFMTU, (void *)&ifr) < 0) {
-        CPE_ERROR(driver->m_em, "raw: %s: get mtu fail, %d %s", device->m_dev_name, errno, strerror(errno));
+        CPE_ERROR(driver->m_em, "tun: %s: get mtu fail, %d %s", device->m_dev_name, errno, strerror(errno));
         close(sock);
         goto create_error;
     }
@@ -56,7 +56,7 @@ int net_tun_device_init_tun(net_tun_driver_t driver, net_tun_device_t device, co
 
     /*address*/
     if (ioctl(sock, SIOCGIFADDR, (void *)&ifr) < 0) {
-        CPE_ERROR(driver->m_em, "raw: %s: get addr fail, %d %s", device->m_dev_name, errno, strerror(errno));
+        CPE_ERROR(driver->m_em, "tun: %s: get addr fail, %d %s", device->m_dev_name, errno, strerror(errno));
         close(sock);
         goto create_error;
     }
@@ -64,7 +64,7 @@ int net_tun_device_init_tun(net_tun_driver_t driver, net_tun_device_t device, co
 
     /*mask*/
     if (ioctl(sock, SIOCGIFNETMASK, (void *)&ifr) < 0) {
-        CPE_ERROR(driver->m_em, "raw: %s: get mask fail, %d %s", device->m_dev_name, errno, strerror(errno));
+        CPE_ERROR(driver->m_em, "tun: %s: get mask fail, %d %s", device->m_dev_name, errno, strerror(errno));
         close(sock);
         goto create_error;
     }
@@ -75,7 +75,7 @@ int net_tun_device_init_tun(net_tun_driver_t driver, net_tun_device_t device, co
 #endif /*CPE_OS_LINUX*/
 
     if (fcntl(device->m_dev_fd, F_SETFL, O_NONBLOCK) < 0) {
-        CPE_ERROR(driver->m_em, "raw: %s: set nonblock fail, %d %s", name, errno, strerror(errno));
+        CPE_ERROR(driver->m_em, "tun: %s: set nonblock fail, %d %s", name, errno, strerror(errno));
         goto create_error;
     }
     
