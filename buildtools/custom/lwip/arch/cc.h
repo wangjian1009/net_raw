@@ -1,12 +1,13 @@
 #ifndef LWIP_CUSTOM_CC_H
 #define LWIP_CUSTOM_CC_H
 
-#include <errno.h>
 #include <arpa/inet.h>
+#include "cpe/pal/pal_errno.h"
 #include "cpe/pal/pal_platform.h"
 #include "cpe/pal/pal_stdio.h"
 #include "cpe/pal/pal_stdlib.h"
 #include "cpe/pal/pal_string.h"
+#include "cpe/utils/utils_types.h"
 
 #define u8_t uint8_t
 #define s8_t int8_t
@@ -20,8 +21,8 @@
 #define PACK_STRUCT_END CPE_END_PACKED
 #define PACK_STRUCT_STRUCT CPE_PACKED
 
-#define LWIP_PLATFORM_DIAG(x) { CPE_INFO(x); }
-#define LWIP_PLATFORM_ASSERT(x) { fprintf(stderr, "%s: lwip assertion failure: %s\n", __FUNCTION__, (x)); abort(); }
+#define LWIP_PLATFORM_DIAG(x) do { lwip_em_info_printf x; } while(0)
+#define LWIP_PLATFORM_ASSERT(x) { lwip_em_error_printf("%s: lwip assertion failure: %s\n", __FUNCTION__, (x)); abort(); }
 
 #define U16_F PRIu16
 #define S16_F PRId16
@@ -41,5 +42,18 @@
     (((uint32_t)(rand() & 0xFF)) << 8) | \
     (((uint32_t)(rand() & 0xFF)) << 0) \
 )
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void lwip_em_info_printf(const char * msg, ...);
+void lwip_em_error_printf(const char * msg, ...);
+extern error_monitor_t g_lwip_em;
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif

@@ -69,6 +69,7 @@ net_tun_driver_create(
     ev_timer_start(driver->m_ev_loop, &driver->m_tcp_timer);
 #endif
 
+    g_lwip_em = driver->m_em;
     lwip_init();
     
     return driver;

@@ -15,7 +15,6 @@ static err_t net_tun_device_netif_input(struct pbuf *p, struct netif *inp);
 static err_t net_tun_device_netif_output_ip4(struct netif *netif, struct pbuf *p, ip_addr_t *ipaddr);
 static err_t net_tun_device_netif_output_ip6(struct netif *netif, struct pbuf *p, ip6_addr_t *ipaddr);
 
-static err_t net_tun_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_t err);
 static int net_tun_device_send(net_tun_device_t device, uint8_t *data, int data_len);
 
 net_tun_device_t
@@ -302,9 +301,6 @@ static err_t net_tun_device_netif_output_ip6(struct netif *netif, struct pbuf *p
 }
 
 static err_t net_tun_device_netif_input(struct pbuf *p, struct netif * netif) {
-    net_tun_device_t device = netif->state;
-    net_tun_driver_t driver = device->m_driver;
-    
     uint8_t ip_version = 0;
     if (p->len > 0) {
         ip_version = (((uint8_t *)p->payload)[0] >> 4);

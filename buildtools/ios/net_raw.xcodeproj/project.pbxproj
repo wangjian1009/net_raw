@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C90048AD211453F000C29588 /* error.c in Sources */ = {isa = PBXBuildFile; fileRef = C90048AC211453F000C29588 /* error.c */; };
 		C9CE6FD52111F34E0099A50C /* net_tun_device_tun.c in Sources */ = {isa = PBXBuildFile; fileRef = C9CE6FBD2111F34E0099A50C /* net_tun_device_tun.c */; };
 		C9CE6FD62111F34E0099A50C /* net_tun_dgram.c in Sources */ = {isa = PBXBuildFile; fileRef = C9CE6FBE2111F34E0099A50C /* net_tun_dgram.c */; };
 		C9CE6FD82111F34E0099A50C /* net_tun_utils.c in Sources */ = {isa = PBXBuildFile; fileRef = C9CE6FC02111F34E0099A50C /* net_tun_utils.c */; };
@@ -73,6 +74,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		C90048AC211453F000C29588 /* error.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = error.c; sourceTree = "<group>"; };
 		C9CE6FAE2111F2ED0099A50C /* libnet_driver_tun.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libnet_driver_tun.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		C9CE6FBB2111F34E0099A50C /* net_tun_endpoint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = net_tun_endpoint.h; sourceTree = "<group>"; };
 		C9CE6FBD2111F34E0099A50C /* net_tun_device_tun.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.objc; fileEncoding = 4; path = net_tun_device_tun.c; sourceTree = "<group>"; };
@@ -470,6 +472,7 @@
 		C9F7B2522112A37300D5007A /* lwip */ = {
 			isa = PBXGroup;
 			children = (
+				C90048AC211453F000C29588 /* error.c */,
 				C9F7B2532112A37300D5007A /* sys.c */,
 				C9F7B2542112A37300D5007A /* arch */,
 				C9F7B2572112A37300D5007A /* lwipopts.h */,
@@ -602,6 +605,7 @@
 				C9F7B23521129C1D00D5007A /* ip6_frag.c in Sources */,
 				C9F7B22A21129C1D00D5007A /* tcp.c in Sources */,
 				C9F7B21B21129C1D00D5007A /* tcp_out.c in Sources */,
+				C90048AD211453F000C29588 /* error.c in Sources */,
 				C9F7B22921129C1D00D5007A /* netif.c in Sources */,
 				C9F7B21121129C1D00D5007A /* dhcp.c in Sources */,
 				C9F7B22821129C1D00D5007A /* ip4_addr.c in Sources */,
@@ -783,6 +787,13 @@
 			buildSettings = {
 				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"LWIP_DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_UNUSED_VALUE = NO;
+				GCC_WARN_UNUSED_VARIABLE = NO;
 				HEADER_SEARCH_PATHS = (
 					../../../cpe/include,
 					../custom/lwip,
@@ -801,6 +812,8 @@
 			buildSettings = {
 				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
+				GCC_WARN_UNUSED_VALUE = NO;
+				GCC_WARN_UNUSED_VARIABLE = NO;
 				HEADER_SEARCH_PATHS = (
 					../../../cpe/include,
 					../custom/lwip,
