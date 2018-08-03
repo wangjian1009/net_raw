@@ -413,3 +413,45 @@ static err_t net_tun_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_
     net_address_free(local_addr);
     return ERR_OK;
 }
+
+int net_tun_device_packet_input(net_tun_driver_t driver, net_tun_device_t device, uint8_t const * packet_data, uint16_t packet_size) {
+    if (packet_size < device->m_mtu) {
+        CPE_ERROR(
+            driver->m_em, "%s: input packet length %d overflow, mtu=%d",
+            device->m_netif.name, packet_size, device->m_mtu);
+        return -1;
+    }
+
+    uint8_t const * ethhead = NULL;
+    uint8_t const * iphead = packet_data;
+    uint8_t const * data = iphead + 20;
+
+    if (driver->m_debug >= 2) {
+        CPE_INFO(
+            driver->m_em, "%s: <<< %d |      %s",
+            device->m_netif.name, packet_size,
+            net_tun_dump_raw_data(net_tun_driver_tmp_buffer(driver), ethhead, iphead, data));
+    }
+            
+    struct pbuf *p = pbuf_alloc(PBUF_RAW, packet_size, PBUF_POOL);
+    if (!p) {
+        CPE_ERROR(driver->m_em, "%s: packet input: pbuf_alloc fail", device->m_netif.name);
+        return -1;
+    }
+
+    err_t err = pbuf_take(p, iphead, packet_size);
+    if (err != ERR_OK) {
+        CPE_ERROR(driver->m_em, "%s: packet input: pbuf_take fail, error=%d (%s)", device->m_netif.name, err, lwip_strerr(err));
+        pbuf_free(p);
+        return -1;
+    }
+
+    err = device->m_netif.input(p, &device->m_netif);
+    if (err != ERR_OK) {
+        CPE_ERROR(driver->m_em, "%s: packet input: input fail, error=%d (%s)", device->m_netif.name, err, lwip_strerr(err));
+        pbuf_free(p);
+        return -1;
+    }
+
+    return 0;
+}

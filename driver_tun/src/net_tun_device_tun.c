@@ -129,41 +129,7 @@ static void net_tun_device_rw_cb(EV_P_ ev_io *w, int revents) {
     
             assert(bytes <= device->m_mtu);
 
-            if (bytes > UINT16_MAX) {
-                CPE_ERROR(driver->m_em, "%s: rw: packet too large", device->m_netif.name);
-                break;
-            }
-            
-            uint8_t * ethhead = NULL;
-            uint8_t * iphead = data;  
-            uint8_t * data = iphead + 20;
-
-            if (driver->m_debug >= 2) {
-                CPE_INFO(
-                    driver->m_em, "%s: IN: %d |      %s",
-                    device->m_netif.name, bytes,
-                    net_tun_dump_raw_data(net_tun_driver_tmp_buffer(driver), ethhead, iphead, data));
-            }
-            
-            struct pbuf *p = pbuf_alloc(PBUF_RAW, bytes, PBUF_POOL);
-            if (!p) {
-                CPE_ERROR(driver->m_em, "%s: rw: pbuf_alloc fail", device->m_netif.name);
-                break;
-            }
-
-            err_t err = pbuf_take(p, iphead, bytes);
-            if (err != ERR_OK) {
-                CPE_ERROR(driver->m_em, "%s: rw: pbuf_take fail, error=%d (%s)", device->m_netif.name, err, lwip_strerr(err));
-                pbuf_free(p);
-                continue;
-            }
-
-            err = device->m_netif.input(p, &device->m_netif);
-            if (err != ERR_OK) {
-                CPE_ERROR(driver->m_em, "%s: rw: input fail, error=%d (%s)", device->m_netif.name, err, lwip_strerr(err));
-                pbuf_free(p);
-                continue;
-            }
+            net_tun_device_packet_input(driver, device, data, (uint16_t)bytes);
         } while(1);
     }
 }

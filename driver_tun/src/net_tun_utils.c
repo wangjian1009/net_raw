@@ -3,7 +3,7 @@
 #include "net_address.h"
 #include "net_tun_utils.h"
 
-void net_tun_print_raw_data(write_stream_t ws, uint8_t * ethhead, uint8_t * iphead, uint8_t * data) {
+void net_tun_print_raw_data(write_stream_t ws, uint8_t const * ethhead, uint8_t const * iphead, uint8_t const * data) {
     if (iphead == NULL && ethhead) {
     }
 
@@ -87,7 +87,7 @@ print_with_protocol:
     }
 }
 
-const char * net_tun_dump_raw_data(mem_buffer_t buffer, uint8_t * ethhead, uint8_t * iphead, uint8_t * data) {
+const char * net_tun_dump_raw_data(mem_buffer_t buffer, uint8_t const * ethhead, uint8_t const * iphead, uint8_t const * data) {
     struct write_stream_buffer stream = CPE_WRITE_STREAM_BUFFER_INITIALIZER(buffer);
 
     mem_buffer_clear_data(buffer);
@@ -98,7 +98,7 @@ const char * net_tun_dump_raw_data(mem_buffer_t buffer, uint8_t * ethhead, uint8
     return mem_buffer_make_continuous(buffer, 0);
 }
 
-net_address_t net_tun_iphead_source_addr(net_tun_driver_t driver, uint8_t * iphead) {
+net_address_t net_tun_iphead_source_addr(net_tun_driver_t driver, uint8_t const * iphead) {
     struct net_address_data_ipv4 addr_data;
     addr_data.u8[0] = iphead[12];
     addr_data.u8[1] = iphead[13];
@@ -109,7 +109,7 @@ net_address_t net_tun_iphead_source_addr(net_tun_driver_t driver, uint8_t * iphe
     return net_address_create_from_data_ipv4(net_tun_driver_schedule(driver), &addr_data, port);
 }
 
-net_address_t net_tun_iphead_target_addr(net_tun_driver_t driver, uint8_t * iphead) {
+net_address_t net_tun_iphead_target_addr(net_tun_driver_t driver, uint8_t const * iphead) {
     struct net_address_data_ipv4 addr_data;
     addr_data.u8[0] = iphead[16];
     addr_data.u8[1] = iphead[17];

@@ -3,6 +3,9 @@
 #include "net_tun_device.h"
 #include "net_tun_driver_i.h"
 
+#if NET_TUN_USE_DEV_NE
+#endif
+
 struct net_tun_device {
     net_tun_driver_t m_driver;
     TAILQ_ENTRY(net_tun_device) m_next_for_driver;
@@ -27,13 +30,15 @@ struct net_tun_device {
 };
 
 #if NET_TUN_USE_DEV_TUN
-int net_tun_device_init_dev(net_tun_driver_t driver, net_tun_device_t device_tun, const char * name);
+int net_tun_device_init_dev(net_tun_driver_t driver, net_tun_device_t device, const char * name);
 #endif
 
 #if NET_TUN_USE_DEV_NE
-int net_tun_device_init_dev(net_tun_driver_t driver, net_tun_device_t device_tun, const char * name, NEPacketTunnelFlow * tunnelFlow);
+int net_tun_device_init_dev(net_tun_driver_t driver, net_tun_device_t device, const char * name, NEPacketTunnelFlow * tunnelFlow);
 #endif
 
-void net_tun_device_fini_dev(net_tun_driver_t driver, net_tun_device_t device_tun);
+void net_tun_device_fini_dev(net_tun_driver_t driver, net_tun_device_t device);
+
+int net_tun_device_packet_input(net_tun_driver_t driver, net_tun_device_t device, uint8_t const * data, uint16_t bytes);
 
 #endif
