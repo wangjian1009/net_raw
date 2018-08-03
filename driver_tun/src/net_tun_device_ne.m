@@ -1,15 +1,42 @@
 #include <assert.h>
 #include "cpe/pal/pal_stdio.h"
 #include "cpe/utils/string_utils.h"
+#include "net_address.h"
 #include "net_tun_device_i.h"
 
 static void net_tun_device_start_read(net_tun_device_t device);
 
-int net_tun_device_init_dev(net_tun_driver_t driver, net_tun_device_t device, const char * name, NEPacketTunnelFlow * tunnelFlow, uint16_t mtu) {
+int net_tun_device_init_dev(
+    net_tun_driver_t driver, net_tun_device_t device, const char * name,
+    NEPacketTunnelFlow * tunnelFlow,  NEPacketTunnelNetworkSettings * settings)
+{
+    net_schedule_t schedule = net_tun_driver_schedule(driver);
+    
     assert(tunnelFlow);
 
     cpe_str_dup(device->m_dev_name, sizeof(device->m_dev_name), name);
-    device->m_mtu = mtu;
+    device->m_mtu = (uint16_t)settings.MTU;
+
+    NEIPv4Settings * ipv4Settings = settings.IPv4Settings;
+    if (ipv4Settings) {
+        if (ipv4Settings.addresses.count > 0) {
+            const char * address = [ipv4Settings.addresses[0] UTF8String];
+            device->m_address = net_address_create_ipv4(schedule, address, 0);
+            if (device->m_address == NULL) {
+                CPE_ERROR(driver->m_em, "%s: address %s format error!", device->m_dev_name, address);
+                return -1;
+            }
+        }
+
+        if (ipv4Settings.subnetMasks.count > 0) {
+            const char * mask = [ipv4Settings.subnetMasks[0] UTF8String];
+            device->m_mask = net_address_create_ipv4(schedule, mask, 0);
+            if (device->m_mask == NULL) {
+                CPE_ERROR(driver->m_em, "%s: mask %s format error!", device->m_dev_name, mask);
+                return -1;
+            }
+        }
+    }
 
     device->m_tunnelFlow = tunnelFlow;
     [device->m_tunnelFlow retain];

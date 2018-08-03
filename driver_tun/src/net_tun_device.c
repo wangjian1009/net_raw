@@ -24,7 +24,7 @@ net_tun_device_create(
     net_tun_driver_t driver, const char * name
 #if NET_TUN_USE_DEV_NE
     , NEPacketTunnelFlow * tunnelFlow
-    , uint16_t mtu
+    , NEPacketTunnelNetworkSettings * settings
 #endif
     )
 {
@@ -59,7 +59,7 @@ net_tun_device_create(
 #endif
 
 #if NET_TUN_USE_DEV_NE
-    if (net_tun_device_init_dev(driver, device, name, tunnelFlow, mtu) != 0) {
+    if (net_tun_device_init_dev(driver, device, name, tunnelFlow, settings) != 0) {
         mem_free(driver->m_alloc, device);
         return NULL;
     }
@@ -382,6 +382,7 @@ static err_t net_tun_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_
 
     assert(err == ERR_OK);
 
+    CPE_ERROR(driver->m_em, "xxxxx: netif_accept");
     uint8_t is_ipv6 = PCB_ISIPV6(newpcb) ? 1 : 0;
 
     struct tcp_pcb *this_listener = is_ipv6 ? device->m_listener_ip6 : device->m_listener_ip4;
