@@ -10,6 +10,7 @@ struct net_tun_device {
     net_tun_driver_t m_driver;
     TAILQ_ENTRY(net_tun_device) m_next_for_driver;
     struct netif m_netif;
+    net_address_t m_netif_address;
     uint16_t m_mtu;
     uint8_t m_quitting;
     net_address_t m_address;
