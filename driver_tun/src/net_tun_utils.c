@@ -3,6 +3,8 @@
 #include "net_address.h"
 #include "net_tun_utils.h"
 
+static const char * s_tcp_flags[] = { "FIN", "SYN", "RST", "PSH", "ACK", "URG" };
+
 void net_tun_print_raw_data(write_stream_t ws, uint8_t const * ethhead, uint8_t const * iphead, uint8_t const * data) {
     if (iphead == NULL && ethhead) {
     }
@@ -50,11 +52,32 @@ void net_tun_print_raw_data(write_stream_t ws, uint8_t const * ethhead, uint8_t 
         uint16_t port_from = ((((uint16_t)data[0])<<8) & 0XFF00) | (((uint16_t)data[1]) & 0XFF);
         uint16_t port_to = ((((uint16_t)data[2])<<8) & 0XFF00) | (((uint16_t)data[3]) & 0XFF);
         if (ethhead) {
-            stream_printf(ws, "TCP: %s:%d(%s) ==> %s:%d(%s)", ip_from, port_from, mac_from, ip_to, port_to, mac_to);
+            stream_printf(
+                ws, "TCP: %s:%d(%s) ==> %s:%d(%s)",
+                ip_from, port_from, mac_from, ip_to, port_to, mac_to);
         }
         else {
             stream_printf(ws, "TCP: %s:%d ==> %s:%d", ip_from, port_from, ip_to, port_to);
         }
+
+        uint32_t sn;
+        CPE_COPY_NTOH32(&sn, data + 4);
+        uint32_t ack;
+        CPE_COPY_NTOH32(&ack, data + 8);
+        stream_printf(ws, " sn=" FMT_UINT32_T ", ack=" FMT_UINT32_T, sn, ack);
+
+        uint8_t flag = data[13];
+        stream_printf(ws, ", flags=(");
+        uint8_t i;
+        uint8_t flag_count = 0;
+        for(i = 0; i < CPE_ARRAY_SIZE(s_tcp_flags); ++i) {
+            if (flag & (((uint8_t)0x1) << i)) {
+                if (flag_count++ != 0) { stream_printf(ws, ", "); }
+                stream_printf(ws, "%s", s_tcp_flags[i]);
+            }
+        }
+        stream_printf(ws, ")");
+        
         break;
     }
     case IPPROTO_UDP: {
