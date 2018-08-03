@@ -12,6 +12,7 @@ net_tun_device_create(
     net_tun_driver_t driver, const char * name
 #if NET_TUN_USE_DEV_NE
     , NEPacketTunnelFlow * tunnelFlow
+    , uint16_t mtu
 #endif
     );
 

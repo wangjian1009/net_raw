@@ -24,6 +24,7 @@ net_tun_device_create(
     net_tun_driver_t driver, const char * name
 #if NET_TUN_USE_DEV_NE
     , NEPacketTunnelFlow * tunnelFlow
+    , uint16_t mtu
 #endif
     )
 {
@@ -58,7 +59,7 @@ net_tun_device_create(
 #endif
 
 #if NET_TUN_USE_DEV_NE
-    if (net_tun_device_init_dev(driver, device, name, tunnelFlow) != 0) {
+    if (net_tun_device_init_dev(driver, device, name, tunnelFlow, mtu) != 0) {
         mem_free(driver->m_alloc, device);
         return NULL;
     }
@@ -311,7 +312,7 @@ static err_t net_tun_device_netif_do_output(struct netif *netif, struct pbuf *p)
         if (driver->m_debug >= 2) {
             CPE_INFO(
                 device->m_driver->m_em,
-                "%s: OUT: %d |      %s", device->m_netif.name, p->len,
+                "%s: >>> %d |      %s", device->m_netif.name, p->len,
                 net_tun_dump_raw_data(net_tun_driver_tmp_buffer(driver), NULL, (uint8_t *)p->payload, NULL));
         }
 
@@ -415,7 +416,7 @@ static err_t net_tun_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_
 }
 
 int net_tun_device_packet_input(net_tun_driver_t driver, net_tun_device_t device, uint8_t const * packet_data, uint16_t packet_size) {
-    if (packet_size < device->m_mtu) {
+    if (packet_size > device->m_mtu) {
         CPE_ERROR(
             driver->m_em, "%s: input packet length %d overflow, mtu=%d",
             device->m_netif.name, packet_size, device->m_mtu);

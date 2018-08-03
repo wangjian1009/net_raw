@@ -1,14 +1,16 @@
+#include <assert.h>
 #include "cpe/pal/pal_stdio.h"
+#include "cpe/utils/string_utils.h"
 #include "net_tun_device_i.h"
 
 static void net_tun_device_start_read(net_tun_device_t device);
 
-int net_tun_device_init_dev(net_tun_driver_t driver, net_tun_device_t device, const char * name, NEPacketTunnelFlow * tunnelFlow) {
-    if (tunnelFlow == NULL) {
-        CPE_ERROR(driver->m_em, "%s: init dev: no tunnelFlow", name);
-        return -1;
-    }
-    
+int net_tun_device_init_dev(net_tun_driver_t driver, net_tun_device_t device, const char * name, NEPacketTunnelFlow * tunnelFlow, uint16_t mtu) {
+    assert(tunnelFlow);
+
+    cpe_str_dup(device->m_dev_name, sizeof(device->m_dev_name), name);
+    device->m_mtu = mtu;
+
     device->m_tunnelFlow = tunnelFlow;
     [device->m_tunnelFlow retain];
 

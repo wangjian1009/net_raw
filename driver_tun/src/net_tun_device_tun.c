@@ -44,7 +44,7 @@ int net_tun_device_init_tun(net_tun_driver_t driver, net_tun_device_t device, co
     }
             
     bzero(&ifr, sizeof(ifr));
-    strcpy(ifr.ifr_name, device->m_dev_name);
+    cpe_str_dup(ifr.ifr_name, sizeof(ifr.ifr_name), device->m_dev_name);
 
     /*mtu*/
     if (ioctl(sock, SIOCGIFMTU, (void *)&ifr) < 0) {
