@@ -34,6 +34,8 @@ struct net_tun_driver {
     error_monitor_t m_em;
     net_ipset_t m_ipset;
     uint8_t m_debug;
+    struct tcp_pcb * m_listener_ip4;
+    struct tcp_pcb * m_listener_ip6;
 
 #if NET_TUN_USE_EV
     struct ev_timer m_tcp_timer;

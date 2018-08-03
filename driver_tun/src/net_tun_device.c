@@ -9,7 +9,6 @@
 #include "net_tun_acceptor_i.h"
 
 static int net_tun_device_init_netif(net_tun_device_t device);
-static int net_tun_device_init_listener_ip4(net_tun_device_t device);
 
 static err_t net_tun_device_netif_init(struct netif *netif);
 static err_t net_tun_device_netif_input(struct pbuf *p, struct netif *inp);
@@ -35,8 +34,6 @@ net_tun_device_create(
     }
 
     device->m_driver = driver;
-    device->m_listener_ip4 = NULL;
-    device->m_listener_ip6 = NULL;
     device->m_mtu = 0;
     device->m_quitting = 0;
     device->m_address = NULL;
@@ -71,10 +68,6 @@ net_tun_device_create(
     }
     netif_init = 1;
     
-    if (net_tun_device_init_listener_ip4(device) != 0) {
-        goto create_errror;
-    }
-
     if (driver->m_default_device == NULL) {
         driver->m_default_device = device;
         netif_set_default(&device->m_netif);
@@ -106,16 +99,6 @@ create_errror:
         device->m_mask = NULL;
     }
     
-    if (device->m_listener_ip4) {
-        tcp_close(device->m_listener_ip4);
-        device->m_listener_ip4 = NULL;
-    }
-
-    if (device->m_listener_ip6) {
-        tcp_close(device->m_listener_ip6);
-        device->m_listener_ip6 = NULL;
-    }
-
     if (netif_init) {
         netif_remove(&device->m_netif);
     }
@@ -132,16 +115,6 @@ void net_tun_device_free(net_tun_device_t device) {
 
     device->m_quitting = 1;
 
-    if (device->m_listener_ip4) {
-        tcp_close(device->m_listener_ip4);
-        device->m_listener_ip4 = NULL;
-    }
-
-    if (device->m_listener_ip6) {
-        tcp_close(device->m_listener_ip6);
-        device->m_listener_ip6 = NULL;
-    }
-    
     netif_remove(&device->m_netif);
 
     if (driver->m_default_device == device) {
@@ -258,32 +231,6 @@ static int net_tun_device_init_netif(net_tun_device_t device) {
     return 0;
 }
 
-static int net_tun_device_init_listener_ip4(net_tun_device_t device) {
-    struct tcp_pcb * l = tcp_new();
-    if (l == NULL) {
-        CPE_ERROR(device->m_driver->m_em, "%s: init listener 4: tcp_new failed", device->m_netif.name);
-        return -1;
-    }
-        
-    if (tcp_bind_to_netif(l, "ho0") != ERR_OK) {
-        CPE_ERROR(device->m_driver->m_em, "%s: init listener 4: bind_to_netif fail", device->m_netif.name);
-        tcp_close(l);
-        return -1;
-    }
-
-    device->m_listener_ip4 = tcp_listen(l);
-    if (device->m_listener_ip4 == NULL) {
-        CPE_ERROR(device->m_driver->m_em, "%s: init listener 4: tcp_listen fail", device->m_netif.name);
-        tcp_close(l);
-        return -1;
-    }
-
-    tcp_arg(device->m_listener_ip4, device);
-    tcp_accept(device->m_listener_ip4, net_tun_device_netif_accept);
-
-    return 0;
-}
-
 static err_t net_tun_device_netif_init(struct netif *netif) {
     netif->name[0] = 'h';
     netif->name[1] = 'o';
@@ -355,8 +302,8 @@ static err_t net_tun_device_netif_output_ip6(struct netif *netif, struct pbuf *p
 }
 
 static err_t net_tun_device_netif_input(struct pbuf *p, struct netif * netif) {
-    //net_tun_device_t device = netif->state;
-    //net_tun_driver_t driver = device->m_driver;
+    net_tun_device_t device = netif->state;
+    net_tun_driver_t driver = device->m_driver;
     
     uint8_t ip_version = 0;
     if (p->len > 0) {
@@ -372,47 +319,6 @@ static err_t net_tun_device_netif_input(struct pbuf *p, struct netif * netif) {
 
     pbuf_free(p);
 
-    return ERR_OK;
-}
-
-static err_t net_tun_device_netif_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
-    net_tun_device_t device = arg;
-    net_tun_driver_t driver = device->m_driver;
-    net_address_t local_addr = NULL;
-
-    assert(err == ERR_OK);
-
-    CPE_ERROR(driver->m_em, "xxxxx: netif_accept");
-    uint8_t is_ipv6 = PCB_ISIPV6(newpcb) ? 1 : 0;
-
-    struct tcp_pcb *this_listener = is_ipv6 ? device->m_listener_ip6 : device->m_listener_ip4;
-    assert(this_listener);
-    tcp_accepted(this_listener);
-
-    local_addr = net_address_from_lwip(driver, is_ipv6, &newpcb->local_ip, newpcb->local_port);
-    if (local_addr == NULL) {
-        CPE_ERROR(driver->m_em, "%s: accept: create local address fail", device->m_netif.name);
-        tcp_abort(newpcb);
-        return ERR_ABRT;
-    }
-
-    net_tun_acceptor_t acceptor = net_tun_acceptor_find(driver, local_addr);
-    if (acceptor == NULL) {
-        if (driver->m_debug) {
-            CPE_INFO(driver->m_em, "%s: accept: no acceptor", device->m_netif.name);
-        }
-        net_address_free(local_addr);
-        tcp_abort(newpcb);
-        return ERR_ABRT;
-    }
-
-    if (net_tun_acceptor_on_accept( acceptor, newpcb, local_addr) != 0) {
-        net_address_free(local_addr);
-        tcp_abort(newpcb);
-        return ERR_ABRT;
-    }
-    
-    net_address_free(local_addr);
     return ERR_OK;
 }
 
