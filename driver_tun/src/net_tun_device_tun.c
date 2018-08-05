@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <net/if.h>
-#if NET_TUN_USE_DEV_TUN
+#if CPE_OS_LINUX
 #  include <linux/if_tun.h>
 #endif
 #include <fcntl.h>
@@ -17,7 +17,7 @@
 
 static void net_tun_device_rw_cb(EV_P_ ev_io *w, int revents);
 
-int net_tun_device_init_tun(net_tun_driver_t driver, net_tun_device_t device, const char * name, uint16_t * mtu) {
+int net_tun_device_init_dev(net_tun_driver_t driver, net_tun_device_t device, const char * name) {
     device->m_dev_fd = -1;
     
 #if CPE_OS_LINUX
@@ -52,7 +52,7 @@ int net_tun_device_init_tun(net_tun_driver_t driver, net_tun_device_t device, co
         close(sock);
         goto create_error;
     }
-    *mtu = ifr.ifr_mtu;
+    device->m_mtu = ifr.ifr_mtu;
 
     /*address*/
     if (ioctl(sock, SIOCGIFADDR, (void *)&ifr) < 0) {

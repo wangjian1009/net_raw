@@ -33,6 +33,7 @@ lwip_src:=$(addprefix $(lwip_base)/, \
               src/core/ipv6/ip6_frag.c \
               src/api/err.c \
               ../../buildtools/custom/lwip/sys.c \
+              ../../buildtools/custom/lwip/error.c \
            )
 
 $(eval $(call def_library,lwip))
