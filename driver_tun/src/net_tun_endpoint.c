@@ -113,13 +113,6 @@ static void net_tun_endpoint_err_func(void *arg, err_t err) {
     net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
     net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
 
-    if (driver->m_debug) {
-        CPE_INFO(
-            driver->m_em, "tun: %s: client error %d (%s)",
-            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
-            (int)err, lwip_strerr(err));
-    }
-
     if (err != ERR_ABRT) {
         tcp_err(endpoint->m_pcb, NULL);
         tcp_recv(endpoint->m_pcb, NULL);
@@ -131,8 +124,28 @@ static void net_tun_endpoint_err_func(void *arg, err_t err) {
         endpoint->m_pcb = NULL;
     }
 
-    if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
-        net_endpoint_free(base_endpoint);
+    if (err == ERR_RST) {
+        if (driver->m_debug) {
+            CPE_INFO(
+                driver->m_em, "tun: %s: remote disconnected!",
+                net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
+        }
+
+        if (net_endpoint_set_state(base_endpoint, net_endpoint_state_disable) != 0) {
+            net_endpoint_free(base_endpoint);
+        }
+    }
+    else {
+        if (driver->m_debug) {
+            CPE_INFO(
+                driver->m_em, "tun: %s: error %d (%s)",
+                net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
+                (int)err, lwip_strerr(err));
+        }
+        
+        if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
+            net_endpoint_free(base_endpoint);
+        }
     }
 }
 
