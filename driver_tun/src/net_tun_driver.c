@@ -75,7 +75,7 @@ net_tun_driver_create(
 }
 
 net_tun_driver_t net_tun_driver_cast(net_driver_t driver) {
-    return strcmp(net_driver_name(driver), "raw") == 0 ? net_driver_data(driver) : NULL;
+    return strcmp(net_driver_name(driver), "tun") == 0 ? net_driver_data(driver) : NULL;
 }
 
 static int net_tun_driver_init(net_driver_t base_driver) {

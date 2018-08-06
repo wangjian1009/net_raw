@@ -392,13 +392,14 @@ int net_tun_device_packet_input(net_tun_driver_t driver, net_tun_device_t device
 
 static int net_tun_device_do_accept(
     net_tun_device_t device,
-    net_tun_acceptor_t acceptor, net_tun_wildcard_acceptor_t wildard_acceptor,
+    net_tun_acceptor_t acceptor, net_tun_wildcard_acceptor_t wildcard_acceptor,
     struct tcp_pcb *newpcb, net_address_t local_addr)
 {
     net_tun_driver_t driver = device->m_driver;
     net_driver_t base_driver = net_driver_from_data(driver);
+
     net_acceptor_t base_acceptor = acceptor ? net_acceptor_from_data(acceptor) : NULL;
-    net_protocol_t protocol = base_acceptor ? net_acceptor_protocol(base_acceptor) : wildard_acceptor->m_protocol;
+    net_protocol_t protocol = base_acceptor ? net_acceptor_protocol(base_acceptor) : wildcard_acceptor->m_protocol;
         
     uint8_t is_ipv6 = PCB_ISIPV6(newpcb) ? 1 : 0;
 
@@ -424,7 +425,7 @@ static int net_tun_device_do_accept(
 
     int external_init_rv = base_acceptor
         ? net_acceptor_on_new_endpoint(base_acceptor, base_endpoint)
-        : wildard_acceptor->m_on_new_endpoint(wildard_acceptor->m_on_new_endpoint_ctx, base_endpoint);
+        : wildcard_acceptor->m_on_new_endpoint(wildcard_acceptor->m_on_new_endpoint_ctx, base_endpoint);
     if (external_init_rv != 0) {
         CPE_ERROR(driver->m_em, "tun: accept: on accept fail");
         net_endpoint_free(base_endpoint);
@@ -469,7 +470,7 @@ static err_t net_tun_device_on_accept(void *arg, struct tcp_pcb *newpcb, err_t e
     }
 
     net_tun_acceptor_t acceptor = net_tun_acceptor_find(driver, local_addr);
-    if (acceptor == NULL) {
+    if (acceptor) {
         if (net_tun_device_do_accept(device, acceptor, NULL, newpcb, local_addr) != 0) {
             net_address_free(local_addr);
             tcp_abort(newpcb);
