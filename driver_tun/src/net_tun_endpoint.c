@@ -121,7 +121,11 @@ static void net_tun_endpoint_err_func(void *arg, err_t err) {
     }
 
     if (err != ERR_ABRT) {
-        net_tun_endpoint_set_pcb(endpoint, NULL);
+        tcp_err(endpoint->m_pcb, NULL);
+        tcp_recv(endpoint->m_pcb, NULL);
+        tcp_sent(endpoint->m_pcb, NULL);
+        tcp_poll(endpoint->m_pcb, NULL, 0);
+        endpoint->m_pcb = NULL;
     }
     else {
         endpoint->m_pcb = NULL;

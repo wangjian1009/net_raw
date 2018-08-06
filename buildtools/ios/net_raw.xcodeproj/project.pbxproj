@@ -745,6 +745,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
+					"LWIP_DEBUG=1",
 					"NET_TUN_USE_DQ=1",
 					"NET_TUN_USE_DEV_NE=1",
 				);
@@ -771,6 +772,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
+					"LWIP_DEBUG=1",
 					"NET_TUN_USE_DQ=1",
 					"NET_TUN_USE_DEV_NE=1",
 				);
