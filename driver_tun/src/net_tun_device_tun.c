@@ -99,6 +99,23 @@ void net_tun_device_fini_dev(net_tun_driver_t driver, net_tun_device_t device) {
     close(device->m_dev_fd);
 }
 
+int net_tun_device_packet_output(net_tun_device_t device, uint8_t *data, int data_len) {
+    assert(data_len >= 0);
+    assert(data_len <= device->m_mtu);
+
+    int bytes = write(device->m_dev_fd, data, data_len);
+    if (bytes < 0) {
+        // malformed packets will cause errors, ignore them and act like
+        // the packet was accepeted
+    }
+    else {
+        if (bytes != data_len) {
+            CPE_ERROR(device->m_driver->m_em, "%s: written %d expected %d", device->m_netif.name, bytes, data_len);
+        }
+    }
+    return 0;
+}
+
 static void net_tun_device_rw_cb(EV_P_ ev_io *w, int revents) {
     net_tun_device_t device = w->data;
     net_tun_driver_t driver = device->m_driver;

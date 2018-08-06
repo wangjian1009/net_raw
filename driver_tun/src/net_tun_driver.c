@@ -14,7 +14,6 @@
 
 static int net_tun_driver_init(net_driver_t driver);
 static void net_tun_driver_fini(net_driver_t driver);
-static int net_tun_driver_init_listener_ip4(net_tun_driver_t driver);
 #if NET_TUN_USE_EV
 static void net_tun_driver_tcp_timer_cb(EV_P_ ev_timer *watcher, int revents);
 #endif
@@ -89,8 +88,6 @@ static int net_tun_driver_init(net_driver_t base_driver) {
     driver->m_ev_loop = NULL;
 #endif    
     driver->m_ipset = NULL;
-    driver->m_listener_ip4 = NULL;
-    driver->m_listener_ip6 = NULL;
     
     TAILQ_INIT(&driver->m_devices);
     driver->m_sock_process_fun = NULL;
@@ -111,11 +108,6 @@ static int net_tun_driver_init(net_driver_t base_driver) {
         return -1;
     }
 
-    if (net_tun_driver_init_listener_ip4(driver) != 0) {
-        cpe_hash_table_fini(&driver->m_acceptors);
-        return -1;
-    }
-    
 #if NET_TUN_USE_EV
     double tcp_timer_interval = ((double)TCP_TMR_INTERVAL / 1000.0);
     ev_timer_init(&driver->m_tcp_timer, net_tun_driver_tcp_timer_cb, tcp_timer_interval, tcp_timer_interval);
@@ -153,16 +145,6 @@ static void net_tun_driver_fini(net_driver_t base_driver) {
     driver->m_tcp_timer = nil;
 #endif
 
-    if (driver->m_listener_ip4) {
-        tcp_close(driver->m_listener_ip4);
-        driver->m_listener_ip4 = NULL;
-    }
-
-    if (driver->m_listener_ip6) {
-        tcp_close(driver->m_listener_ip6);
-        driver->m_listener_ip6 = NULL;
-    }
-    
     net_tun_acceptor_free_all(driver);
     cpe_hash_table_fini(&driver->m_acceptors);
                         
@@ -228,72 +210,6 @@ net_schedule_t net_tun_driver_schedule(net_tun_driver_t driver) {
 
 mem_buffer_t net_tun_driver_tmp_buffer(net_tun_driver_t driver) {
     return net_schedule_tmp_buffer(net_driver_schedule(net_driver_from_data(driver)));
-}
-
-static err_t net_tun_driver_on_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
-    net_tun_driver_t driver = arg;
-    net_address_t local_addr = NULL;
-
-    assert(err == ERR_OK);
-
-    CPE_ERROR(driver->m_em, "xxxxx: netif_accept");
-    uint8_t is_ipv6 = PCB_ISIPV6(newpcb) ? 1 : 0;
-
-    struct tcp_pcb *this_listener = is_ipv6 ? driver->m_listener_ip6 : driver->m_listener_ip4;
-    assert(this_listener);
-    tcp_accepted(this_listener);
-
-    local_addr = net_address_from_lwip(driver, is_ipv6, &newpcb->local_ip, newpcb->local_port);
-    if (local_addr == NULL) {
-        CPE_ERROR(driver->m_em, "tun: accept: create local address fail");
-        tcp_abort(newpcb);
-        return ERR_ABRT;
-    }
-
-    net_tun_acceptor_t acceptor = net_tun_acceptor_find(driver, local_addr);
-    if (acceptor == NULL) {
-        if (driver->m_debug) {
-            CPE_INFO(driver->m_em, "tun: accept: no acceptor");
-        }
-        net_address_free(local_addr);
-        tcp_abort(newpcb);
-        return ERR_ABRT;
-    }
-
-    if (net_tun_acceptor_on_accept(acceptor, newpcb, local_addr) != 0) {
-        net_address_free(local_addr);
-        tcp_abort(newpcb);
-        return ERR_ABRT;
-    }
-
-    net_address_free(local_addr);
-    return ERR_OK;
-}
-
-static int net_tun_driver_init_listener_ip4(net_tun_driver_t driver) {
-    struct tcp_pcb * l = tcp_new();
-    if (l == NULL) {
-        CPE_ERROR(driver->m_em, "tun: listener4: tcp_new failed");
-        return -1;
-    }
-
-    ip_addr_t addr = ip_addr_any;
-    if (tcp_bind(l, &addr, 0) != 0) {
-        CPE_ERROR(driver->m_em, "tun: listener4: bind fail");
-        return -1;
-    }
-            
-    driver->m_listener_ip4 = tcp_listen_with_backlog(l, TCP_DEFAULT_LISTEN_BACKLOG);
-    if (driver->m_listener_ip4 == NULL) {
-        CPE_ERROR(driver->m_em, "tun: listener4: tcp_listen fail");
-        tcp_close(l);
-        return -1;
-    }
-
-    tcp_arg(driver->m_listener_ip4, driver);
-    tcp_accept(driver->m_listener_ip4, net_tun_driver_on_accept);
-
-    return 0;
 }
 
 #if NET_TUN_USE_EV

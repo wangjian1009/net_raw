@@ -58,6 +58,21 @@ void net_tun_device_fini_dev(net_tun_driver_t driver, net_tun_device_t device) {
     }
 }
 
+int net_tun_device_packet_output(net_tun_device_t device, uint8_t *data, int data_len) {
+    assert(data_len >= 0);
+    assert(data_len <= device->m_mtu);
+
+    @autoreleasepool {
+        NSData * packageData = [NSData dataWithBytes: data length: data_len];
+        NSArray<NSData *> * packets = [NSArray<NSData *> arrayWithObjects: packageData, nil];
+        NSArray<NSNumber *> * versions = [NSArray<NSNumber *> arrayWithObjects: [NSNumber numberWithInt: 4], nil];
+
+        [device->m_tunnelFlow writePackets: packets withProtocols: versions];
+    }
+    
+    return 0;
+}
+
 static void net_tun_device_start_read(net_tun_device_t device) {
     [device->m_tunnelFlow readPacketsWithCompletionHandler: ^(NSArray<NSData *> *packets, NSArray<NSNumber *> *protocols) {
             dispatch_async(
