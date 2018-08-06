@@ -13,8 +13,6 @@ struct net_tun_acceptor {
 net_tun_acceptor_t
 net_tun_acceptor_find(net_tun_driver_t driver, net_address_t address);
 
-int net_tun_acceptor_on_accept(net_tun_acceptor_t acceptor, struct tcp_pcb *newpcb, net_address_t local_addr);
-
 void net_tun_acceptor_free_all(net_tun_driver_t driver);
 
 uint32_t net_tun_acceptor_hash(net_tun_acceptor_t capture, void * user_data);

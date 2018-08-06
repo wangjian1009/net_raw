@@ -36,7 +36,7 @@ int net_tun_device_init_dev(net_tun_driver_t driver, net_tun_device_t device, co
 
 #if NET_TUN_USE_DEV_NE
 int net_tun_device_init_dev(
-    net_tun_driver_t driver, net_tun_device_t device, const char * name,
+    net_tun_driver_t driver, net_tun_device_t device,
     NEPacketTunnelFlow * tunnelFlow,
     NEPacketTunnelNetworkSettings * settings);
 #endif

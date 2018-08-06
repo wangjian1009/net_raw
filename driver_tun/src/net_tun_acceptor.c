@@ -36,56 +36,6 @@ net_tun_acceptor_find(net_tun_driver_t driver, net_address_t address) {
     return cpe_hash_table_find(&driver->m_acceptors, &key);
 }
 
-int net_tun_acceptor_on_accept(net_tun_acceptor_t acceptor, struct tcp_pcb *newpcb, net_address_t local_addr) {
-    net_acceptor_t base_acceptor = net_acceptor_from_data(acceptor);
-    net_driver_t base_driver = net_acceptor_driver(base_acceptor);
-    net_tun_driver_t driver = net_driver_data(base_driver);
-
-    uint8_t is_ipv6 = PCB_ISIPV6(newpcb) ? 1 : 0;
-
-    net_endpoint_t base_endpoint = net_endpoint_create(base_driver, net_endpoint_inbound, net_acceptor_protocol(base_acceptor));
-    if (base_endpoint == NULL) {
-        CPE_ERROR(driver->m_em, "tun: accept: create endpoint fail");
-        return -1;
-    }
-
-    if (net_endpoint_set_address(base_endpoint, local_addr, 0) != 0) {
-        CPE_ERROR(driver->m_em, "tun: accept: set address fail");
-        net_endpoint_free(base_endpoint);
-        return -1;
-    }
-
-    net_address_t remote_addr = net_address_from_lwip(driver, is_ipv6, &newpcb->remote_ip, newpcb->remote_port);
-    if (net_endpoint_set_remote_address(base_endpoint, remote_addr, 1) != 0) {
-        CPE_ERROR(driver->m_em, "tun: accept: set remote address fail");
-        net_endpoint_free(base_endpoint);
-        return -1;
-    }
-    remote_addr = NULL;
-
-    if (net_acceptor_on_new_endpoint(base_acceptor, base_endpoint) != 0) {
-        CPE_ERROR(driver->m_em, "tun: accept: on accept fail");
-        net_endpoint_free(base_endpoint);
-        return -1;
-    }
-    
-    struct net_tun_endpoint * endpoint = net_endpoint_data(base_endpoint);
-    net_tun_endpoint_set_pcb(endpoint, newpcb);
-    newpcb = NULL;
-
-    if (net_endpoint_set_state(base_endpoint, net_endpoint_state_established) != 0) {
-        CPE_ERROR(driver->m_em, "tun: accept: set state fail");
-        net_endpoint_free(base_endpoint);
-        return -1;
-    }
-
-    if (driver->m_debug >= 2) {
-        CPE_INFO(driver->m_em, "tun: accept: success");
-    }
-
-    return 0;
-}
-
 void net_tun_acceptor_free_all(net_tun_driver_t driver) {
     struct cpe_hash_it acceptor_it;
     net_tun_acceptor_t acceptor;

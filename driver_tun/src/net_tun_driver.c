@@ -2,7 +2,6 @@
 #include "cpe/pal/pal_string.h"
 #include "net_schedule.h"
 #include "net_driver.h"
-#include "net_ipset.h"
 #include "net_timer.h"
 #include "net_address.h"
 #include "net_tun_driver_i.h"
@@ -10,6 +9,7 @@
 #include "net_tun_endpoint.h"
 #include "net_tun_dgram.h"
 #include "net_tun_acceptor_i.h"
+#include "net_tun_wildcard_acceptor_i.h"
 #include "net_tun_utils.h"
 
 static int net_tun_driver_init(net_driver_t driver);
@@ -30,7 +30,7 @@ net_tun_driver_create(
 
     base_driver = net_driver_create(
         schedule,
-        "raw",
+        "tun",
         /*driver*/
         sizeof(struct net_tun_driver),
         net_tun_driver_init,
@@ -87,9 +87,10 @@ static int net_tun_driver_init(net_driver_t base_driver) {
 #if NET_TUN_USE_EV
     driver->m_ev_loop = NULL;
 #endif    
-    driver->m_ipset = NULL;
     
     TAILQ_INIT(&driver->m_devices);
+    TAILQ_INIT(&driver->m_wildcard_acceptors);
+
     driver->m_sock_process_fun = NULL;
     driver->m_sock_process_ctx = NULL;
     driver->m_data_monitor_fun = NULL;
@@ -147,13 +148,13 @@ static void net_tun_driver_fini(net_driver_t base_driver) {
 
     net_tun_acceptor_free_all(driver);
     cpe_hash_table_fini(&driver->m_acceptors);
-                        
-    while(!TAILQ_EMPTY(&driver->m_devices)) {
-        net_tun_device_free(TAILQ_FIRST(&driver->m_devices));
+
+    while(!TAILQ_EMPTY(&driver->m_wildcard_acceptors)) {
+        net_tun_wildcard_acceptor_free(TAILQ_FIRST(&driver->m_wildcard_acceptors));
     }
 
-    if (driver->m_ipset) {
-        net_ipset_free(driver->m_ipset);
+    while(!TAILQ_EMPTY(&driver->m_devices)) {
+        net_tun_device_free(TAILQ_FIRST(&driver->m_devices));
     }
 
     mem_buffer_clear(&driver->m_data_buffer);
@@ -161,22 +162,6 @@ static void net_tun_driver_fini(net_driver_t base_driver) {
 
 void net_tun_driver_free(net_tun_driver_t driver) {
     net_driver_free(net_driver_from_data(driver));
-}
-
-net_ipset_t net_tun_driver_ipset(net_tun_driver_t driver) {
-    return driver->m_ipset;
-}
-
-net_ipset_t net_tun_driver_ipset_check_create(net_tun_driver_t driver) {
-    if (driver->m_ipset == NULL) {
-        driver->m_ipset = net_ipset_create(net_tun_driver_schedule(driver));
-        if (driver->m_ipset == NULL) {
-            CPE_ERROR(driver->m_em, "tun: driver create ipset fail!");
-            return NULL;
-        }
-    }
-
-    return driver->m_ipset;
 }
 
 uint8_t net_tun_driver_debug(net_tun_driver_t driver) {

@@ -16,9 +16,6 @@ net_tun_driver_t net_tun_driver_cast(net_driver_t driver);
 
 void net_tun_driver_free(net_tun_driver_t driver);
 
-net_ipset_t net_tun_driver_ipset(net_tun_driver_t driver);
-net_ipset_t net_tun_driver_ipset_check_create(net_tun_driver_t driver);
-
 uint8_t net_tun_driver_debug(net_tun_driver_t driver);
 void net_tun_driver_set_debug(net_tun_driver_t driver, uint8_t debug);
 

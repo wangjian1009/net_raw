@@ -21,6 +21,7 @@
 #endif
 
 typedef TAILQ_HEAD(net_tun_device_list, net_tun_device) net_tun_device_list_t;
+typedef TAILQ_HEAD(net_tun_wildcard_acceptor_list, net_tun_wildcard_acceptor) net_tun_wildcard_acceptor_list_t;
 
 typedef struct net_tun_acceptor * net_tun_acceptor_t;
 typedef struct net_tun_endpoint * net_tun_endpoint_t;
@@ -32,7 +33,6 @@ struct net_tun_driver {
 #endif
     mem_allocrator_t m_alloc;
     error_monitor_t m_em;
-    net_ipset_t m_ipset;
     uint8_t m_debug;
 
 #if NET_TUN_USE_EV
@@ -47,6 +47,7 @@ struct net_tun_driver {
     net_tun_device_t m_default_device;
     net_tun_device_list_t m_devices;
 
+    net_tun_wildcard_acceptor_list_t m_wildcard_acceptors;
     struct cpe_hash_table m_acceptors;
     
     net_tun_driver_sock_create_process_fun_t m_sock_process_fun;

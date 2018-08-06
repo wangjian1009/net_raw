@@ -6,7 +6,13 @@ NET_BEGIN_DECL
 
 typedef struct net_tun_driver * net_tun_driver_t;
 typedef struct net_tun_device * net_tun_device_t;
+typedef struct net_tun_wildcard_acceptor * net_tun_wildcard_acceptor_t;
 
+typedef enum net_tun_wildcard_acceptor_mode {
+    net_tun_wildcard_acceptor_mode_white,
+    net_tun_wildcard_acceptor_mode_black,
+} net_tun_wildcard_acceptor_mode_t;
+    
 #if ! NET_TUN_USE_DQ
 #  define NET_TUN_USE_EV 1
 #endif

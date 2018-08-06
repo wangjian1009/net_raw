@@ -9,7 +9,10 @@ NET_BEGIN_DECL
 
 net_tun_device_t
 net_tun_device_create(
-    net_tun_driver_t driver, const char * name
+    net_tun_driver_t driver
+#if NET_TUN_USE_DEV_TUN
+    , const char * name
+#endif    
 #if NET_TUN_USE_DEV_NE
     , NEPacketTunnelFlow * tunnelFlow
     , NEPacketTunnelNetworkSettings * settings

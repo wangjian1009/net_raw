@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		C90048AD211453F000C29588 /* error.c in Sources */ = {isa = PBXBuildFile; fileRef = C90048AC211453F000C29588 /* error.c */; };
+		C90048C221183EDC00C29588 /* net_tun_wildcard_acceptor.c in Sources */ = {isa = PBXBuildFile; fileRef = C90048C021183EDB00C29588 /* net_tun_wildcard_acceptor.c */; };
 		C9CE6FD52111F34E0099A50C /* net_tun_device_tun.c in Sources */ = {isa = PBXBuildFile; fileRef = C9CE6FBD2111F34E0099A50C /* net_tun_device_tun.c */; };
 		C9CE6FD62111F34E0099A50C /* net_tun_dgram.c in Sources */ = {isa = PBXBuildFile; fileRef = C9CE6FBE2111F34E0099A50C /* net_tun_dgram.c */; };
 		C9CE6FD82111F34E0099A50C /* net_tun_utils.c in Sources */ = {isa = PBXBuildFile; fileRef = C9CE6FC02111F34E0099A50C /* net_tun_utils.c */; };
@@ -75,6 +76,8 @@
 
 /* Begin PBXFileReference section */
 		C90048AC211453F000C29588 /* error.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = error.c; sourceTree = "<group>"; };
+		C90048C021183EDB00C29588 /* net_tun_wildcard_acceptor.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.objc; fileEncoding = 4; path = net_tun_wildcard_acceptor.c; sourceTree = "<group>"; };
+		C90048C121183EDC00C29588 /* net_tun_wildcard_acceptor_i.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = net_tun_wildcard_acceptor_i.h; sourceTree = "<group>"; };
 		C9CE6FAE2111F2ED0099A50C /* libnet_driver_tun.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libnet_driver_tun.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		C9CE6FBB2111F34E0099A50C /* net_tun_endpoint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = net_tun_endpoint.h; sourceTree = "<group>"; };
 		C9CE6FBD2111F34E0099A50C /* net_tun_device_tun.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.objc; fileEncoding = 4; path = net_tun_device_tun.c; sourceTree = "<group>"; };
@@ -235,6 +238,8 @@
 		C9CE6FBA2111F34E0099A50C /* src */ = {
 			isa = PBXGroup;
 			children = (
+				C90048C121183EDC00C29588 /* net_tun_wildcard_acceptor_i.h */,
+				C90048C021183EDB00C29588 /* net_tun_wildcard_acceptor.c */,
 				C9F7B2592112AE9200D5007A /* net_tun_acceptor_i.h */,
 				C9F7B25A2112AE9300D5007A /* net_tun_acceptor.c */,
 				C9F7B25B2112AE9300D5007A /* net_tun_device_ne.m */,
@@ -573,6 +578,7 @@
 				C9F7B25D2112AE9300D5007A /* net_tun_device_ne.m in Sources */,
 				C9F7B25C2112AE9300D5007A /* net_tun_acceptor.c in Sources */,
 				C9CE6FD52111F34E0099A50C /* net_tun_device_tun.c in Sources */,
+				C90048C221183EDC00C29588 /* net_tun_wildcard_acceptor.c in Sources */,
 				C9CE6FDB2111F34E0099A50C /* net_tun_endpoint.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -749,6 +755,7 @@
 					../../depends/lwip/src/include/ipv6,
 					../../../cpe/include,
 					../../../net/core/include,
+					../../driver_tun/include,
 				);
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -774,6 +781,7 @@
 					../../depends/lwip/src/include/ipv6,
 					../../../cpe/include,
 					../../../net/core/include,
+					../../driver_tun/include,
 				);
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";

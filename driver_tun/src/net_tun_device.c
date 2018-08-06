@@ -4,9 +4,14 @@
 #include "cpe/utils/string_utils.h"
 #include "net_address.h"
 #include "net_driver.h"
+#include "net_acceptor.h"
+#include "net_endpoint.h"
+#include "net_ipset.h"
 #include "net_tun_device_i.h"
 #include "net_tun_utils.h"
 #include "net_tun_acceptor_i.h"
+#include "net_tun_wildcard_acceptor_i.h"
+#include "net_tun_endpoint.h"
 
 static int net_tun_device_init_netif(net_tun_device_t device);
 static int net_tun_device_init_listener_ip4(net_tun_device_t device);
@@ -18,7 +23,10 @@ static err_t net_tun_device_netif_output_ip6(struct netif *netif, struct pbuf *p
 
 net_tun_device_t
 net_tun_device_create(
-    net_tun_driver_t driver, const char * name
+    net_tun_driver_t driver
+#if NET_TUN_USE_DEV_TUN
+    , const char * name
+#endif
 #if NET_TUN_USE_DEV_NE
     , NEPacketTunnelFlow * tunnelFlow
     , NEPacketTunnelNetworkSettings * settings
@@ -57,7 +65,7 @@ net_tun_device_create(
 #endif
 
 #if NET_TUN_USE_DEV_NE
-    if (net_tun_device_init_dev(driver, device, name, tunnelFlow, settings) != 0) {
+    if (net_tun_device_init_dev(driver, device, tunnelFlow, settings) != 0) {
         mem_free(driver->m_alloc, device);
         return NULL;
     }
@@ -382,6 +390,64 @@ int net_tun_device_packet_input(net_tun_driver_t driver, net_tun_device_t device
     return 0;
 }
 
+static int net_tun_device_do_accept(
+    net_tun_device_t device,
+    net_tun_acceptor_t acceptor, net_tun_wildcard_acceptor_t wildard_acceptor,
+    struct tcp_pcb *newpcb, net_address_t local_addr)
+{
+    net_tun_driver_t driver = device->m_driver;
+    net_driver_t base_driver = net_driver_from_data(driver);
+    net_acceptor_t base_acceptor = acceptor ? net_acceptor_from_data(acceptor) : NULL;
+    net_protocol_t protocol = base_acceptor ? net_acceptor_protocol(base_acceptor) : wildard_acceptor->m_protocol;
+        
+    uint8_t is_ipv6 = PCB_ISIPV6(newpcb) ? 1 : 0;
+
+    net_endpoint_t base_endpoint = net_endpoint_create(base_driver, net_endpoint_inbound, protocol);
+    if (base_endpoint == NULL) {
+        CPE_ERROR(driver->m_em, "tun: accept: create endpoint fail");
+        return -1;
+    }
+
+    if (net_endpoint_set_address(base_endpoint, local_addr, 0) != 0) {
+        CPE_ERROR(driver->m_em, "tun: accept: set address fail");
+        net_endpoint_free(base_endpoint);
+        return -1;
+    }
+
+    net_address_t remote_addr = net_address_from_lwip(driver, is_ipv6, &newpcb->remote_ip, newpcb->remote_port);
+    if (net_endpoint_set_remote_address(base_endpoint, remote_addr, 1) != 0) {
+        CPE_ERROR(driver->m_em, "tun: accept: set remote address fail");
+        net_endpoint_free(base_endpoint);
+        return -1;
+    }
+    remote_addr = NULL;
+
+    int external_init_rv = base_acceptor
+        ? net_acceptor_on_new_endpoint(base_acceptor, base_endpoint)
+        : wildard_acceptor->m_on_new_endpoint(wildard_acceptor->m_on_new_endpoint_ctx, base_endpoint);
+    if (external_init_rv != 0) {
+        CPE_ERROR(driver->m_em, "tun: accept: on accept fail");
+        net_endpoint_free(base_endpoint);
+        return -1;
+    }
+    
+    struct net_tun_endpoint * endpoint = net_endpoint_data(base_endpoint);
+    net_tun_endpoint_set_pcb(endpoint, newpcb);
+    newpcb = NULL;
+
+    if (net_endpoint_set_state(base_endpoint, net_endpoint_state_established) != 0) {
+        CPE_ERROR(driver->m_em, "tun: accept: set state fail");
+        net_endpoint_free(base_endpoint);
+        return -1;
+    }
+
+    if (driver->m_debug >= 2) {
+        CPE_INFO(driver->m_em, "tun: accept: success");
+    }
+
+    return 0;
+}
+
 static err_t net_tun_device_on_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
     net_tun_device_t device = arg;
     net_tun_driver_t driver = device->m_driver;
@@ -404,22 +470,53 @@ static err_t net_tun_device_on_accept(void *arg, struct tcp_pcb *newpcb, err_t e
 
     net_tun_acceptor_t acceptor = net_tun_acceptor_find(driver, local_addr);
     if (acceptor == NULL) {
-        if (driver->m_debug) {
-            CPE_INFO(driver->m_em, "tun: accept: no acceptor");
+        if (net_tun_device_do_accept(device, acceptor, NULL, newpcb, local_addr) != 0) {
+            net_address_free(local_addr);
+            tcp_abort(newpcb);
+            return ERR_ABRT;
         }
+
         net_address_free(local_addr);
-        tcp_abort(newpcb);
-        return ERR_ABRT;
+        return ERR_OK;
     }
 
-    if (net_tun_acceptor_on_accept(acceptor, newpcb, local_addr) != 0) {
-        net_address_free(local_addr);
-        tcp_abort(newpcb);
-        return ERR_ABRT;
-    }
+    net_tun_wildcard_acceptor_t wildcard_acceptor;
+    TAILQ_FOREACH(wildcard_acceptor, &driver->m_wildcard_acceptors, m_next) {
+        switch(wildcard_acceptor->m_mode) {
+        case net_tun_wildcard_acceptor_mode_white:
+            if (wildcard_acceptor->m_ipset == NULL
+                || !net_ipset_contains_ip(wildcard_acceptor->m_ipset, local_addr)
+                )
+            {
+                continue;
+            }
+            break;
+        case net_tun_wildcard_acceptor_mode_black:
+            if (wildcard_acceptor->m_ipset
+                && net_ipset_contains_ip(wildcard_acceptor->m_ipset, local_addr)
+                )
+            {
+                continue;
+            }
+            break;
+        }
 
+        if (net_tun_device_do_accept(device, NULL, wildcard_acceptor, newpcb, local_addr) != 0) {
+            net_address_free(local_addr);
+            tcp_abort(newpcb);
+            return ERR_ABRT;
+        }
+
+        net_address_free(local_addr);
+        return ERR_OK;
+    }
+    
+    if (driver->m_debug) {
+        CPE_INFO(driver->m_em, "tun: accept: no acceptor");
+    }
     net_address_free(local_addr);
-    return ERR_OK;
+    tcp_abort(newpcb);
+    return ERR_ABRT;
 }
 
 static int net_tun_device_init_listener_ip4(net_tun_device_t device) {

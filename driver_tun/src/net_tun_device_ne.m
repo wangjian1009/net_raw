@@ -7,39 +7,38 @@
 static void net_tun_device_start_read(net_tun_device_t device);
 
 int net_tun_device_init_dev(
-    net_tun_driver_t driver, net_tun_device_t device, const char * name,
+    net_tun_driver_t driver, net_tun_device_t device,
     NEPacketTunnelFlow * tunnelFlow,  NEPacketTunnelNetworkSettings * settings)
 {
     net_schedule_t schedule = net_tun_driver_schedule(driver);
     
     assert(tunnelFlow);
 
-    cpe_str_dup(device->m_dev_name, sizeof(device->m_dev_name), name);
     device->m_mtu = (uint16_t)settings.MTU;
 
     NEIPv4Settings * ipv4Settings = settings.IPv4Settings;
     if (ipv4Settings) {
         if (ipv4Settings.addresses.count == 0) {
-            CPE_ERROR(driver->m_em, "%s: ipv4 no address configured!", device->m_dev_name);
+            CPE_ERROR(driver->m_em, "tun: ipv4 no address configured!");
             return -1;
         }
 
         if (ipv4Settings.addresses.count != ipv4Settings.subnetMasks.count) {
-            CPE_ERROR(driver->m_em, "%s: ipv4 address and mask count mismatch!", device->m_dev_name);
+            CPE_ERROR(driver->m_em, "tun: ipv4 address and mask count mismatch!");
             return -1;
         }
         
         const char * str_address = [ipv4Settings.addresses[0] UTF8String];
         device->m_address = net_address_create_ipv4(schedule, str_address, 0);
         if (device->m_address == NULL) {
-            CPE_ERROR(driver->m_em, "%s: address %s format error!", device->m_dev_name, str_address);
+            CPE_ERROR(driver->m_em, "tun: address %s format error!", str_address);
             return -1;
         }
 
         const char * str_mask = [ipv4Settings.subnetMasks[0] UTF8String];
         device->m_mask = net_address_create_ipv4(schedule, str_mask, 0);
         if (device->m_mask == NULL) {
-            CPE_ERROR(driver->m_em, "%s: mask %s format error!", device->m_dev_name, str_mask);
+            CPE_ERROR(driver->m_em, "tun: mask %s format error!", str_mask);
             return -1;
         }
     }
