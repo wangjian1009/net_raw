@@ -275,6 +275,13 @@ static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
             return -1;
         }
 
+        if (driver->m_debug) {
+            CPE_INFO(
+                driver->m_em, "tun: %s: send %d bytes data!",
+                net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
+                data_size);
+        }
+        
         net_endpoint_wbuf_consume(base_endpoint, data_size);
     }
 
