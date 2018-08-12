@@ -4,6 +4,7 @@
 #include "lwip/init.h"
 #include "lwip/netif.h"
 #include "lwip/tcp.h"
+#include "lwip/udp.h"
 #undef mem_free
 #undef mem_calloc
 #include "cpe/pal/pal_queue.h"

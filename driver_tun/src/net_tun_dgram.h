@@ -1,10 +1,9 @@
 #ifndef NET_TUN_DGRAM_H_INCLEDED
 #define NET_TUN_DGRAM_H_INCLEDED
-#include "cpe/pal/pal_socket.h"
 #include "net_tun_driver_i.h"
 
 struct net_tun_dgram {
-    int dummy;
+    struct udp_pcb * m_pcb;
 };
 
 int net_tun_dgram_init(net_dgram_t base_dgram);

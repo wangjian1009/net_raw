@@ -1,118 +1,231 @@
 #include "assert.h"
-#include "cpe/pal/pal_socket.h"
 #include "cpe/pal/pal_string.h"
 #include "cpe/pal/pal_strings.h"
-#include "cpe/utils_sock/sock_utils.h"
 #include "net_dgram.h"
 #include "net_address.h"
 #include "net_driver.h"
 #include "net_tun_dgram.h"
+#include "net_tun_utils.h"
+
+static void net_tun_dgram_recv_ipv4(void *arg, struct udp_pcb *pcb, struct pbuf *p, ip_addr_t *addr, u16_t port);
+static void net_tun_dgram_recv_ipv6(void *arg, struct udp_pcb *pcb, struct pbuf *p, ip6_addr_t *addr, u16_t port);
 
 int net_tun_dgram_init(net_dgram_t base_dgram) {
-    /* net_schedule_t schedule = net_dgram_schedule(base_dgram); */
-    /* error_monitor_t em = net_schedule_em(schedule); */
-    /* net_tun_dgram_t dgram = net_dgram_data(base_dgram); */
-    /* net_tun_driver_t driver = net_driver_data(net_dgram_driver(base_dgram)); */
-    /* net_address_t address = net_dgram_address(base_dgram); */
-
-    /* if (address) { */
-    /*     switch(net_address_type(address)) { */
-    /*     case net_address_ipv4: */
-    /*         dgram->m_fd = cpe_sock_open(AF_INET, SOCK_DGRAM, 0); */
-    /*         break; */
-    /*     case net_address_ipv6: */
-    /*         dgram->m_fd = cpe_sock_open(AF_INET6, SOCK_DGRAM, 0); */
-    /*         break; */
-    /*     case net_address_domain: */
-    /*         CPE_ERROR(em, "tun: dgyam: not support domain address!"); */
-    /*         return -1; */
-    /*     } */
-    /* } */
-    /* else { */
-    /*     dgram->m_fd = cpe_sock_open(AF_INET, SOCK_DGRAM, 0); */
-    /* } */
-
-    /* if (dgram->m_fd == -1) { */
-    /*     CPE_ERROR( */
-    /*         em, "tun: dgram: socket create error, errno=%d (%s)", */
-    /*         cpe_sock_errno(), cpe_sock_errstr(cpe_sock_errno())); */
-    /*     return -1; */
-    /* } */
-
-    /* if (driver->m_sock_process_fun) { */
-    /*     if (driver->m_sock_process_fun(driver, driver->m_sock_process_ctx, dgram->m_fd, NULL) != 0) { */
-    /*         CPE_ERROR(em, "tun: dgram: sock process fail"); */
-    /*         cpe_sock_close(dgram->m_fd); */
-    /*         return -1; */
-    /*     } */
-    /* } */
+    net_tun_dgram_t dgram = net_dgram_data(base_dgram);
+    net_tun_driver_t driver = net_driver_data(net_dgram_driver(base_dgram));
     
-    /* if (address) { */
-    /*     struct sockaddr_storage addr; */
-    /*     socklen_t addr_len = sizeof(addr); */
+    net_address_t address = net_dgram_address(base_dgram);
+    if (address) {
+        switch(net_address_type(address)) {
+        case net_address_ipv4: {
+            dgram->m_pcb = udp_new();
+            if (dgram->m_pcb == NULL) {
+                CPE_ERROR(driver->m_em, "tun: dgram: udp_pcb create error");
+                return -1;
+            }
 
-    /*     if (net_address_to_sockaddr(address, (struct sockaddr *)&addr, &addr_len) != 0) { */
-    /*         CPE_ERROR(em, "tun: dgram: get sockaddr from address fail"); */
-    /*         cpe_sock_close(dgram->m_fd); */
-    /*         return -1; */
-    /*     } */
+            ip_addr_t addr;
+            net_address_to_lwip_ipv4(&addr, address);
+            err_t err = udp_bind(dgram->m_pcb, &addr, net_address_port(address));
+            if (err) {
+                CPE_ERROR(
+                    driver->m_em, "tun: dgram: udp_pcb bind to %s fail, err=%d (%s)",
+                    net_address_dump(net_tun_driver_tmp_buffer(driver), address),
+                    err, lwip_strerr(err));
+                udp_remove(dgram->m_pcb);
+                dgram->m_pcb = NULL;
+                return -1;
+            }
+            
+            break;
+        }
+        case net_address_ipv6: {
+            dgram->m_pcb = udp_new_ip6();
+            if (dgram->m_pcb == NULL) {
+                CPE_ERROR(driver->m_em, "tun: dgram: udp_pcb create error");
+                return -1;
+            }
 
-    /*     sock_set_reuseport(dgram->m_fd); */
+            ip6_addr_t addr;
+            net_address_to_lwip_ipv6(&addr, address);
+            err_t err = udp_bind_ip6(dgram->m_pcb, &addr, net_address_port(address));
+            if (err) {
+                CPE_ERROR(
+                    driver->m_em, "tun: dgram: udp_pcb bind to %s fail, err=%d (%s)",
+                    net_address_dump(net_tun_driver_tmp_buffer(driver), address),
+                    err, lwip_strerr(err));
+                udp_remove(dgram->m_pcb);
+                dgram->m_pcb = NULL;
+                return -1;
+            }
 
-    /*     if (cpe_bind(dgram->m_fd, (struct sockaddr *)&addr, addr_len) != 0) { */
-    /*         CPE_ERROR( */
-    /*             em, "tun: dgram: bind addr fail, errno=%d (%s)", */
-    /*             cpe_sock_errno(), cpe_sock_errstr(cpe_sock_errno())); */
-    /*         cpe_sock_close(dgram->m_fd); */
-    /*         dgram->m_fd = -1; */
-    /*         return -1; */
-    /*     } */
+            break;
+        }
+        case net_address_domain:
+            CPE_ERROR(driver->m_em, "tun: dgyam: not support domain address!");
+            return -1;
+        }
 
-    /*     if (driver->m_debug || net_schedule_debug(schedule) >= 2) { */
-    /*         CPE_INFO( */
-    /*             em, "tun: dgram: bind to %s", */
-    /*             net_address_dump(net_schedule_tmp_buffer(schedule), address)); */
-    /*     } */
-    /* } */
-    /* else { */
-    /*     struct sockaddr_storage addr; */
-    /*     socklen_t addr_len = sizeof(struct sockaddr_storage); */
-    /*     memset(&addr, 0, addr_len); */
-    /*     if (getsockname(dgram->m_fd, (struct sockaddr *)&addr, &addr_len) != 0) { */
-    /*         CPE_ERROR( */
-    /*             em, "tun: dgram: sockaddr error, errno=%d (%s)", */
-    /*             cpe_sock_errno(), cpe_sock_errstr(cpe_sock_errno())); */
-    /*         cpe_sock_close(dgram->m_fd); */
-    /*         dgram->m_fd = -1; */
-    /*         return -1; */
-    /*     } */
+        if (driver->m_debug) {
+            CPE_INFO(
+                driver->m_em, "tun: dgram: bind to %s",
+                net_address_dump(net_tun_driver_tmp_buffer(driver), address));
+        }
+    }
+    else {
+        dgram->m_pcb = udp_new();
+        if (dgram->m_pcb == NULL) {
+            CPE_ERROR(driver->m_em, "tun: dgram: udp_pcb create error");
+            return -1;
+        }
+    }
 
-    /*     address = net_address_create_from_sockaddr(schedule, (struct sockaddr *)&addr, addr_len); */
-    /*     if (address == NULL) { */
-    /*         CPE_ERROR(net_schedule_em(schedule), "tun: dgram: create address fail"); */
-    /*         cpe_sock_close(dgram->m_fd); */
-    /*         dgram->m_fd = -1; */
-    /*         return -1; */
-    /*     } */
-
-    /*     if (driver->m_debug || net_schedule_debug(schedule) >= 2) { */
-    /*         CPE_INFO( */
-    /*             em, "tun: dgram: auto bind at %s", */
-    /*             net_address_dump(net_schedule_tmp_buffer(schedule), address)); */
-    /*     } */
-
-    /*     net_dgram_set_address(base_dgram, address); */
-    /* } */
+    udp_recv(dgram->m_pcb, net_tun_dgram_recv_ipv4, base_dgram);
+    udp_recv_ip6(dgram->m_pcb, net_tun_dgram_recv_ipv6, base_dgram);
     
     return 0;
 }
 
 void net_tun_dgram_fini(net_dgram_t base_dgram) {
-    /* net_tun_dgram_t dgram = net_dgram_data(base_dgram); */
-    /* net_tun_driver_t driver = net_driver_data(net_dgram_driver(base_dgram)); */
+    net_tun_dgram_t dgram = net_dgram_data(base_dgram);
+    net_tun_driver_t driver = net_driver_data(net_dgram_driver(base_dgram));
+
+    if (dgram->m_pcb) {
+        udp_recv(dgram->m_pcb, NULL, NULL);
+        udp_recv_ip6(dgram->m_pcb, NULL, NULL);
+        udp_remove(dgram->m_pcb);
+        dgram->m_pcb = NULL;
+    }
 }
 
 int net_tun_dgram_send(net_dgram_t base_dgram, net_address_t target, void const * data, size_t data_len) {
-    printf("xxxxx: send %d\n", (int)data_len);
+    net_tun_dgram_t dgram = net_dgram_data(base_dgram);
+    net_tun_driver_t driver = net_driver_data(net_dgram_driver(base_dgram));
+
+    switch(net_address_type(target)) {
+    case net_address_ipv4: {
+        ip_addr_t addr;
+        net_address_to_lwip_ipv4(&addr, target);
+
+        struct pbuf * p = pbuf_alloc(PBUF_TRANSPORT, data_len, PBUF_POOL);
+        if (p == NULL) {
+            CPE_ERROR(
+                driver->m_em, "tun: dgram: send to %s: pbuf alloc fail, len=%d",
+                net_address_dump(net_tun_driver_tmp_buffer(driver), target),
+                (int)data_len);
+            return -1;
+        }
+
+        pbuf_take(p, (char*)data, data_len);
+         
+        err_t err = udp_sendto(dgram->m_pcb, p, &addr, net_address_port(target));
+        if (err) {
+            CPE_ERROR(
+                driver->m_em, "tun: dgram: send to %s fail, err=%d (%s)",
+                net_address_dump(net_tun_driver_tmp_buffer(driver), target),
+                err, lwip_strerr(err));
+            pbuf_free(p);
+            return -1;
+        }
+
+        pbuf_free(p);
+        break;
+    }
+    case net_address_ipv6: {
+        ip6_addr_t addr;
+        net_address_to_lwip_ipv6(&addr, target);
+
+        struct pbuf * p = pbuf_alloc(PBUF_TRANSPORT, data_len, PBUF_POOL);
+        if (p == NULL) {
+            CPE_ERROR(
+                driver->m_em, "tun: dgram: send to %s: pbuf alloc fail, len=%d",
+                net_address_dump(net_tun_driver_tmp_buffer(driver), target),
+                (int)data_len);
+            return -1;
+        }
+
+        pbuf_take(p, (char*)data, data_len);
+         
+        err_t err = udp_sendto_ip6(dgram->m_pcb, p, &addr, net_address_port(target));
+        if (err) {
+            CPE_ERROR(
+                driver->m_em, "tun: dgram: send to %s fail, err=%d (%s)",
+                net_address_dump(net_tun_driver_tmp_buffer(driver), target),
+                err, lwip_strerr(err));
+            pbuf_free(p);
+            return -1;
+        }
+
+        pbuf_free(p);
+        break;
+    }
+    default:
+        CPE_ERROR(driver->m_em, "tun: dgyam: not support send to domain address!");
+        return -1;
+    }
+
+    if (driver->m_debug) {
+        CPE_INFO(
+            driver->m_em, "turn: dgram: send %d data to %s",
+            (int)data_len,
+            net_address_dump(net_tun_driver_tmp_buffer(driver), target));
+    }
+    
     return (int)data_len;
+}
+
+static void net_tun_dgram_do_recv(
+    net_dgram_t base_dgram, net_tun_driver_t driver, net_tun_dgram_t dgram, struct pbuf *p, net_address_t from)
+{
+    char buf[1500];
+
+    uint32_t size = p->tot_len;
+    if (size > sizeof(buf)) {
+        CPE_ERROR(driver->m_em, "tun: dgram: receive data len %d overflow!", size);
+        return;
+    }
+    
+    err_t err = pbuf_copy_partial(p, buf, size, 0);
+    if (err) {
+        CPE_ERROR(driver->m_em, "tun: dgram: copy data to buf fail!, error=%d (%s)", err, lwip_strerr(err));
+        return;
+    }
+    
+    net_dgram_recv(base_dgram, from, buf, (size_t)size);
+
+    if (driver->m_data_monitor_fun) {
+        driver->m_data_monitor_fun(driver->m_data_monitor_ctx, NULL, net_data_in, size);
+    }
+}
+
+static void net_tun_dgram_recv_ipv4(void *arg, struct udp_pcb *pcb, struct pbuf *p, ip_addr_t *addr, u16_t port) {
+    net_dgram_t base_dgram = arg;
+    net_tun_dgram_t dgram = net_dgram_data(base_dgram);
+    net_tun_driver_t driver = net_driver_data(net_dgram_driver(base_dgram));
+    
+    net_address_t from = net_address_from_lwip(driver, 0, (ipX_addr_t *)addr, port);
+    if (from == NULL) {
+        CPE_ERROR(driver->m_em, "tun: dgram: create source address fail!");
+        return;
+    }
+
+    net_tun_dgram_do_recv(base_dgram, driver, dgram, p, from);
+    
+    net_address_free(from);
+}
+
+static void net_tun_dgram_recv_ipv6(void *arg, struct udp_pcb *pcb, struct pbuf *p, ip6_addr_t *addr, u16_t port) {
+    net_dgram_t base_dgram = arg;
+    net_tun_dgram_t dgram = net_dgram_data(base_dgram);
+    net_tun_driver_t driver = net_driver_data(net_dgram_driver(base_dgram));
+    
+    net_address_t from = net_address_from_lwip(driver, 0, (ipX_addr_t *)addr, port);
+    if (from == NULL) {
+        CPE_ERROR(driver->m_em, "tun: dgram: create source address fail!");
+        return;
+    }
+
+    net_tun_dgram_do_recv(base_dgram, driver, dgram, p, from);
+    
+    net_address_free(from);
 }

@@ -43,7 +43,7 @@
 #define LWIP_SNMP 0
 #define LWIP_IGMP 0
 #define LWIP_DNS 0
-#define LWIP_UDP 0
+#define LWIP_UDP 1
 #define LWIP_UDPLITE 0
 #define LWIP_TCP 1
 #define LWIP_CALLBACK_API 1
