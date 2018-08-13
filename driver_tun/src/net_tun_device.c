@@ -13,7 +13,7 @@
 #include "net_tun_wildcard_acceptor_i.h"
 #include "net_tun_endpoint.h"
 
-static int net_tun_device_init_netif(net_tun_device_t device);
+static int net_tun_device_init_netif(net_tun_device_t device, net_address_t netif_address);
 static int net_tun_device_init_listener_ip4(net_tun_device_t device);
 
 static err_t net_tun_device_netif_init(struct netif *netif);
@@ -31,6 +31,7 @@ net_tun_device_create(
     , NEPacketTunnelFlow * tunnelFlow
     , NEPacketTunnelNetworkSettings * settings
 #endif
+    , net_address_t netif_address
     )
 {
     net_tun_device_t device = mem_alloc(driver->m_alloc, sizeof(struct net_tun_device));
@@ -72,7 +73,7 @@ net_tun_device_create(
 #endif
 
     uint8_t netif_init = 0;
-    if (net_tun_device_init_netif(device) != 0) {
+    if (net_tun_device_init_netif(device, netif_address) != 0) {
         goto create_errror;
     }
     netif_init = 1;
@@ -217,7 +218,19 @@ net_address_t net_tun_device_gen_local_address(net_tun_device_t device) {
     return net_address_rand_same_network(device->m_address, device->m_mask);
 }
 
-static int net_tun_device_init_netif(net_tun_device_t device) {
+net_address_t net_tun_device_address(net_tun_device_t device) {
+    return device->m_address;
+}
+
+net_address_t net_tun_device_mask(net_tun_device_t device) {
+    return device->m_mask;
+}
+
+net_address_t net_tun_device_netif_address(net_tun_device_t device) {
+    return device->m_netif_address;
+}
+
+static int net_tun_device_init_netif(net_tun_device_t device, net_address_t net_if_address) {
     // make addresses for netif
     ip_addr_t addr;
     ip_addr_t netmask;
@@ -231,13 +244,24 @@ static int net_tun_device_init_netif(net_tun_device_t device) {
             CPE_ERROR(device->m_driver->m_em, "%s: have address, but no mask!", device->m_dev_name);
             return -1;
         }
-        
-        device->m_netif_address = net_address_rand_same_network(device->m_address, device->m_mask);
-        if (device->m_netif_address == NULL) {
-            CPE_ERROR(
-                device->m_driver->m_em, "%s: generate netif address from %s fail!", device->m_dev_name,
-                net_address_dump(net_tun_driver_tmp_buffer(device->m_driver), device->m_address));
-            return -1;
+
+        if (net_if_address) {
+            device->m_netif_address = net_address_copy(net_tun_driver_schedule(device->m_driver), net_if_address);
+            if (device->m_netif_address == NULL) {
+                CPE_ERROR(
+                    device->m_driver->m_em, "%s: dup netif address from %s fail!", device->m_dev_name,
+                    net_address_dump(net_tun_driver_tmp_buffer(device->m_driver), net_if_address));
+                return -1;
+            }
+        }
+        else {
+            device->m_netif_address =  net_address_rand_same_network(device->m_address, device->m_mask);
+            if (device->m_netif_address == NULL) {
+                CPE_ERROR(
+                    device->m_driver->m_em, "%s: generate netif address from %s fail!", device->m_dev_name,
+                    net_address_dump(net_tun_driver_tmp_buffer(device->m_driver), device->m_address));
+                return -1;
+            }
         }
 
         net_address_to_lwip_ipv4(&addr, device->m_netif_address);

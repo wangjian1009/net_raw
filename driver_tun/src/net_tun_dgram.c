@@ -185,16 +185,13 @@ static void net_tun_dgram_do_recv(
         return;
     }
     
-    err_t err = pbuf_copy_partial(p, buf, size, 0);
-    if (err) {
-        CPE_ERROR(driver->m_em, "tun: dgram: copy data to buf fail!, error=%d (%s)", err, lwip_strerr(err));
-        return;
-    }
+    u16_t read_sz = pbuf_copy_partial(p, buf, size, 0);
+    assert(read_sz == size);
     
-    net_dgram_recv(base_dgram, from, buf, (size_t)size);
+    net_dgram_recv(base_dgram, from, buf, (size_t)read_sz);
 
     if (driver->m_data_monitor_fun) {
-        driver->m_data_monitor_fun(driver->m_data_monitor_ctx, NULL, net_data_in, size);
+        driver->m_data_monitor_fun(driver->m_data_monitor_ctx, NULL, net_data_in, (uint32_t)read_sz);
     }
 }
 

@@ -17,12 +17,17 @@ net_tun_device_create(
     , NEPacketTunnelFlow * tunnelFlow
     , NEPacketTunnelNetworkSettings * settings
 #endif
+    , net_address_t netif_address
     );
 
 void net_tun_device_free(net_tun_device_t device);
 
 net_tun_device_t net_tun_device_default(net_tun_driver_t driver);
 net_address_t net_tun_device_gen_local_address(net_tun_device_t device);
+
+net_address_t net_tun_device_address(net_tun_device_t device);
+net_address_t net_tun_device_mask(net_tun_device_t device);
+net_address_t net_tun_device_netif_address(net_tun_device_t device);
 
 NET_END_DECL
 
