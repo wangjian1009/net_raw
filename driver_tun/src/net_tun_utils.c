@@ -172,3 +172,13 @@ void net_address_to_lwip_ipv4(ip_addr_t * addr, net_address_t address) {
     struct net_address_data_ipv4 const * addr_data = net_address_data(address);
     IP4_ADDR(addr, addr_data->u8[0], addr_data->u8[1], addr_data->u8[2], addr_data->u8[3]);
 }
+
+void net_address_to_lwip_ipv6(ip6_addr_t * addr, net_address_t address) {
+    assert(net_address_type(address) == net_address_ipv6);
+    
+    struct net_address_data_ipv6 const * addr_data = net_address_data(address);
+    addr->addr[0] = addr_data->u32[0];
+    addr->addr[1] = addr_data->u32[1];
+    addr->addr[2] = addr_data->u32[2];
+    addr->addr[3] = addr_data->u32[3];
+}

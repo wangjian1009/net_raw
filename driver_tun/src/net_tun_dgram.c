@@ -88,7 +88,7 @@ int net_tun_dgram_init(net_dgram_t base_dgram) {
 
 void net_tun_dgram_fini(net_dgram_t base_dgram) {
     net_tun_dgram_t dgram = net_dgram_data(base_dgram);
-    net_tun_driver_t driver = net_driver_data(net_dgram_driver(base_dgram));
+    //net_tun_driver_t driver = net_driver_data(net_dgram_driver(base_dgram));
 
     if (dgram->m_pcb) {
         udp_recv(dgram->m_pcb, NULL, NULL);
