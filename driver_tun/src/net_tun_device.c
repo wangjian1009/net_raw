@@ -552,9 +552,11 @@ static int net_tun_device_init_listener_ip4(net_tun_device_t device) {
         return -1;
     }
 
-    err_t err = tcp_bind_to_netif(l, "ho0");
+    char dev_name[16];
+    snprintf(dev_name, sizeof(dev_name), "%s%d", device->m_netif.name, device->m_netif.num);
+    err_t err = tcp_bind_to_netif(l, dev_name);
     if (err) {
-        CPE_ERROR(driver->m_em, "tun: listener4: bind to netif %s fail, error=%d (%s)", device->m_netif.name, err, lwip_strerr(err));
+        CPE_ERROR(driver->m_em, "tun: listener4: bind to netif %s fail, error=%d (%s)", dev_name, err, lwip_strerr(err));
         tcp_close(l);
         return -1;
     }
