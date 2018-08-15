@@ -4,6 +4,10 @@
 #include "net_tun_driver_i.h"
 
 #if NET_TUN_USE_DEV_NE
+@interface NetTunDeviceBridger : NSObject {
+    @public net_tun_device_t m_device;
+}
+@end
 #endif
 
 struct net_tun_device {
@@ -26,6 +30,7 @@ struct net_tun_device {
 
     /*使用NetworkExtention设备接口 */
 #if NET_TUN_USE_DEV_NE
+    __unsafe_unretained NetTunDeviceBridger * m_bridger;
     __unsafe_unretained NEPacketTunnelFlow * m_tunnelFlow;
 #endif
 };

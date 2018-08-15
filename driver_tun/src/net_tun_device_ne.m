@@ -43,6 +43,9 @@ int net_tun_device_init_dev(
         }
     }
 
+    device->m_bridger = [[[NetTunDeviceBridger alloc] init] retain];
+    device->m_bridger->m_device = device;
+    
     device->m_tunnelFlow = tunnelFlow;
     [device->m_tunnelFlow retain];
 
@@ -52,8 +55,15 @@ int net_tun_device_init_dev(
 }
 
 void net_tun_device_fini_dev(net_tun_driver_t driver, net_tun_device_t device) {
+    if (device->m_bridger) {
+        device->m_bridger->m_device = NULL;
+        [device->m_bridger release];
+        device->m_bridger = nil;
+    }
+    
     if (device->m_tunnelFlow) {
         [device->m_tunnelFlow release];
+        device->m_tunnelFlow = nil;
     }
 }
 
@@ -72,11 +82,21 @@ int net_tun_device_packet_output(net_tun_device_t device, uint8_t *data, int dat
     return 0;
 }
 
-static void net_tun_device_start_read(net_tun_device_t device) {
-    [device->m_tunnelFlow readPacketsWithCompletionHandler: ^(NSArray<NSData *> *packets, NSArray<NSNumber *> *protocols) {
+static void net_tun_device_start_read(net_tun_device_t i_device) {
+    NetTunDeviceBridger * bridger = i_device->m_bridger;
+    [bridger retain];
+
+    [i_device->m_tunnelFlow readPacketsWithCompletionHandler: ^(NSArray<NSData *> *packets, NSArray<NSNumber *> *protocols) {
             dispatch_async(
                 dispatch_get_main_queue(),
                 ^{
+                    net_tun_device_t device = bridger->m_device;
+                    [bridger release];
+                    if (device == NULL) {
+                        NSLog(@"net_tun_device_read: device free, return");
+                        return;
+                    }
+                    
                     net_tun_driver_t driver = device->m_driver;
                     for(uint32_t i = 0; i < [packets count]; ++i) {
                         NSData * packet = packets[i];
@@ -93,3 +113,6 @@ static void net_tun_device_start_read(net_tun_device_t device) {
                 });
         }];
 }
+
+@implementation NetTunDeviceBridger
+@end

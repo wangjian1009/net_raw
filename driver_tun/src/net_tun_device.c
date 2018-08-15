@@ -149,6 +149,8 @@ void net_tun_device_free(net_tun_device_t device) {
 
     device->m_quitting = 1;
 
+    net_tun_device_fini_dev(driver, device);
+    
     if (device->m_listener_ip4) {
         tcp_close(device->m_listener_ip4);
         device->m_listener_ip4 = NULL;
