@@ -18,6 +18,8 @@ struct net_tun_device {
     struct tcp_pcb * m_listener_ip6;
     net_address_t m_netif_address;
     uint16_t m_mtu;
+    uint8_t * m_output_buf;
+    uint16_t m_output_capacity;
     uint8_t m_quitting;
     net_address_t m_address;
     net_address_t m_mask;

@@ -45,6 +45,8 @@ net_tun_device_create(
     device->m_listener_ip6 = NULL;
     device->m_netif_address = NULL;
     device->m_mtu = 0;
+    device->m_output_capacity = 0;
+    device->m_output_buf = NULL;
     device->m_quitting = 0;
     device->m_address = NULL;
     device->m_mask = NULL;
@@ -191,6 +193,11 @@ void net_tun_device_free(net_tun_device_t device) {
         net_address_free(device->m_netif_address);
         device->m_netif_address = NULL;
     }
+
+    if (device->m_output_buf) {
+        mem_free(driver->m_alloc, device->m_output_buf);
+        device->m_output_buf = NULL;
+    }
     
     mem_free(driver->m_alloc, device);
 }
@@ -313,7 +320,7 @@ static err_t net_tun_device_netif_do_output(struct netif *netif, struct pbuf *p)
 
         if (driver->m_debug >= 2) {
             CPE_INFO(
-                device->m_driver->m_em,
+                driver->m_em,
                 "%s: >>> %d |      %s", device->m_netif.name, p->len,
                 net_tun_dump_raw_data(net_tun_driver_tmp_buffer(driver), NULL, (uint8_t *)p->payload, NULL));
         }
@@ -321,12 +328,29 @@ static err_t net_tun_device_netif_do_output(struct netif *netif, struct pbuf *p)
         net_tun_device_packet_output(device, (uint8_t *)p->payload, p->len);
     }
     else {
-        void * device_write_buf = mem_buffer_alloc(net_tun_driver_tmp_buffer(device->m_driver), device->m_mtu);
+        if (device->m_mtu > device->m_output_capacity) {
+            if (device->m_output_buf) {
+                mem_free(driver->m_alloc, device->m_output_buf);
+                device->m_output_buf = NULL;
+                device->m_output_capacity = 0;
+            }
+
+            device->m_output_buf = mem_alloc(driver->m_alloc, device->m_mtu);
+            if (device->m_output_buf == NULL) {
+                CPE_ERROR(driver->m_em, "%s: output: alloc buf fail, mtu=%d", device->m_netif.name, device->m_mtu);
+                goto out;
+            }
+            device->m_output_capacity = device->m_mtu;
+        }
+
+        assert(device->m_output_buf);
+
+        void * device_write_buf = device->m_output_buf;
         int len = 0;
         do {
             if (p->len > device->m_mtu - len) {
                 CPE_ERROR(
-                    device->m_driver->m_em, "%s: output: len %d overflow, mtu=%d",
+                    driver->m_em, "%s: output: len %d overflow, mtu=%d",
                     device->m_netif.name, p->len + len, device->m_mtu);
                 goto out;
             }
