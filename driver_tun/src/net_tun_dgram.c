@@ -66,7 +66,7 @@ int net_tun_dgram_init(net_dgram_t base_dgram) {
             return -1;
         }
 
-        if (driver->m_debug) {
+        if (net_dgram_driver_debug(base_dgram)) {
             CPE_INFO(
                 driver->m_em, "tun: dgram: bind to %s",
                 net_address_dump(net_tun_driver_tmp_buffer(driver), address));
@@ -164,7 +164,7 @@ int net_tun_dgram_send(net_dgram_t base_dgram, net_address_t target, void const 
         return -1;
     }
 
-    if (driver->m_debug) {
+    if (net_dgram_driver_debug(base_dgram)) {
         CPE_INFO(
             driver->m_em, "turn: dgram: send %d data to %s",
             (int)data_len,

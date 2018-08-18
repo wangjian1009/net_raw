@@ -49,7 +49,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
                               be done with the pbuf in case of an error.*/
 
     if (!p) {
-        if (driver->m_debug >= 2) {
+        if (net_endpoint_driver_debug(base_endpoint) >= 2) {
             CPE_INFO(
                 driver->m_em, "tun: %s: client closed",
                 net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
@@ -79,7 +79,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
 
     if (net_endpoint_rbuf_supply(base_endpoint, size) != 0) {
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_logic_error) != 0) {
-            if (driver->m_debug || net_schedule_debug(schedule) >= 2) {
+            if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
                 CPE_INFO(
                     driver->m_em, "tun: %s: free for process fail!",
                     net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
@@ -125,7 +125,7 @@ static void net_tun_endpoint_err_func(void *arg, err_t err) {
     }
 
     if (err == ERR_RST) {
-        if (driver->m_debug) {
+        if (net_endpoint_driver_debug(base_endpoint)) {
             CPE_INFO(
                 driver->m_em, "tun: %s: remote disconnected!",
                 net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
@@ -136,7 +136,7 @@ static void net_tun_endpoint_err_func(void *arg, err_t err) {
         }
     }
     else {
-        if (driver->m_debug) {
+        if (net_endpoint_driver_debug(base_endpoint)) {
             CPE_INFO(
                 driver->m_em, "tun: %s: error %d (%s)",
                 net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
@@ -182,7 +182,6 @@ static err_t net_tun_endpoint_poll_func(void *arg, struct tcp_pcb *pcb) {
 static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, err_t err) {
     net_tun_endpoint_t endpoint = arg;
     net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
-    net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
     net_schedule_t schedule = net_endpoint_schedule(base_endpoint);
     error_monitor_t em = net_schedule_em(schedule);
 
@@ -197,7 +196,7 @@ static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, er
         return ERR_OK;
     }
 
-    if (driver->m_debug || net_schedule_debug(schedule) >= 2) {
+    if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
         CPE_INFO(
             em, "ev: %s: connect success",
             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
@@ -275,7 +274,7 @@ static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
             return -1;
         }
 
-        if (driver->m_debug) {
+        if (net_endpoint_driver_debug(base_endpoint)) {
             CPE_INFO(
                 driver->m_em, "tun: %s: send %d bytes data!",
                 net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
@@ -446,7 +445,7 @@ void net_tun_endpoint_close(net_endpoint_t base_endpoint) {
     }
     endpoint->m_pcb = NULL;
     
-    if (driver->m_debug >= 2) {
+    if (net_endpoint_driver_debug(base_endpoint) >= 2) {
         CPE_INFO(
             driver->m_em, "tun: %s: tcp closed",
             net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
