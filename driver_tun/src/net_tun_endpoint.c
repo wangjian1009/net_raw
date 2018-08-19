@@ -48,6 +48,10 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
     assert(err == ERR_OK); /* checked in lwIP source. Otherwise, I've no idea what should
                               be done with the pbuf in case of an error.*/
 
+    if (net_endpoint_state(base_endpoint) == net_endpoint_state_deleting) {
+        return ERR_OK;
+    }
+    
     if (!p) {
         if (net_endpoint_driver_debug(base_endpoint) >= 2) {
             CPE_INFO(
