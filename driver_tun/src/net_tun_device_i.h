@@ -34,6 +34,8 @@ struct net_tun_device {
 #if NET_TUN_USE_DEV_NE
     __unsafe_unretained NetTunDeviceBridger * m_bridger;
     __unsafe_unretained NEPacketTunnelFlow * m_tunnelFlow;
+    __unsafe_unretained NSMutableArray<NSData *> * m_packets;
+    __unsafe_unretained NSMutableArray<NSNumber *> * m_versions;
 #endif
 };
 

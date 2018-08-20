@@ -43,12 +43,15 @@ int net_tun_device_init_dev(
         }
     }
 
-    device->m_bridger = [[[NetTunDeviceBridger alloc] init] retain];
+    device->m_bridger = [[NetTunDeviceBridger alloc] init];
     device->m_bridger->m_device = device;
     
     device->m_tunnelFlow = tunnelFlow;
     [device->m_tunnelFlow retain];
 
+    device->m_packets = [[NSMutableArray<NSData *> alloc] init];
+    device->m_versions = [[NSMutableArray<NSNumber *> alloc] init];
+        
     net_tun_device_start_read(device);
     
     return 0;
@@ -65,23 +68,32 @@ void net_tun_device_fini_dev(net_tun_driver_t driver, net_tun_device_t device) {
         [device->m_tunnelFlow release];
         device->m_tunnelFlow = nil;
     }
+
+    [device->m_packets release];
+    device->m_packets = NULL;
+    
+    [device->m_versions release];
+    device->m_versions = NULL;
 }
 
 int net_tun_device_packet_output(net_tun_device_t device, uint8_t *data, int data_len) {
     assert(data_len >= 0);
     assert(data_len <= device->m_mtu);
 
-    @autoreleasepool {
-        for(int i =0 ; i < data_len; ++i) {
-            printf("%d", (int)data[i]);
-        }
-        NSData * packageData = [[NSData dataWithBytes: data length: data_len] autorelease];
-        NSArray<NSData *> * packets = [[NSArray<NSData *> arrayWithObjects: packageData, nil] autorelease];
-        NSArray<NSNumber *> * versions = [[NSArray<NSNumber *> arrayWithObjects: [NSNumber numberWithInt: 4], nil] autorelease];
+    NSData * packageData = [NSData dataWithBytes: data length: data_len];
+    NSNumber * version = [NSNumber numberWithInt: 4];
+        
+    [device->m_packets addObject: packageData];
+    [device->m_versions addObject: version];
 
-        [device->m_tunnelFlow writePackets: packets withProtocols: versions];
-    }
-    
+    [device->m_tunnelFlow writePackets: device->m_packets withProtocols: device->m_versions];
+
+    [device->m_packets removeAllObjects];
+    [device->m_versions removeAllObjects];
+
+    //[packageData release];
+    //[version release]; 
+
     return 0;
 }
 
