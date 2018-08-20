@@ -75,9 +75,9 @@ int net_tun_device_packet_output(net_tun_device_t device, uint8_t *data, int dat
         for(int i =0 ; i < data_len; ++i) {
             printf("%d", (int)data[i]);
         }
-        NSData * packageData = [NSData dataWithBytes: data length: data_len];
-        NSArray<NSData *> * packets = [NSArray<NSData *> arrayWithObjects: packageData, nil];
-        NSArray<NSNumber *> * versions = [NSArray<NSNumber *> arrayWithObjects: [NSNumber numberWithInt: 4], nil];
+        NSData * packageData = [[NSData dataWithBytes: data length: data_len] autorelease];
+        NSArray<NSData *> * packets = [[NSArray<NSData *> arrayWithObjects: packageData, nil] autorelease];
+        NSArray<NSNumber *> * versions = [[NSArray<NSNumber *> arrayWithObjects: [NSNumber numberWithInt: 4], nil] autorelease];
 
         [device->m_tunnelFlow writePackets: packets withProtocols: versions];
     }
