@@ -71,7 +71,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
     assert(p->tot_len > 0);
 
     uint32_t size = p->tot_len;
-    void * data = net_endpoint_rbuf_alloc(base_endpoint, &size);
+    void * data = net_endpoint_buf_alloc(base_endpoint, net_ep_buf_read, &size);
     if (data == NULL) {
         CPE_ERROR(
             driver->m_em, "tun: %s: no buffer for data, size=%d",
@@ -81,7 +81,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
 
     pbuf_copy_partial(p, data, size, 0);
 
-    if (net_endpoint_rbuf_supply(base_endpoint, size) != 0) {
+    if (net_endpoint_buf_supply(base_endpoint, net_ep_buf_read, size) != 0) {
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_logic_error) != 0) {
             if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
                 CPE_INFO(
@@ -250,9 +250,9 @@ static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
     net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
     net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
 
-    while(net_endpoint_state(base_endpoint) == net_endpoint_state_established && !net_endpoint_wbuf_is_empty(base_endpoint)) {
+    while(net_endpoint_state(base_endpoint) == net_endpoint_state_established && !net_endpoint_buf_is_empty(base_endpoint, net_ep_buf_write)) {
         uint32_t data_size;
-        void * data = net_endpoint_wbuf(base_endpoint, &data_size);
+        void * data = net_endpoint_buf_peak(base_endpoint, net_ep_buf_write, &data_size);
 
         assert(data_size > 0);
         assert(data);
@@ -285,7 +285,7 @@ static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
                 data_size);
         }
         
-        net_endpoint_wbuf_consume(base_endpoint, data_size);
+        net_endpoint_buf_consume(base_endpoint, net_ep_buf_write, data_size);
     }
 
     err_t err = tcp_output(endpoint->m_pcb);
