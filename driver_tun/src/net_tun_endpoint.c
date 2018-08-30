@@ -71,7 +71,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
     assert(p->tot_len > 0);
 
     uint32_t size = p->tot_len;
-    void * data = net_endpoint_buf_alloc(base_endpoint, net_ep_buf_read, &size);
+    void * data = net_endpoint_buf_alloc(base_endpoint, &size);
     if (data == NULL) {
         CPE_ERROR(
             driver->m_em, "tun: %s: no buffer for data, size=%d",
