@@ -129,7 +129,7 @@ net_address_t net_tun_iphead_source_addr(net_tun_driver_t driver, uint8_t const 
     addr_data.u8[3] = iphead[15];
 
     uint16_t port =  (((uint16_t)iphead[20])<<8) | iphead[21];
-    return net_address_create_from_data_ipv4(net_tun_driver_schedule(driver), &addr_data, port);
+    return net_address_create_ipv4_from_data(net_tun_driver_schedule(driver), &addr_data, port);
 }
 
 net_address_t net_tun_iphead_target_addr(net_tun_driver_t driver, uint8_t const * iphead) {
@@ -140,7 +140,7 @@ net_address_t net_tun_iphead_target_addr(net_tun_driver_t driver, uint8_t const 
     addr_data.u8[3] = iphead[19];
 
     uint16_t port =  (((uint16_t)iphead[22])<<8) | iphead[23];
-    return net_address_create_from_data_ipv4(net_tun_driver_schedule(driver), &addr_data, port);
+    return net_address_create_ipv4_from_data(net_tun_driver_schedule(driver), &addr_data, port);
 }
 
 net_address_t net_address_from_lwip_ip4(net_tun_driver_t driver, ip_addr_t * addr, uint16_t port) {
@@ -149,12 +149,12 @@ net_address_t net_address_from_lwip_ip4(net_tun_driver_t driver, ip_addr_t * add
     addr_data.u8[1] = ip4_addr2(addr);
     addr_data.u8[2] = ip4_addr3(addr);
     addr_data.u8[3] = ip4_addr4(addr);
-    return net_address_create_from_data_ipv4(net_tun_driver_schedule(driver), &addr_data, port);
+    return net_address_create_ipv4_from_data(net_tun_driver_schedule(driver), &addr_data, port);
 }
 
 net_address_t net_address_from_lwip_ip6(net_tun_driver_t driver, ip6_addr_t * addr, uint16_t port) {
     struct net_address_data_ipv6 addr_data;
-    return net_address_create_from_data_ipv6(net_tun_driver_schedule(driver), &addr_data, port);
+    return net_address_create_ipv6_from_data(net_tun_driver_schedule(driver), &addr_data, port);
 }
 
 net_address_t net_address_from_lwip(net_tun_driver_t driver, uint8_t is_ipv6, ipX_addr_t * addr, uint16_t port) {
