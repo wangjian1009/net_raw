@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include "cpe/pal/pal_string.h"
+#include "cpe/pal/pal_strings.h"
 #include "cpe/pal/pal_unistd.h"
 #include "cpe/utils/string_utils.h"
 #include "net_address.h"
