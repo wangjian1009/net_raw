@@ -41,7 +41,9 @@ set_property(TARGET lwip PROPERTY INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_LIST_DIR}/../custom/lwip
   )
 
+if (GCC)
 set_property(TARGET lwip PROPERTY COMPILE_OPTIONS
   -Wno-unused-value
   -Wno-bitwise-op-parentheses
   )
+endif ()
