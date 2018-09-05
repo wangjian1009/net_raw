@@ -31,6 +31,14 @@ set(lwip_source
   ${CMAKE_CURRENT_LIST_DIR}/../custom/lwip/error.c
   )
 
+if (MSVC)
+elseif (GCC)
+set(lwip_compile_options
+  -Wno-unused-value
+  -Wno-bitwise-op-parentheses
+  )
+endif()
+
 add_library(lwip STATIC ${lwip_source})
 
 set_property(TARGET lwip PROPERTY INCLUDE_DIRECTORIES
@@ -41,9 +49,4 @@ set_property(TARGET lwip PROPERTY INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_LIST_DIR}/../custom/lwip
   )
 
-if (GCC)
-set_property(TARGET lwip PROPERTY COMPILE_OPTIONS
-  -Wno-unused-value
-  -Wno-bitwise-op-parentheses
-  )
-endif ()
+set_property(TARGET lwip PROPERTY COMPILE_OPTIONS ${lwip_compile_options})
