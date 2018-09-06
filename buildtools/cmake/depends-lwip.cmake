@@ -32,7 +32,7 @@ set(lwip_source
   )
 
 if (MSVC)
-elseif (GCC)
+elseif (CMAKE_C_COMPILER_ID MATCHES "Clang" OR CMAKE_C_COMPILER_IS_GNUCC)
 set(lwip_compile_options
   -Wno-unused-value
   -Wno-bitwise-op-parentheses
