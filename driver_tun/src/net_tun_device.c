@@ -563,7 +563,9 @@ static err_t net_tun_device_on_accept(void *arg, struct tcp_pcb *newpcb, err_t e
     }
     
     if (driver->m_debug) {
-        CPE_INFO(driver->m_em, "tun: accept: no acceptor");
+        CPE_INFO(
+            driver->m_em, "tun: accept: no acceptor for %s",
+            net_address_dump(net_tun_driver_tmp_buffer(device->m_driver), local_addr));
     }
     net_address_free(local_addr);
     tcp_abort(newpcb);
