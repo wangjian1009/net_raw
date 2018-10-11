@@ -89,12 +89,14 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
                     net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
             }
             net_endpoint_free(base_endpoint);
+            pbuf_free(p);
+            return ERR_ABRT;
         }
     }
 
     pbuf_free(p);
 
-    return ERR_OK;
+    return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
 }
 
 static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t len) {
@@ -109,7 +111,7 @@ static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t l
         }
     }
 
-    return ERR_OK;
+    return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
 }
 
 static void net_tun_endpoint_err_func(void *arg, err_t err) {
@@ -154,7 +156,7 @@ static void net_tun_endpoint_err_func(void *arg, err_t err) {
 }
 
 static err_t net_tun_endpoint_poll_func(void *arg, struct tcp_pcb *pcb) {
-    /* net_tun_endpoint_t endpoint = arg; */
+    net_tun_endpoint_t endpoint = arg;
     /* net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint); */
     /* net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint)); */
 
@@ -180,7 +182,7 @@ static err_t net_tun_endpoint_poll_func(void *arg, struct tcp_pcb *pcb) {
     /*     } */
     /* } */
 
-    return ERR_OK;
+    return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
 }
 
 static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, err_t err) {
@@ -197,7 +199,7 @@ static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, er
             net_endpoint_free(base_endpoint);
             return ERR_ABRT;
         }
-        return ERR_OK;
+        return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
     }
 
     if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
@@ -211,7 +213,7 @@ static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, er
         return ERR_ABRT;
     }
 
-    return ERR_OK;
+    return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
 }
 
 int net_tun_endpoint_init(net_endpoint_t base_endpoint) {
