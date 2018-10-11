@@ -64,7 +64,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
             return ERR_ABRT;
         }
         else {
-            return ERR_OK;
+            return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
         }
     }
 
