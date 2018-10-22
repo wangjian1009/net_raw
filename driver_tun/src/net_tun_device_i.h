@@ -16,7 +16,9 @@ struct net_tun_device {
     struct netif m_netif;
     struct tcp_pcb * m_listener_ip4;
     struct tcp_pcb * m_listener_ip6;
-    net_address_t m_netif_address;
+    net_address_t m_netif_ipv4_address;
+    net_address_t m_netif_ipv4_mask;
+    net_address_t m_netif_ipv6_address;
     uint16_t m_mtu;
     uint8_t * m_output_buf;
     uint16_t m_output_capacity;

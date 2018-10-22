@@ -11,13 +11,17 @@ net_tun_device_t
 net_tun_device_create(
     net_tun_driver_t driver
 #if NET_TUN_USE_DEV_TUN
+    , int fd
     , const char * name
 #endif    
 #if NET_TUN_USE_DEV_NE
     , NEPacketTunnelFlow * tunnelFlow
     , NEPacketTunnelNetworkSettings * settings
 #endif
-    , net_address_t netif_address
+    , uint8_t mtu
+    , net_address_t netif_ipv4_address
+    , net_address_t netif_ipv4_mask
+    , net_address_t netif_ipv6_address
     );
 
 void net_tun_device_free(net_tun_device_t device);
