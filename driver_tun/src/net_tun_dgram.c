@@ -8,7 +8,7 @@
 #include "net_tun_utils.h"
 
 static void net_tun_dgram_recv_ipv4(void *arg, struct udp_pcb *pcb, struct pbuf *p, ip_addr_t *addr, u16_t port);
-static void net_tun_dgram_recv_ipv6(void *arg, struct udp_pcb *pcb, struct pbuf *p, ip6_addr_t *addr, u16_t port);
+//static void net_tun_dgram_recv_ipv6(void *arg, struct udp_pcb *pcb, struct pbuf *p, ip6_addr_t *addr, u16_t port);
 
 int net_tun_dgram_init(net_dgram_t base_dgram) {
     net_tun_dgram_t dgram = net_dgram_data(base_dgram);
@@ -209,7 +209,7 @@ static void net_tun_dgram_recv_ipv4(void *arg, struct udp_pcb *pcb, struct pbuf 
     
     net_address_free(from);
 }
-
+/*
 static void net_tun_dgram_recv_ipv6(void *arg, struct udp_pcb *pcb, struct pbuf *p, ip6_addr_t *addr, u16_t port) {
     net_dgram_t base_dgram = arg;
     net_tun_dgram_t dgram = net_dgram_data(base_dgram);
@@ -225,3 +225,4 @@ static void net_tun_dgram_recv_ipv6(void *arg, struct udp_pcb *pcb, struct pbuf 
     
     net_address_free(from);
 }
+*/
