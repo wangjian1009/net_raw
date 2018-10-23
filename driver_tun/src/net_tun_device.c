@@ -483,16 +483,11 @@ int net_tun_device_packet_input(net_tun_driver_t driver, net_tun_device_t device
         return -1;
     }
 
-    if (iphead[9] == IPPROTO_UDP) {
-        //
-    }
-    else {
-        err = device->m_netif.input(p, &device->m_netif);
-        if (err != ERR_OK) {
-            CPE_ERROR(driver->m_em, "%s: packet input: input fail, error=%d (%s)", device->m_dev_name, err, lwip_strerr(err));
-            pbuf_free(p);
-            return -1;
-        }
+    err = device->m_netif.input(p, &device->m_netif);
+    if (err != ERR_OK) {
+        CPE_ERROR(driver->m_em, "%s: packet input: input fail, error=%d (%s)", device->m_dev_name, err, lwip_strerr(err));
+        pbuf_free(p);
+        return -1;
     }
     
     return 0;

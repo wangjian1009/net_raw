@@ -14,13 +14,10 @@ int net_tun_dgram_init(net_dgram_t base_dgram) {
     net_tun_dgram_t dgram = net_dgram_data(base_dgram);
     net_tun_driver_t driver = net_driver_data(net_dgram_driver(base_dgram));
 
-    CPE_ERROR(driver->m_em, "tun: dgram: init");
-    
     net_address_t address = net_dgram_address(base_dgram);
     if (address) {
         switch(net_address_type(address)) {
         case net_address_ipv4: {
-            CPE_ERROR(driver->m_em, "tun: dgram: init 1");
             dgram->m_pcb = udp_new();
             if (dgram->m_pcb == NULL) {
                 CPE_ERROR(driver->m_em, "tun: dgram: udp_pcb create error");
@@ -76,7 +73,6 @@ int net_tun_dgram_init(net_dgram_t base_dgram) {
         }
     }
     else {
-        CPE_ERROR(driver->m_em, "tun: dgram: init 2");
         dgram->m_pcb = udp_new();
         if (dgram->m_pcb == NULL) {
             CPE_ERROR(driver->m_em, "tun: dgram: udp_pcb create error");
@@ -84,9 +80,8 @@ int net_tun_dgram_init(net_dgram_t base_dgram) {
         }
     }
 
-    CPE_ERROR(driver->m_em, "tun: dgram: init 3");
+    CPE_ERROR(driver->m_em, "tun: dgram: udp_pcb %p", dgram->m_pcb);
     udp_recv(dgram->m_pcb, net_tun_dgram_recv_ipv4, base_dgram);
-    udp_recv_ip6(dgram->m_pcb, net_tun_dgram_recv_ipv6, base_dgram);
     
     return 0;
 }
