@@ -33,6 +33,8 @@ net_address_t net_tun_device_address(net_tun_device_t device);
 net_address_t net_tun_device_mask(net_tun_device_t device);
 net_address_t net_tun_device_netif_address(net_tun_device_t device);
 
+void net_tun_device_clear_all(net_tun_driver_t driver);
+
 NET_END_DECL
 
 #endif

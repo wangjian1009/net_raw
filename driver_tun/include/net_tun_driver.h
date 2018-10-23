@@ -12,6 +12,8 @@ net_tun_driver_t net_tun_driver_create(
 #endif    
     );
 
+net_tun_driver_t net_tun_driver_find(net_schedule_t schedule);
+
 net_tun_driver_t net_tun_driver_cast(net_driver_t driver);
 
 void net_tun_driver_free(net_tun_driver_t driver);

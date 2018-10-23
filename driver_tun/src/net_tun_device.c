@@ -481,6 +481,12 @@ int net_tun_device_packet_input(net_tun_driver_t driver, net_tun_device_t device
     return 0;
 }
 
+void net_tun_device_clear_all(net_tun_driver_t driver) {
+    while(!TAILQ_EMPTY(&driver->m_devices)) {
+        net_tun_device_free(TAILQ_FIRST(&driver->m_devices));
+    }
+}
+
 static int net_tun_device_do_accept(
     net_tun_device_t device,
     net_tun_acceptor_t acceptor, net_tun_wildcard_acceptor_t wildcard_acceptor,
