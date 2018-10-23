@@ -592,7 +592,6 @@ static err_t net_tun_device_on_accept(void *arg, struct tcp_pcb *newpcb, err_t e
 
     net_tun_wildcard_acceptor_t wildcard_acceptor;
     TAILQ_FOREACH(wildcard_acceptor, &driver->m_wildcard_acceptors, m_next) {
-        CPE_ERROR(driver->m_em, "tun: accept: xxxxxxx");
         switch(wildcard_acceptor->m_mode) {
         case net_tun_wildcard_acceptor_mode_white:
             if (wildcard_acceptor->m_ipset == NULL
@@ -641,7 +640,7 @@ static int net_tun_device_init_listener_ip4(net_tun_device_t device) {
     }
 
     char dev_name[16];
-    snprintf(dev_name, sizeof(dev_name), "%s%d", device->m_dev_name, device->m_netif.num);
+    snprintf(dev_name, sizeof(dev_name), "%s%d", device->m_netif.name, device->m_netif.num);
     err_t err = tcp_bind_to_netif(l, dev_name);
     if (err) {
         CPE_ERROR(driver->m_em, "tun: listener4: bind to netif %s fail, error=%d (%s)", dev_name, err, lwip_strerr(err));
