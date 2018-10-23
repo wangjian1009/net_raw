@@ -17,14 +17,14 @@ struct net_tun_device {
     struct tcp_pcb * m_listener_ip4;
     struct tcp_pcb * m_listener_ip6;
     net_address_t m_netif_ipv4_address;
-    net_address_t m_netif_ipv4_mask;
     net_address_t m_netif_ipv6_address;
     uint16_t m_mtu;
     uint8_t * m_output_buf;
     uint16_t m_output_capacity;
     uint8_t m_quitting;
-    net_address_t m_address;
-    net_address_t m_mask;
+    net_address_t m_ipv4_address;
+    net_address_t m_ipv4_mask;
+    net_address_t m_ipv6_address;
     char m_dev_name[16];
     /*使用tun设备接口 */
 #if NET_TUN_USE_DEV_TUN
@@ -43,7 +43,15 @@ struct net_tun_device {
 };
 
 #if NET_TUN_USE_DEV_TUN
-int net_tun_device_init_dev(net_tun_driver_t driver, net_tun_device_t device, int fd, const char * name);
+int net_tun_device_init_dev_by_fd(
+    net_tun_driver_t driver, net_tun_device_t device
+    , int dev_fd
+    , uint16_t dev_mtu
+    , net_address_t dev_ipv4_address
+    , net_address_t dev_ipv4_mask
+    , net_address_t dev_ipv6_address);
+
+int net_tun_device_init_dev_by_name(net_tun_driver_t driver, net_tun_device_t device, const char * name);
 #endif
 
 #if NET_TUN_USE_DEV_NE
