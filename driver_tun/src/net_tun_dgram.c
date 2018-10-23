@@ -80,7 +80,6 @@ int net_tun_dgram_init(net_dgram_t base_dgram) {
         }
     }
 
-    CPE_ERROR(driver->m_em, "tun: dgram: udp_pcb %p", dgram->m_pcb);
     udp_recv(dgram->m_pcb, net_tun_dgram_recv_ipv4, base_dgram);
     
     return 0;
@@ -200,8 +199,6 @@ static void net_tun_dgram_recv_ipv4(void *arg, struct udp_pcb *pcb, struct pbuf 
     net_tun_dgram_t dgram = net_dgram_data(base_dgram);
     net_tun_driver_t driver = net_driver_data(net_dgram_driver(base_dgram));
 
-    CPE_ERROR(driver->m_em, "tun: dgram: recv");
-    
     net_address_t from = net_address_from_lwip(driver, 0, (ipX_addr_t *)addr, port);
     if (from == NULL) {
         CPE_ERROR(driver->m_em, "tun: dgram: create source address fail!");
