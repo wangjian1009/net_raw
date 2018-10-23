@@ -28,17 +28,17 @@ int net_tun_device_init_dev(
             return -1;
         }
         
-        const char * str_address = [ipv4Settings.addresses[0] UTF8String];
-        device->m_address = net_address_create_ipv4(schedule, str_address, 0);
-        if (device->m_address == NULL) {
-            CPE_ERROR(driver->m_em, "tun: address %s format error!", str_address);
+        const char * str_ipv4_address = [ipv4Settings.addresses[0] UTF8String];
+        device->m_ipv4_address = net_address_create_ipv4(schedule, str_ipv4_address, 0);
+        if (device->m_ipv4_address == NULL) {
+            CPE_ERROR(driver->m_em, "tun: address %s format error!", str_ipv4_address);
             return -1;
         }
 
-        const char * str_mask = [ipv4Settings.subnetMasks[0] UTF8String];
-        device->m_mask = net_address_create_ipv4(schedule, str_mask, 0);
-        if (device->m_mask == NULL) {
-            CPE_ERROR(driver->m_em, "tun: mask %s format error!", str_mask);
+        const char * str_ipv4_mask = [ipv4Settings.subnetMasks[0] UTF8String];
+        device->m_ipv4_mask = net_address_create_ipv4(schedule, str_ipv4_mask, 0);
+        if (device->m_ipv4_mask == NULL) {
+            CPE_ERROR(driver->m_em, "tun: mask %s format error!", str_ipv4_mask);
             return -1;
         }
     }
