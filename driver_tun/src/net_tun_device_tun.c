@@ -20,64 +20,88 @@
 
 static void net_tun_device_rw_cb(EV_P_ ev_io *w, int revents);
 
-int net_tun_device_init_dev(net_tun_driver_t driver, net_tun_device_t device, const char * name) {
+int net_tun_device_init_dev(net_tun_driver_t driver, net_tun_device_t device, int fd, const char * name) {
     device->m_dev_fd = -1;
-    
+
+    if (fd > 0) {
+        if (name != NULL) {
+            CPE_ERROR(driver->m_em, "tun: both fd and device-name setted");
+            goto create_error;
+        }
+        device->m_dev_fd = fd;
+        device->m_dev_fd_close = 0;
+    }
+    else {
 #if CPE_OS_LINUX
-    if ((device->m_dev_fd = open("/dev/net/tun", O_RDWR)) < 0) {
-        CPE_ERROR(driver->m_em, "tun: %s: open fail, %d %s", name, errno, strerror(errno));
-        goto create_error;
-    }
+        if ((device->m_dev_fd = open("/dev/net/tun", O_RDWR)) < 0) {
+            CPE_ERROR(driver->m_em, "tun: %s: open fail, %d %s", name, errno, strerror(errno));
+            goto create_error;
+        }
+        device->m_dev_fd_close = 1;
             
-    struct ifreq ifr;
-    bzero(&ifr, sizeof(ifr));
-    ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
-    snprintf(ifr.ifr_name, IFNAMSIZ, "%s", name);
+        struct ifreq ifr;
+        bzero(&ifr, sizeof(ifr));
+        ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
+        snprintf(ifr.ifr_name, IFNAMSIZ, "%s", name);
                             
-    if (ioctl(device->m_dev_fd, TUNSETIFF, (void *) &ifr) < 0) {
-        CPE_ERROR(driver->m_em, "tun: %s: ioctl fail, %d %s", name, errno, strerror(errno));
-        goto create_error;
-    }
-    cpe_str_dup(device->m_dev_name, sizeof(device->m_dev_name), ifr.ifr_name);
+        if (ioctl(device->m_dev_fd, TUNSETIFF, (void *) &ifr) < 0) {
+            CPE_ERROR(driver->m_em, "tun: %s: ioctl fail, %d %s", name, errno, strerror(errno));
+            goto create_error;
+        }
+        cpe_str_dup(device->m_dev_name, sizeof(device->m_dev_name), ifr.ifr_name);
 
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0) {
-        CPE_ERROR(driver->m_em, "tun: %s: socket fail, %d %s", device->m_dev_name, errno, strerror(errno));
-        goto create_error;
-    }
+        int sock = socket(AF_INET, SOCK_DGRAM, 0);
+        if (sock < 0) {
+            CPE_ERROR(driver->m_em, "tun: %s: socket fail, %d %s", device->m_dev_name, errno, strerror(errno));
+            goto create_error;
+        }
             
-    bzero(&ifr, sizeof(ifr));
-    cpe_str_dup(ifr.ifr_name, sizeof(ifr.ifr_name), device->m_dev_name);
+        bzero(&ifr, sizeof(ifr));
+        cpe_str_dup(ifr.ifr_name, sizeof(ifr.ifr_name), device->m_dev_name);
 
-    /*mtu*/
-    if (ioctl(sock, SIOCGIFMTU, (void *)&ifr) < 0) {
-        CPE_ERROR(driver->m_em, "tun: %s: get mtu fail, %d %s", device->m_dev_name, errno, strerror(errno));
-        close(sock);
-        goto create_error;
-    }
-    device->m_mtu = ifr.ifr_mtu;
+        /*mtu*/
+        if (ioctl(sock, SIOCGIFMTU, (void *)&ifr) < 0) {
+            CPE_ERROR(driver->m_em, "tun: %s: get mtu fail, %d %s", device->m_dev_name, errno, strerror(errno));
+            close(sock);
+            goto create_error;
+        }
+        device->m_mtu = ifr.ifr_mtu;
 
-    /*address*/
-    if (ioctl(sock, SIOCGIFADDR, (void *)&ifr) < 0) {
-        CPE_ERROR(driver->m_em, "tun: %s: get addr fail, %d %s", device->m_dev_name, errno, strerror(errno));
-        close(sock);
-        goto create_error;
-    }
-    device->m_address = net_address_create_from_sockaddr(net_tun_driver_schedule(driver), (struct sockaddr *)(&ifr.ifr_addr), sizeof(ifr.ifr_addr));
+        /*address*/
+        if (ioctl(sock, SIOCGIFADDR, (void *)&ifr) < 0) {
+            CPE_ERROR(driver->m_em, "tun: %s: get addr fail, %d %s", device->m_dev_name, errno, strerror(errno));
+            close(sock);
+            goto create_error;
+        }
+        device->m_address = net_address_create_from_sockaddr(net_tun_driver_schedule(driver), (struct sockaddr *)(&ifr.ifr_addr), sizeof(ifr.ifr_addr));
 
-    /*mask*/
-    if (ioctl(sock, SIOCGIFNETMASK, (void *)&ifr) < 0) {
-        CPE_ERROR(driver->m_em, "tun: %s: get mask fail, %d %s", device->m_dev_name, errno, strerror(errno));
-        close(sock);
-        goto create_error;
-    }
-    device->m_mask = net_address_create_from_sockaddr(net_tun_driver_schedule(driver), (struct sockaddr *)(&ifr.ifr_netmask), sizeof(ifr.ifr_netmask));
+        /*mask*/
+        if (ioctl(sock, SIOCGIFNETMASK, (void *)&ifr) < 0) {
+            CPE_ERROR(driver->m_em, "tun: %s: get mask fail, %d %s", device->m_dev_name, errno, strerror(errno));
+            close(sock);
+            goto create_error;
+        }
+        device->m_mask = net_address_create_from_sockaddr(net_tun_driver_schedule(driver), (struct sockaddr *)(&ifr.ifr_netmask), sizeof(ifr.ifr_netmask));
     
-    close(sock);
+        close(sock);
 
 #endif /*CPE_OS_LINUX*/
 
-#if ! CPE_OS_WIN
+        if (device->m_dev_fd < 0) {
+            CPE_ERROR(driver->m_em, "tun: %s: no device opend", device->m_dev_name);
+            goto create_error;
+        }
+    }
+    
+#ifdef _MSC_VER
+    u_long flag;
+    flag = 1;
+    if (ioctlsocket(_get_osfhandle(device->m_dev_fd), FIONBIO, &flag) != 0) {
+        CPE_ERROR(driver->m_em, "tun: %s: set nonblock fail");
+        goto create_error;
+    }
+    
+#else
     if (fcntl(device->m_dev_fd, F_SETFL, O_NONBLOCK) < 0) {
         CPE_ERROR(driver->m_em, "tun: %s: set nonblock fail, %d %s", name, errno, strerror(errno));
         goto create_error;
@@ -92,16 +116,24 @@ int net_tun_device_init_dev(net_tun_driver_t driver, net_tun_device_t device, co
 
 create_error:
     if (device->m_dev_fd != -1) {
-        close(device->m_dev_fd);
+        if (device->m_dev_fd_close) {
+            close(device->m_dev_fd);
+        }
         device->m_dev_fd = -1;
     }
-
+    device->m_dev_fd_close = 0;
+    
     return -1;
 }
 
 void net_tun_device_fini_dev(net_tun_driver_t driver, net_tun_device_t device) {
     ev_io_stop(driver->m_ev_loop, &device->m_watcher);
-    close(device->m_dev_fd);
+
+    if (device->m_dev_fd_close) {
+        close(device->m_dev_fd);
+    }
+    device->m_dev_fd = -1;
+    device->m_dev_fd_close = 0;
 }
 
 int net_tun_device_packet_output(net_tun_device_t device, uint8_t *data, int data_len) {

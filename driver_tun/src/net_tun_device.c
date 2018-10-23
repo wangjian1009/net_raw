@@ -62,6 +62,7 @@ net_tun_device_create(
     device->m_dev_name[0] = 0;
     
 #if NET_TUN_USE_DEV_TUN
+    device->m_dev_fd_close = 0;
     device->m_dev_fd = -1;
 #endif
 
@@ -70,7 +71,13 @@ net_tun_device_create(
 #endif
 
 #if NET_TUN_USE_DEV_TUN
-    if (net_tun_device_init_dev(driver, device, dev_name) != 0) {
+    if (dev_fd < 0 && dev_name == NULL) {
+        CPE_ERROR(driver->m_em, "tun: device: no fd or device name!");
+        mem_free(driver->m_alloc, device);
+        return NULL;
+    }
+    
+    if (net_tun_device_init_dev(driver, device, dev_fd, dev_name) != 0) {
         mem_free(driver->m_alloc, device);
         return NULL;
     }

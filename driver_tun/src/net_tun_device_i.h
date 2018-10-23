@@ -28,6 +28,7 @@ struct net_tun_device {
     char m_dev_name[16];
     /*使用tun设备接口 */
 #if NET_TUN_USE_DEV_TUN
+    uint8_t m_dev_fd_close;
     int m_dev_fd;
     struct ev_io m_watcher;
 #endif
@@ -42,7 +43,7 @@ struct net_tun_device {
 };
 
 #if NET_TUN_USE_DEV_TUN
-int net_tun_device_init_dev(net_tun_driver_t driver, net_tun_device_t device, const char * name);
+int net_tun_device_init_dev(net_tun_driver_t driver, net_tun_device_t device, int fd, const char * name);
 #endif
 
 #if NET_TUN_USE_DEV_NE
