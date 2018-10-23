@@ -1,7 +1,12 @@
 #ifndef LWIP_CUSTOM_CC_H
 #define LWIP_CUSTOM_CC_H
 
+#if CPE_OS_WIN
+#include "winsock2.h"
+#define BYTE_ORDER LITTLE_ENDIAN
+#else
 #include <arpa/inet.h>
+#endif
 #include "cpe/pal/pal_errno.h"
 #include "cpe/pal/pal_platform.h"
 #include "cpe/pal/pal_stdio.h"

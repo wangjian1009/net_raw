@@ -275,7 +275,7 @@ ipaddr_ntoa(const ip_addr_t *addr)
  */
 char *ipaddr_ntoa_r(const ip_addr_t *addr, char *buf, int buflen)
 {
-  u32_t s_addr;
+  u32_t s_addr_buf;
   char inv[3];
   char *rp;
   u8_t *ap;
@@ -284,10 +284,10 @@ char *ipaddr_ntoa_r(const ip_addr_t *addr, char *buf, int buflen)
   u8_t i;
   int len = 0;
 
-  s_addr = ip4_addr_get_u32(addr);
+  s_addr_buf = ip4_addr_get_u32(addr);
 
   rp = buf;
-  ap = (u8_t *)&s_addr;
+  ap = (u8_t *)&s_addr_buf;
   for(n = 0; n < 4; n++) {
     i = 0;
     do {

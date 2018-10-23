@@ -107,7 +107,7 @@ int net_tun_dgram_send(net_dgram_t base_dgram, net_address_t target, void const 
         ip_addr_t addr;
         net_address_to_lwip_ipv4(&addr, target);
 
-        struct pbuf * p = pbuf_alloc(PBUF_TRANSPORT, data_len, PBUF_POOL);
+        struct pbuf * p = pbuf_alloc(PBUF_TRANSPORT, (uint16_t)data_len, PBUF_POOL);
         if (p == NULL) {
             CPE_ERROR(
                 driver->m_em, "tun: dgram: send to %s: pbuf alloc fail, len=%d",
@@ -116,7 +116,7 @@ int net_tun_dgram_send(net_dgram_t base_dgram, net_address_t target, void const 
             return -1;
         }
 
-        pbuf_take(p, (char*)data, data_len);
+        pbuf_take(p, (char*)data, (uint16_t)data_len);
          
         err_t err = udp_sendto(dgram->m_pcb, p, &addr, net_address_port(target));
         if (err) {
@@ -135,7 +135,7 @@ int net_tun_dgram_send(net_dgram_t base_dgram, net_address_t target, void const 
         ip6_addr_t addr;
         net_address_to_lwip_ipv6(&addr, target);
 
-        struct pbuf * p = pbuf_alloc(PBUF_TRANSPORT, data_len, PBUF_POOL);
+        struct pbuf * p = pbuf_alloc(PBUF_TRANSPORT, (uint16_t)data_len, PBUF_POOL);
         if (p == NULL) {
             CPE_ERROR(
                 driver->m_em, "tun: dgram: send to %s: pbuf alloc fail, len=%d",
@@ -144,7 +144,7 @@ int net_tun_dgram_send(net_dgram_t base_dgram, net_address_t target, void const 
             return -1;
         }
 
-        pbuf_take(p, (char*)data, data_len);
+        pbuf_take(p, (char*)data, (uint16_t)data_len);
          
         err_t err = udp_sendto_ip6(dgram->m_pcb, p, &addr, net_address_port(target));
         if (err) {

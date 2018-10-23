@@ -1,11 +1,13 @@
 #include <assert.h>
 #include <errno.h>
+#if ! CPE_OS_WIN
 #include <net/if.h>
+#include <sys/ioctl.h>
+#endif
 #if CPE_OS_LINUX
 #  include <linux/if_tun.h>
 #endif
 #include <fcntl.h>
-#include <sys/ioctl.h>
 #include "cpe/pal/pal_string.h"
 #include "cpe/pal/pal_strings.h"
 #include "cpe/pal/pal_unistd.h"
@@ -75,11 +77,13 @@ int net_tun_device_init_dev(net_tun_driver_t driver, net_tun_device_t device, co
 
 #endif /*CPE_OS_LINUX*/
 
+#if ! CPE_OS_WIN
     if (fcntl(device->m_dev_fd, F_SETFL, O_NONBLOCK) < 0) {
         CPE_ERROR(driver->m_em, "tun: %s: set nonblock fail, %d %s", name, errno, strerror(errno));
         goto create_error;
     }
-    
+#endif
+
     device->m_watcher.data = device;
     ev_io_init(&device->m_watcher, net_tun_device_rw_cb, device->m_dev_fd, EV_READ);
     ev_io_start(driver->m_ev_loop, &device->m_watcher);

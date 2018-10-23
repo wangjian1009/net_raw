@@ -395,7 +395,7 @@ static err_t net_tun_device_netif_do_output(struct netif *netif, struct pbuf *p)
                     device->m_netif.name, p->len + len, device->m_mtu);
                 goto out;
             }
-            memcpy(device_write_buf + len, p->payload, p->len);
+            memcpy((uint8_t*)device_write_buf + len, p->payload, p->len);
             len += p->len;
         } while ((p = p->next));
 

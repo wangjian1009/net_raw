@@ -1,4 +1,5 @@
 #include <assert.h>
+#include "cpe/pal/pal_socket.h"
 #include "cpe/utils/stream_buffer.h"
 #include "net_address.h"
 #include "net_tun_utils.h"
@@ -45,9 +46,11 @@ void net_tun_print_raw_data(write_stream_t ws, uint8_t const * ethhead, uint8_t 
     case IPPROTO_IGMP:
         protocol = "IGMP";
         goto print_with_protocol;
+#if defined IPPROTO_IPIP
     case IPPROTO_IPIP:
         protocol = "IPIP";
         goto print_with_protocol;
+#endif
     case IPPROTO_TCP: {
         uint16_t port_from = ((((uint16_t)data[0])<<8) & 0XFF00) | (((uint16_t)data[1]) & 0XFF);
         uint16_t port_to = ((((uint16_t)data[2])<<8) & 0XFF00) | (((uint16_t)data[3]) & 0XFF);
