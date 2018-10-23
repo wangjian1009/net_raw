@@ -591,6 +591,7 @@ static err_t net_tun_device_on_accept(void *arg, struct tcp_pcb *newpcb, err_t e
 
     net_tun_wildcard_acceptor_t wildcard_acceptor;
     TAILQ_FOREACH(wildcard_acceptor, &driver->m_wildcard_acceptors, m_next) {
+        CPE_ERROR(driver->m_em, "tun: accept: xxxxxxx");
         switch(wildcard_acceptor->m_mode) {
         case net_tun_wildcard_acceptor_mode_white:
             if (wildcard_acceptor->m_ipset == NULL
