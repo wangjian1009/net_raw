@@ -98,7 +98,7 @@ void net_tun_print_raw_data(write_stream_t ws, uint8_t const * ethhead, uint8_t 
         protocol = "RAW";
         goto print_with_protocol;
     default:
-        stream_printf(ws, "Protocol: Unkown, please query in include/linux/in.h");
+        stream_printf(ws, "protocol %d unkown, please query in include/linux/in.h", proto);
         break;
     }
 

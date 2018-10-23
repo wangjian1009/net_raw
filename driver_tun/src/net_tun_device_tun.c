@@ -33,6 +33,7 @@ int net_tun_device_init_dev_by_fd(
     device->m_dev_fd = dev_fd;
     device->m_dev_fd_close = 0;
     device->m_mtu = dev_mtu;
+    cpe_str_dup(device->m_dev_name, sizeof(device->m_dev_name), "tu0");
 
     if (dev_ipv4_address) {
         device->m_ipv4_address = net_address_copy(net_tun_driver_schedule(driver), dev_ipv4_address);
