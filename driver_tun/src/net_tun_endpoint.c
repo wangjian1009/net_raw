@@ -294,6 +294,14 @@ static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
             return -1;
         }
 
+        err = tcp_output(endpoint->m_pcb);
+        if (err != ERR_OK) {
+            CPE_ERROR(
+                driver->m_em, "tun: %s: write: tcp_output fail %d (%s)!",
+                net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint), err, lwip_strerr(err));
+            return -1;
+        }
+        
         if (net_endpoint_driver_debug(base_endpoint)) {
             CPE_INFO(
                 driver->m_em, "tun: %s: send %d bytes data!",
@@ -302,14 +310,6 @@ static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
         }
         
         net_endpoint_buf_consume(base_endpoint, net_ep_buf_write, data_size);
-    }
-
-    err_t err = tcp_output(endpoint->m_pcb);
-    if (err != ERR_OK) {
-        CPE_ERROR(
-            driver->m_em, "tun: %s: write: tcp_output fail %d (%s)!",
-            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint), err, lwip_strerr(err));
-        return -1;
     }
 
     return 0;
