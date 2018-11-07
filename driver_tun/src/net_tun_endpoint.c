@@ -100,7 +100,13 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
 
     pbuf_free(p);
 
-    return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
+    if (endpoint->m_pcb) {
+        tcp_recved(endpoint->m_pcb, size);
+        return ERR_OK;
+    }
+    else {
+        return ERR_ABRT;
+    }
 }
 
 static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t len) {
