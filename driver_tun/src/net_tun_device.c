@@ -512,7 +512,7 @@ static int net_tun_device_do_accept(
         
     uint8_t is_ipv6 = PCB_ISIPV6(newpcb) ? 1 : 0;
 
-    net_endpoint_t base_endpoint = net_endpoint_create(base_driver, net_endpoint_inbound, protocol);
+    net_endpoint_t base_endpoint = net_endpoint_create(base_driver, protocol);
     if (base_endpoint == NULL) {
         CPE_ERROR(driver->m_em, "tun: accept: create endpoint fail");
         return -1;
