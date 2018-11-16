@@ -9,7 +9,7 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH)/../../../cpe/include \
 	            $(LOCAL_PATH)/../../depends/lwip/src/include/ipv6 \
                     $(LOCAL_PATH)/../custom/lwip \
 
-LOCAL_SRC_FILES := $(addprefix $(LOCAL_PATH)/../../depends/lwip/, \
+LOCAL_SRC_FILES := $(addprefix ../../depends/lwip/, \
                          src/core/timers.c \
                          src/core/udp.c \
                          src/core/memp.c \
