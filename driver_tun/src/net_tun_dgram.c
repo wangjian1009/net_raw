@@ -49,56 +49,6 @@ int net_tun_dgram_init(net_dgram_t base_dgram) {
             return -1;
         }
             
-        /* switch(net_address_type(address)) { */
-        /* case net_address_ipv4: { */
-        /*     dgram->m_pcb = udp_new(); */
-        /*     if (dgram->m_pcb == NULL) { */
-        /*         CPE_ERROR(driver->m_em, "tun: dgram: udp_pcb create error"); */
-        /*         return -1; */
-        /*     } */
-
-        /*     ip_addr_t addr; */
-        /*     net_address_to_lwip_ipv4(&addr, address); */
-        /*     err_t err = udp_bind(dgram->m_pcb, &addr, net_address_port(address)); */
-        /*     if (err) { */
-        /*         CPE_ERROR( */
-        /*             driver->m_em, "tun: dgram: udp_pcb bind to %s fail, err=%d (%s)", */
-        /*             net_address_dump(net_tun_driver_tmp_buffer(driver), address), */
-        /*             err, lwip_strerr(err)); */
-        /*         udp_remove(dgram->m_pcb); */
-        /*         dgram->m_pcb = NULL; */
-        /*         return -1; */
-        /*     } */
-            
-        /*     break; */
-        /* } */
-        /* case net_address_ipv6: { */
-        /*     dgram->m_pcb = udp_new_ip6(); */
-        /*     if (dgram->m_pcb == NULL) { */
-        /*         CPE_ERROR(driver->m_em, "tun: dgram: udp_pcb create error"); */
-        /*         return -1; */
-        /*     } */
-
-        /*     ip6_addr_t addr; */
-        /*     net_address_to_lwip_ipv6(&addr, address); */
-        /*     err_t err = udp_bind_ip6(dgram->m_pcb, &addr, net_address_port(address)); */
-        /*     if (err) { */
-        /*         CPE_ERROR( */
-        /*             driver->m_em, "tun: dgram: udp_pcb bind to %s fail, err=%d (%s)", */
-        /*             net_address_dump(net_tun_driver_tmp_buffer(driver), address), */
-        /*             err, lwip_strerr(err)); */
-        /*         udp_remove(dgram->m_pcb); */
-        /*         dgram->m_pcb = NULL; */
-        /*         return -1; */
-        /*     } */
-
-        /*     break; */
-        /* } */
-        /* case net_address_domain: */
-        /*     CPE_ERROR(driver->m_em, "tun: dgyam: not support domain address!"); */
-        /*     return -1; */
-        /* } */
-
         if (net_dgram_driver_debug(base_dgram)) {
             CPE_INFO(
                 driver->m_em, "tun: dgram: bind to %s",

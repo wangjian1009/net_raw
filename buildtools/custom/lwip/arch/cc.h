@@ -56,6 +56,8 @@ void lwip_em_info_printf(const char * msg, ...);
 void lwip_em_error_printf(const char * msg, ...);
 extern error_monitor_t g_lwip_em;
 
+#define LWIP_DEBUG 1
+
 #ifdef __cplusplus
 }
 #endif
