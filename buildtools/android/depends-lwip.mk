@@ -4,13 +4,13 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := lwip
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/../../../cpe/include \
-                    $(LOCAL_PATH)/../../depends/lwip/src/include \
-                    $(LOCAL_PATH)/../../depends/lwip/src/include/ipv4 \
-	            $(LOCAL_PATH)/../../depends/lwip/src/include/ipv6 \
+                    $(LOCAL_PATH)/../../depends/lwip-2.1.1/src/include \
+                    $(LOCAL_PATH)/../../depends/lwip-2.1.1/src/include/ipv4 \
+	                $(LOCAL_PATH)/../../depends/lwip-2.1.1/src/include/ipv6 \
                     $(LOCAL_PATH)/../custom/lwip \
 
-LOCAL_SRC_FILES := $(addprefix ../../depends/lwip/, \
-                         src/core/timers.c \
+LOCAL_SRC_FILES := $(addprefix ../../depends/lwip-2.1.1/, \
+                         src/core/timeouts.c \
                          src/core/udp.c \
                          src/core/memp.c \
                          src/core/init.c \
@@ -23,11 +23,12 @@ LOCAL_SRC_FILES := $(addprefix ../../depends/lwip/, \
                          src/core/mem.c \
                          src/core/tcp_in.c \
                          src/core/stats.c \
+                         src/core/ip.c \
                          src/core/inet_chksum.c \
                          src/core/ipv4/icmp.c \
                          src/core/ipv4/ip4.c \
                          src/core/ipv4/ip4_addr.c \
-                         src/core/ipv4/ip_frag.c \
+                         src/core/ipv4/ip4_frag.c \
                          src/core/ipv6/ip6.c \
                          src/core/ipv6/nd6.c \
                          src/core/ipv6/icmp6.c \

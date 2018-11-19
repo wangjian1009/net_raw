@@ -18,8 +18,8 @@ static int net_tun_device_init_listener_ip4(net_tun_device_t device);
 
 static err_t net_tun_device_netif_init(struct netif *netif);
 static err_t net_tun_device_netif_input(struct pbuf *p, struct netif *inp);
-static err_t net_tun_device_netif_output_ip4(struct netif *netif, struct pbuf *p, ip_addr_t *ipaddr);
-static err_t net_tun_device_netif_output_ip6(struct netif *netif, struct pbuf *p, ip6_addr_t *ipaddr);
+static err_t net_tun_device_netif_output_ip4(struct netif *netif, struct pbuf *p, const ip4_addr_t *ipaddr);
+static err_t net_tun_device_netif_output_ip6(struct netif *netif, struct pbuf *p, const ip6_addr_t *ipaddr);
 
 net_tun_device_t
 net_tun_device_create(
@@ -294,12 +294,12 @@ net_address_t net_tun_device_netif_ipv6_address(net_tun_device_t device) {
 
 static int net_tun_device_init_netif(net_tun_device_t device, net_address_t netif_ipv4_address, net_address_t netif_ipv6_address) {
     // make addresses for netif
-    ip_addr_t addr;
-    ip_addr_t netmask;
+    ip4_addr_t addr;
+    ip4_addr_t netmask;
 
     if (device->m_ipv4_address == NULL) {
-        ip_addr_set_any(&addr);
-        ip_addr_set_any(&netmask);
+        ip4_addr_set_any(&addr);
+        ip4_addr_set_any(&netmask);
     }
     else {
         if (device->m_ipv4_mask == NULL) {
@@ -330,8 +330,8 @@ static int net_tun_device_init_netif(net_tun_device_t device, net_address_t neti
         net_address_to_lwip_ipv4(&netmask, device->m_ipv4_mask);
     }
     
-    ip_addr_t gw;
-    ip_addr_set_any(&gw);
+    ip4_addr_t gw;
+    ip4_addr_set_any(&gw);
 
     if (!netif_add(&device->m_netif, &addr, &netmask, &gw, device, net_tun_device_netif_init, net_tun_device_netif_input)) {
         CPE_ERROR(device->m_driver->m_em, "device: add netif fail!");
@@ -341,7 +341,8 @@ static int net_tun_device_init_netif(net_tun_device_t device, net_address_t neti
     netif_set_up(&device->m_netif);
 
     //set netif pretend TCP
-    netif_set_pretend_tcp(&device->m_netif, 1);
+    //TODO:
+    // netif_set_pretend_tcp(&device->m_netif, 1);
 
     return 0;
 }
@@ -425,11 +426,11 @@ out:
     return ERR_OK;
 }
 
-static err_t net_tun_device_netif_output_ip4(struct netif *netif, struct pbuf *p, ip_addr_t *ipaddr) {
+static err_t net_tun_device_netif_output_ip4(struct netif *netif, struct pbuf *p, const ip4_addr_t *ipaddr) {
     return net_tun_device_netif_do_output(netif, p);
 }
 
-static err_t net_tun_device_netif_output_ip6(struct netif *netif, struct pbuf *p, ip6_addr_t *ipaddr) {
+static err_t net_tun_device_netif_output_ip6(struct netif *netif, struct pbuf *p, const ip6_addr_t *ipaddr) {
     return net_tun_device_netif_do_output(netif, p);
 }
 
@@ -510,8 +511,6 @@ static int net_tun_device_do_accept(
     net_acceptor_t base_acceptor = acceptor ? net_acceptor_from_data(acceptor) : NULL;
     net_protocol_t protocol = base_acceptor ? net_acceptor_protocol(base_acceptor) : wildcard_acceptor->m_protocol;
         
-    uint8_t is_ipv6 = PCB_ISIPV6(newpcb) ? 1 : 0;
-
     net_endpoint_t base_endpoint = net_endpoint_create(base_driver, protocol);
     if (base_endpoint == NULL) {
         CPE_ERROR(driver->m_em, "tun: accept: create endpoint fail");
@@ -524,7 +523,7 @@ static int net_tun_device_do_accept(
         return -1;
     }
 
-    net_address_t remote_addr = net_address_from_lwip(driver, is_ipv6, &newpcb->remote_ip, newpcb->remote_port);
+    net_address_t remote_addr = net_address_from_lwip(driver, &newpcb->remote_ip, newpcb->remote_port);
     if (net_endpoint_set_remote_address(base_endpoint, remote_addr, 1) != 0) {
         CPE_ERROR(driver->m_em, "tun: accept: set remote address fail");
         net_endpoint_free(base_endpoint);
@@ -565,13 +564,11 @@ static err_t net_tun_device_on_accept(void *arg, struct tcp_pcb *newpcb, err_t e
 
     assert(err == ERR_OK);
 
-    uint8_t is_ipv6 = PCB_ISIPV6(newpcb) ? 1 : 0;
-
-    struct tcp_pcb *this_listener = is_ipv6 ? device->m_listener_ip6 : device->m_listener_ip4;
+    struct tcp_pcb *this_listener = device->m_listener_ip4;
     assert(this_listener);
     tcp_accepted(this_listener);
 
-    local_addr = net_address_from_lwip(driver, is_ipv6, &newpcb->local_ip, newpcb->local_port);
+    local_addr = net_address_from_lwip(driver, &newpcb->local_ip, newpcb->local_port);
     if (local_addr == NULL) {
         CPE_ERROR(driver->m_em, "tun: accept: create local address fail");
         tcp_abort(newpcb);
@@ -639,14 +636,7 @@ static int net_tun_device_init_listener_ip4(net_tun_device_t device) {
         return -1;
     }
 
-    char dev_name[16];
-    snprintf(dev_name, sizeof(dev_name), "%s%d", device->m_netif.name, device->m_netif.num);
-    err_t err = tcp_bind_to_netif(l, dev_name);
-    if (err) {
-        CPE_ERROR(driver->m_em, "tun: listener4: bind to netif %s fail, error=%d (%s)", dev_name, err, lwip_strerr(err));
-        tcp_close(l);
-        return -1;
-    }
+    tcp_bind_netif(l, &device->m_netif);
 
     device->m_listener_ip4 = tcp_listen_with_backlog(l, TCP_DEFAULT_LISTEN_BACKLOG);
     if (device->m_listener_ip4 == NULL) {

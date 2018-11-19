@@ -1,12 +1,12 @@
 #ifndef NET_TUN_DRIVER_I_H_INCLEDED
 #define NET_TUN_DRIVER_I_H_INCLEDED
-#include "lwip/tcp_impl.h"
+#include "lwip/priv/tcp_priv.h"
+#undef mem_free
+#undef mem_calloc
 #include "lwip/init.h"
 #include "lwip/netif.h"
 #include "lwip/tcp.h"
 #include "lwip/udp.h"
-#undef mem_free
-#undef mem_calloc
 #include "cpe/pal/pal_queue.h"
 #include "cpe/utils/memory.h"
 #include "cpe/utils/error.h"

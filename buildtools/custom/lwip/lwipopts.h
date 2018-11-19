@@ -67,4 +67,10 @@
 #define MEM_LIBC_MALLOC 1
 #define MEMP_MEM_MALLOC 1
 
+#define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS 1
+#define SYS_LIGHTWEIGHT_PROT 0
+
+#define mem_calloc lwip_mem_calloc
+#define mem_free lwip_mem_free
+
 #endif

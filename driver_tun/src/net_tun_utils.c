@@ -146,7 +146,7 @@ net_address_t net_tun_iphead_target_addr(net_tun_driver_t driver, uint8_t const 
     return net_address_create_ipv4_from_data(net_tun_driver_schedule(driver), &addr_data, port);
 }
 
-net_address_t net_address_from_lwip_ip4(net_tun_driver_t driver, ip_addr_t * addr, uint16_t port) {
+net_address_t net_address_from_lwip_ip4(net_tun_driver_t driver, const ip4_addr_t * addr, uint16_t port) {
     struct net_address_data_ipv4 addr_data;
     addr_data.u8[0] = ip4_addr1(addr);
     addr_data.u8[1] = ip4_addr2(addr);
@@ -155,21 +155,22 @@ net_address_t net_address_from_lwip_ip4(net_tun_driver_t driver, ip_addr_t * add
     return net_address_create_ipv4_from_data(net_tun_driver_schedule(driver), &addr_data, port);
 }
 
-net_address_t net_address_from_lwip_ip6(net_tun_driver_t driver, ip6_addr_t * addr, uint16_t port) {
+net_address_t net_address_from_lwip_ip6(net_tun_driver_t driver, const ip6_addr_t * addr, uint16_t port) {
     struct net_address_data_ipv6 addr_data;
     return net_address_create_ipv6_from_data(net_tun_driver_schedule(driver), &addr_data, port);
 }
 
-net_address_t net_address_from_lwip(net_tun_driver_t driver, uint8_t is_ipv6, ipX_addr_t * addr, uint16_t port) {
-    if (is_ipv6) {
-        return net_address_from_lwip_ip6(driver, &addr->ip6, port);
+net_address_t net_address_from_lwip(net_tun_driver_t driver, const ip_addr_t * addr, uint16_t port) {
+    if (addr->type == IPADDR_TYPE_V6) {
+        return net_address_from_lwip_ip6(driver, &addr->u_addr.ip6, port);
     }
     else {
-        return net_address_from_lwip_ip4(driver, &addr->ip4, port);
+        assert(addr->type == IPADDR_TYPE_V4);
+        return net_address_from_lwip_ip4(driver, &addr->u_addr.ip4, port);
     }
 }
 
-void net_address_to_lwip_ipv4(ip_addr_t * addr, net_address_t address) {
+void net_address_to_lwip_ipv4(ip4_addr_t * addr, net_address_t address) {
     assert(net_address_type(address) == net_address_ipv4);
     
     struct net_address_data_ipv4 const * addr_data = net_address_data(address);

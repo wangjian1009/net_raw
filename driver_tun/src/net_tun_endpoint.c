@@ -335,101 +335,91 @@ int net_tun_endpoint_connect(net_endpoint_t base_endpoint) {
             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
         return -1;
     }
-
-    uint8_t is_ipv6 = 0;
     
-    net_address_t local_address = net_endpoint_address(base_endpoint);
-    if (local_address) {
-        switch(net_address_type(local_address)) {
-        case net_address_ipv4:
-            is_ipv6 = 0;
-            break;
-        case net_address_ipv6:
-            is_ipv6 = 1;
-            break;
-        case net_address_domain:
-            CPE_ERROR(
-                em, "tun: %s: connect not support domain address!",
-                net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
-            return -1;
-        }
-    }
-    else {
-        switch(net_address_type(remote_addr)) {
-        case net_address_ipv4:
-            is_ipv6 = 0;
-            break;
-        case net_address_ipv6:
-            is_ipv6 = 1;
-            break;
-        case net_address_domain:
-            CPE_ERROR(
-                em, "tun: %s: connect not support domain address!",
-                net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
-            return -1;
-        }
-    }
-
     struct tcp_pcb * pcb = NULL;
-    if (is_ipv6) {
+    pcb = tcp_new();
+    if (pcb == NULL) {
         CPE_ERROR(
-            em, "tun: %s: connect: not support ipv6 yet!",
+            em, "tun: %s: connect: create pcb fail!",
             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
         return -1;
     }
-    else {
-        pcb = tcp_new();
-        if (pcb == NULL) {
+
+    net_address_t local_address = net_endpoint_address(base_endpoint);
+    if (local_address) {
+        ip_addr_t local_lwip_addr;
+
+        switch(net_address_type(local_address)) {
+        case net_address_ipv4:
+            local_lwip_addr.type = IPADDR_TYPE_V4;
+            net_address_to_lwip_ipv4(&local_lwip_addr.u_addr.ip4, local_address);
+            break;
+        case net_address_ipv6:
+            local_lwip_addr.type = IPADDR_TYPE_V6;
+            net_address_to_lwip_ipv6(&local_lwip_addr.u_addr.ip6, local_address);
+            break;
+        case net_address_domain:
             CPE_ERROR(
-                em, "tun: %s: connect: create pcb fail!",
+                em, "tun: %s: connect not support domain address!",
                 net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
+            tcp_abort(pcb);
             return -1;
         }
-
-        if (local_address) {
-            ip_addr_t local_lwip_addr;
-            net_address_to_lwip_ipv4(&local_lwip_addr, local_address);
-
-            err_t err = tcp_bind(pcb, &local_lwip_addr, net_address_port(local_address));
-            if (err != ERR_OK) {
-                char ip_buf[64];
-                cpe_str_dup(ip_buf, sizeof(ip_buf), net_address_dump(net_schedule_tmp_buffer(schedule), local_address));
-                
-                CPE_ERROR(
-                    em, "tun: %s: bind %s fail, error=%d (%s)",
-                    net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), ip_buf, err, lwip_strerr(err));
-                tcp_abort(pcb);
-                return -1;
-            }
-        }
-
-        ip_addr_t remote_iwip_addr;
-        net_address_to_lwip_ipv4(&remote_iwip_addr, remote_addr);
-
-        err_t err = tcp_connect(pcb, &remote_iwip_addr, net_address_port(remote_addr), net_tun_endpoint_connected_func);
+            
+        err_t err = tcp_bind(pcb, &local_lwip_addr, net_address_port(local_address));
         if (err != ERR_OK) {
+            char ip_buf[64];
+            cpe_str_dup(ip_buf, sizeof(ip_buf), net_address_dump(net_schedule_tmp_buffer(schedule), local_address));
+                
             CPE_ERROR(
-                em, "tun: %s: connect error, error=%d (%s)",
-                net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), err, lwip_strerr(err));
+                em, "tun: %s: bind %s fail, error=%d (%s)",
+                net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), ip_buf, err, lwip_strerr(err));
+            tcp_abort(pcb);
+            return -1;
+        }
+    }
+
+    ip_addr_t remote_lwip_addr;
+    switch(net_address_type(remote_addr)) {
+    case net_address_ipv4:
+        remote_lwip_addr.type = IPADDR_TYPE_V4;
+        net_address_to_lwip_ipv4(&remote_lwip_addr.u_addr.ip4, remote_addr);
+        break;
+    case net_address_ipv6:
+        remote_lwip_addr.type = IPADDR_TYPE_V6;
+        net_address_to_lwip_ipv6(&remote_lwip_addr.u_addr.ip6, remote_addr);
+        break;
+    case net_address_domain:
+        CPE_ERROR(
+            em, "tun: %s: connect not support domain address!",
+            net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
+        tcp_abort(pcb);
+        return -1;
+    }
+
+    err_t err = tcp_connect(pcb, &remote_lwip_addr, net_address_port(remote_addr), net_tun_endpoint_connected_func);
+    if (err != ERR_OK) {
+        CPE_ERROR(
+            em, "tun: %s: connect error, error=%d (%s)",
+            net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), err, lwip_strerr(err));
+        tcp_abort(pcb);
+        return -1;
+    }
+
+    if (local_address) {
+        net_address_set_port(local_address, pcb->local_port);
+    }
+    else {
+        local_address = net_address_from_lwip(driver, &pcb->local_ip, pcb->local_port);
+        if (local_address == NULL) {
+            CPE_ERROR(
+                em, "tun: %s: connect success, create local address fail",
+                net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
             tcp_abort(pcb);
             return -1;
         }
 
-        if (local_address) {
-            net_address_set_port(local_address, pcb->local_port);
-        }
-        else {
-            local_address = net_address_from_lwip(driver, is_ipv6, &pcb->local_ip, pcb->local_port);
-            if (local_address == NULL) {
-                CPE_ERROR(
-                    em, "tun: %s: connect success, create local address fail",
-                    net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
-                tcp_abort(pcb);
-                return -1;
-            }
-
-            net_endpoint_set_address(base_endpoint, local_address, 1);
-        }
+        net_endpoint_set_address(base_endpoint, local_address, 1);
     }
 
     if (net_schedule_debug(schedule) >= 2) {

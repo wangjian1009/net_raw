@@ -5,9 +5,9 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := net_driver_tun
 LOCAL_EXPORT_CFLAGS += $(if $(filter 0,$(APKD)),,-g)
 LOCAL_CFLAGS += $(if $(filter 0,$(APKD)),,-DDEBUG=1)
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/../../depends/lwip/src/include \
-                    $(LOCAL_PATH)/../../depends/lwip/src/include/ipv4 \
-	            $(LOCAL_PATH)/../../depends/lwip/src/include/ipv6 \
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/../../depends/lwip-2.1.1/src/include \
+                    $(LOCAL_PATH)/../../depends/lwip-2.1.1/src/include/ipv4 \
+	                $(LOCAL_PATH)/../../depends/lwip-2.1.1/src/include/ipv6 \
                     $(LOCAL_PATH)/../custom/lwip \
                     $(LOCAL_PATH)/../../../cpe/include \
                     $(LOCAL_PATH)/../../../net/depends/libev/include \
