@@ -342,8 +342,7 @@ static int net_tun_device_init_netif(net_tun_device_t device, net_address_t neti
     netif_set_link_up(&device->m_netif);
 
     //set netif pretend TCP
-    //TODO:
-    // netif_set_pretend_tcp(&device->m_netif, 1);
+    netif_set_pretend_tcp(&device->m_netif, 1);
 
     return 0;
 }

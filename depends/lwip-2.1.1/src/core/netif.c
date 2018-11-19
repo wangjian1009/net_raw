@@ -546,6 +546,15 @@ netif_do_set_netmask(struct netif *netif, const ip4_addr_t *netmask, ip_addr_t *
   return 0; /* netmask unchanged */
 }
 
+void netif_set_pretend_tcp (struct netif *netif, u8_t pretend)
+{
+    if (pretend) {
+        netif->flags |= NETIF_FLAG_PRETEND_TCP;
+    } else {
+        netif->flags &= ~NETIF_FLAG_PRETEND_TCP;
+    }
+}
+
 /**
  * @ingroup netif_ip4
  * Change the netmask of a network interface

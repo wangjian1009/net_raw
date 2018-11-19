@@ -614,6 +614,12 @@ ip4_input(struct pbuf *p, struct netif *inp)
     }
   }
 
+  /* if we're pretending we are everyone for TCP, assume the packet is for source interface if it
+     isn't for a local address */
+  if (netif == NULL && (inp->flags & NETIF_FLAG_PRETEND_TCP) && IPH_PROTO(iphdr) == IP_PROTO_TCP) {
+      netif = inp;
+  }
+
   /* packet not for us? */
   if (netif == NULL) {
     /* packet not for us, route or discard */

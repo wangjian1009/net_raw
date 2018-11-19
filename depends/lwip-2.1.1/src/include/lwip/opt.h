@@ -3320,7 +3320,7 @@
  * IP_DEBUG: Enable debugging for IP.
  */
 #if !defined IP_DEBUG || defined __DOXYGEN__
-#define IP_DEBUG                        LWIP_DBG_OFF
+#define IP_DEBUG                        LWIP_DBG_ON
 #endif
 
 /**
@@ -3369,7 +3369,7 @@
  * TCP_DEBUG: Enable debugging for TCP.
  */
 #if !defined TCP_DEBUG || defined __DOXYGEN__
-#define TCP_DEBUG                       LWIP_DBG_OFF
+#define TCP_DEBUG                       LWIP_DBG_ON
 #endif
 
 /**
