@@ -23,7 +23,7 @@ void net_tun_endpoint_set_pcb(struct net_tun_endpoint * endpoint, struct tcp_pcb
         tcp_recv(endpoint->m_pcb, NULL);
         tcp_sent(endpoint->m_pcb, NULL);
         tcp_poll(endpoint->m_pcb, NULL, 0);
-        tcp_abort(endpoint->m_pcb);
+        tcp_close(endpoint->m_pcb);
         endpoint->m_pcb = NULL;
     }
 
