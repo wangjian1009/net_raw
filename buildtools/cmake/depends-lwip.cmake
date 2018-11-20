@@ -1,9 +1,9 @@
-set(lwip_base ${CMAKE_CURRENT_LIST_DIR}/../../depends/lwip)
+set(lwip_base ${CMAKE_CURRENT_LIST_DIR}/../../depends/lwip-2.1.1)
 
 file(GLOB lwip_source ${lwip_base}/src/*.c)
 
 set(lwip_source
-  ${lwip_base}/src/core/timers.c
+  ${lwip_base}/src/core/timeouts.c
   ${lwip_base}/src/core/udp.c
   ${lwip_base}/src/core/memp.c
   ${lwip_base}/src/core/init.c
@@ -17,10 +17,11 @@ set(lwip_source
   ${lwip_base}/src/core/tcp_in.c
   ${lwip_base}/src/core/stats.c
   ${lwip_base}/src/core/inet_chksum.c
+  ${lwip_base}/src/core/ip.c
   ${lwip_base}/src/core/ipv4/icmp.c
   ${lwip_base}/src/core/ipv4/ip4.c
   ${lwip_base}/src/core/ipv4/ip4_addr.c
-  ${lwip_base}/src/core/ipv4/ip_frag.c
+  ${lwip_base}/src/core/ipv4/ip4_frag.c
   ${lwip_base}/src/core/ipv6/ip6.c
   ${lwip_base}/src/core/ipv6/nd6.c
   ${lwip_base}/src/core/ipv6/icmp6.c

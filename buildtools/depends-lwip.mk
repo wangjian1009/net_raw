@@ -1,4 +1,4 @@
-lwip_base:=$(call my-dir)/../depends/lwip
+lwip_base:=$(call my-dir)/../depends/lwip-2.1.1
 lwip_output:=$(OUTPUT_PATH)/lib/liblwip.a
 lwip_cpp_flags:=-I$(lwip_base)/../../../cpe/include \
                 -I$(lwip_base)/src/include \
@@ -8,7 +8,7 @@ lwip_cpp_flags:=-I$(lwip_base)/../../../cpe/include \
                 $(if $(filter 1,$D), -DLWIP_DEBUG)
 lwip_c_flags:=-Wno-unused-value -Wno-bitwise-op-parentheses
 lwip_src:=$(addprefix $(lwip_base)/, \
-              src/core/timers.c \
+              src/core/timeouts.c \
               src/core/udp.c \
               src/core/memp.c \
               src/core/init.c \
@@ -22,10 +22,11 @@ lwip_src:=$(addprefix $(lwip_base)/, \
               src/core/tcp_in.c \
               src/core/stats.c \
               src/core/inet_chksum.c \
+              src/core/ip.c \
               src/core/ipv4/icmp.c \
               src/core/ipv4/ip4.c \
               src/core/ipv4/ip4_addr.c \
-              src/core/ipv4/ip_frag.c \
+              src/core/ipv4/ip4_frag.c \
               src/core/ipv6/ip6.c \
               src/core/ipv6/nd6.c \
               src/core/ipv6/icmp6.c \
