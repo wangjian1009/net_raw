@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		C90048AD211453F000C29588 /* error.c in Sources */ = {isa = PBXBuildFile; fileRef = C90048AC211453F000C29588 /* error.c */; };
 		C90048C221183EDC00C29588 /* net_tun_wildcard_acceptor.c in Sources */ = {isa = PBXBuildFile; fileRef = C90048C021183EDB00C29588 /* net_tun_wildcard_acceptor.c */; };
+		C9596F2E21A3BB780010BD39 /* timeouts.c in Sources */ = {isa = PBXBuildFile; fileRef = C9596F2C21A3BB780010BD39 /* timeouts.c */; };
+		C9596F2F21A3BB780010BD39 /* ip.c in Sources */ = {isa = PBXBuildFile; fileRef = C9596F2D21A3BB780010BD39 /* ip.c */; };
+		C9596F3121A3BB8B0010BD39 /* ip4_frag.c in Sources */ = {isa = PBXBuildFile; fileRef = C9596F3021A3BB8B0010BD39 /* ip4_frag.c */; };
 		C9CE6FD52111F34E0099A50C /* net_tun_device_tun.c in Sources */ = {isa = PBXBuildFile; fileRef = C9CE6FBD2111F34E0099A50C /* net_tun_device_tun.c */; };
 		C9CE6FD62111F34E0099A50C /* net_tun_dgram.c in Sources */ = {isa = PBXBuildFile; fileRef = C9CE6FBE2111F34E0099A50C /* net_tun_dgram.c */; };
 		C9CE6FD82111F34E0099A50C /* net_tun_utils.c in Sources */ = {isa = PBXBuildFile; fileRef = C9CE6FC02111F34E0099A50C /* net_tun_utils.c */; };
@@ -16,7 +19,6 @@
 		C9CE6FDC2111F34E0099A50C /* net_tun_device.c in Sources */ = {isa = PBXBuildFile; fileRef = C9CE6FC62111F34E0099A50C /* net_tun_device.c */; };
 		C9CE6FDD2111F34E0099A50C /* net_tun_driver.c in Sources */ = {isa = PBXBuildFile; fileRef = C9CE6FCB2111F34E0099A50C /* net_tun_driver.c */; };
 		C9F7B21021129C1D00D5007A /* memp.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B17121129C1D00D5007A /* memp.c */; };
-		C9F7B21121129C1D00D5007A /* dhcp.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B17221129C1D00D5007A /* dhcp.c */; };
 		C9F7B21221129C1D00D5007A /* sys.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B17321129C1D00D5007A /* sys.c */; };
 		C9F7B21921129C1D00D5007A /* inet_chksum.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B17B21129C1D00D5007A /* inet_chksum.c */; };
 		C9F7B21A21129C1D00D5007A /* raw.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B17C21129C1D00D5007A /* raw.c */; };
@@ -29,14 +31,12 @@
 		C9F7B22121129C1D00D5007A /* stats.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B18321129C1D00D5007A /* stats.c */; };
 		C9F7B22221129C1D00D5007A /* tcp_in.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B18421129C1D00D5007A /* tcp_in.c */; };
 		C9F7B22321129C1D00D5007A /* autoip.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B18621129C1D00D5007A /* autoip.c */; };
-		C9F7B22421129C1D00D5007A /* ip_frag.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B18721129C1D00D5007A /* ip_frag.c */; };
 		C9F7B22521129C1D00D5007A /* igmp.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B18821129C1D00D5007A /* igmp.c */; };
 		C9F7B22621129C1D00D5007A /* icmp.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B18921129C1D00D5007A /* icmp.c */; };
 		C9F7B22721129C1D00D5007A /* ip4.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B18A21129C1D00D5007A /* ip4.c */; };
 		C9F7B22821129C1D00D5007A /* ip4_addr.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B18B21129C1D00D5007A /* ip4_addr.c */; };
 		C9F7B22921129C1D00D5007A /* netif.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B18C21129C1D00D5007A /* netif.c */; };
 		C9F7B22A21129C1D00D5007A /* tcp.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B18D21129C1D00D5007A /* tcp.c */; };
-		C9F7B22B21129C1D00D5007A /* timers.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B18E21129C1D00D5007A /* timers.c */; };
 		C9F7B22C21129C1D00D5007A /* pbuf.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B18F21129C1D00D5007A /* pbuf.c */; };
 		C9F7B22D21129C1D00D5007A /* ip6.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B19221129C1D00D5007A /* ip6.c */; };
 		C9F7B22E21129C1D00D5007A /* icmp6.c in Sources */ = {isa = PBXBuildFile; fileRef = C9F7B19321129C1D00D5007A /* icmp6.c */; };
@@ -78,6 +78,9 @@
 		C90048AC211453F000C29588 /* error.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = error.c; sourceTree = "<group>"; };
 		C90048C021183EDB00C29588 /* net_tun_wildcard_acceptor.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.objc; fileEncoding = 4; path = net_tun_wildcard_acceptor.c; sourceTree = "<group>"; };
 		C90048C121183EDC00C29588 /* net_tun_wildcard_acceptor_i.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = net_tun_wildcard_acceptor_i.h; sourceTree = "<group>"; };
+		C9596F2C21A3BB780010BD39 /* timeouts.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = timeouts.c; sourceTree = "<group>"; };
+		C9596F2D21A3BB780010BD39 /* ip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ip.c; sourceTree = "<group>"; };
+		C9596F3021A3BB8B0010BD39 /* ip4_frag.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ip4_frag.c; sourceTree = "<group>"; };
 		C9CE6FAE2111F2ED0099A50C /* libnet_driver_tun.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libnet_driver_tun.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		C9CE6FBB2111F34E0099A50C /* net_tun_endpoint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = net_tun_endpoint.h; sourceTree = "<group>"; };
 		C9CE6FBD2111F34E0099A50C /* net_tun_device_tun.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.objc; fileEncoding = 4; path = net_tun_device_tun.c; sourceTree = "<group>"; };
@@ -95,7 +98,6 @@
 		C9CE6FD42111F34E0099A50C /* net_tun_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = net_tun_types.h; sourceTree = "<group>"; };
 		C9F7B13B21129B4100D5007A /* liblwip.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = liblwip.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		C9F7B17121129C1D00D5007A /* memp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = memp.c; sourceTree = "<group>"; };
-		C9F7B17221129C1D00D5007A /* dhcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dhcp.c; sourceTree = "<group>"; };
 		C9F7B17321129C1D00D5007A /* sys.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sys.c; sourceTree = "<group>"; };
 		C9F7B17B21129C1D00D5007A /* inet_chksum.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = inet_chksum.c; sourceTree = "<group>"; };
 		C9F7B17C21129C1D00D5007A /* raw.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = raw.c; sourceTree = "<group>"; };
@@ -108,14 +110,12 @@
 		C9F7B18321129C1D00D5007A /* stats.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = stats.c; sourceTree = "<group>"; };
 		C9F7B18421129C1D00D5007A /* tcp_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = tcp_in.c; sourceTree = "<group>"; };
 		C9F7B18621129C1D00D5007A /* autoip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = autoip.c; sourceTree = "<group>"; };
-		C9F7B18721129C1D00D5007A /* ip_frag.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ip_frag.c; sourceTree = "<group>"; };
 		C9F7B18821129C1D00D5007A /* igmp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = igmp.c; sourceTree = "<group>"; };
 		C9F7B18921129C1D00D5007A /* icmp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = icmp.c; sourceTree = "<group>"; };
 		C9F7B18A21129C1D00D5007A /* ip4.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ip4.c; sourceTree = "<group>"; };
 		C9F7B18B21129C1D00D5007A /* ip4_addr.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ip4_addr.c; sourceTree = "<group>"; };
 		C9F7B18C21129C1D00D5007A /* netif.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = netif.c; sourceTree = "<group>"; };
 		C9F7B18D21129C1D00D5007A /* tcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = tcp.c; sourceTree = "<group>"; };
-		C9F7B18E21129C1D00D5007A /* timers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = timers.c; sourceTree = "<group>"; };
 		C9F7B18F21129C1D00D5007A /* pbuf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = pbuf.c; sourceTree = "<group>"; };
 		C9F7B19121129C1D00D5007A /* README */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
 		C9F7B19221129C1D00D5007A /* ip6.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ip6.c; sourceTree = "<group>"; };
@@ -271,18 +271,18 @@
 		C9F7B14421129C1D00D5007A /* depends */ = {
 			isa = PBXGroup;
 			children = (
-				C9F7B14521129C1D00D5007A /* lwip */,
+				C9F7B14521129C1D00D5007A /* lwip-2.1.1 */,
 			);
 			name = depends;
 			path = ../../depends;
 			sourceTree = "<group>";
 		};
-		C9F7B14521129C1D00D5007A /* lwip */ = {
+		C9F7B14521129C1D00D5007A /* lwip-2.1.1 */ = {
 			isa = PBXGroup;
 			children = (
 				C9F7B16E21129C1D00D5007A /* src */,
 			);
-			path = lwip;
+			path = "lwip-2.1.1";
 			sourceTree = "<group>";
 		};
 		C9F7B16E21129C1D00D5007A /* src */ = {
@@ -298,8 +298,9 @@
 		C9F7B17021129C1D00D5007A /* core */ = {
 			isa = PBXGroup;
 			children = (
+				C9596F2D21A3BB780010BD39 /* ip.c */,
+				C9596F2C21A3BB780010BD39 /* timeouts.c */,
 				C9F7B17121129C1D00D5007A /* memp.c */,
-				C9F7B17221129C1D00D5007A /* dhcp.c */,
 				C9F7B17321129C1D00D5007A /* sys.c */,
 				C9F7B17B21129C1D00D5007A /* inet_chksum.c */,
 				C9F7B17C21129C1D00D5007A /* raw.c */,
@@ -314,7 +315,6 @@
 				C9F7B18521129C1D00D5007A /* ipv4 */,
 				C9F7B18C21129C1D00D5007A /* netif.c */,
 				C9F7B18D21129C1D00D5007A /* tcp.c */,
-				C9F7B18E21129C1D00D5007A /* timers.c */,
 				C9F7B18F21129C1D00D5007A /* pbuf.c */,
 				C9F7B19021129C1D00D5007A /* ipv6 */,
 			);
@@ -324,8 +324,8 @@
 		C9F7B18521129C1D00D5007A /* ipv4 */ = {
 			isa = PBXGroup;
 			children = (
+				C9596F3021A3BB8B0010BD39 /* ip4_frag.c */,
 				C9F7B18621129C1D00D5007A /* autoip.c */,
-				C9F7B18721129C1D00D5007A /* ip_frag.c */,
 				C9F7B18821129C1D00D5007A /* igmp.c */,
 				C9F7B18921129C1D00D5007A /* icmp.c */,
 				C9F7B18A21129C1D00D5007A /* ip4.c */,
@@ -588,6 +588,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C9F7B22721129C1D00D5007A /* ip4.c in Sources */,
+				C9596F2E21A3BB780010BD39 /* timeouts.c in Sources */,
 				C9F7B22621129C1D00D5007A /* icmp.c in Sources */,
 				C9F7B21021129C1D00D5007A /* memp.c in Sources */,
 				C9F7B21D21129C1D00D5007A /* init.c in Sources */,
@@ -596,15 +597,15 @@
 				C9F7B23421129C1D00D5007A /* ip6_addr.c in Sources */,
 				C9F7B23321129C1D00D5007A /* inet6.c in Sources */,
 				C9F7B22F21129C1D00D5007A /* mld6.c in Sources */,
+				C9596F3121A3BB8B0010BD39 /* ip4_frag.c in Sources */,
 				C9F7B22021129C1D00D5007A /* udp.c in Sources */,
 				C9F7B22221129C1D00D5007A /* tcp_in.c in Sources */,
 				C9F7B22321129C1D00D5007A /* autoip.c in Sources */,
 				C9F7B22521129C1D00D5007A /* igmp.c in Sources */,
-				C9F7B22421129C1D00D5007A /* ip_frag.c in Sources */,
 				C9F7B22E21129C1D00D5007A /* icmp6.c in Sources */,
 				C9F7B21921129C1D00D5007A /* inet_chksum.c in Sources */,
-				C9F7B22B21129C1D00D5007A /* timers.c in Sources */,
 				C9F7B23021129C1D00D5007A /* dhcp6.c in Sources */,
+				C9596F2F21A3BB780010BD39 /* ip.c in Sources */,
 				C9F7B23221129C1D00D5007A /* nd6.c in Sources */,
 				C9F7B22121129C1D00D5007A /* stats.c in Sources */,
 				C9F7B21C21129C1D00D5007A /* dns.c in Sources */,
@@ -613,7 +614,6 @@
 				C9F7B21B21129C1D00D5007A /* tcp_out.c in Sources */,
 				C90048AD211453F000C29588 /* error.c in Sources */,
 				C9F7B22921129C1D00D5007A /* netif.c in Sources */,
-				C9F7B21121129C1D00D5007A /* dhcp.c in Sources */,
 				C9F7B22821129C1D00D5007A /* ip4_addr.c in Sources */,
 				C9F7B21221129C1D00D5007A /* sys.c in Sources */,
 				C9F7B21A21129C1D00D5007A /* raw.c in Sources */,
@@ -751,9 +751,9 @@
 				);
 				HEADER_SEARCH_PATHS = (
 					../custom/lwip,
-					../../depends/lwip/src/include,
-					../../depends/lwip/src/include/ipv4,
-					../../depends/lwip/src/include/ipv6,
+					"../../depends/lwip-2.1.1/src/include",
+					"../../depends/lwip-2.1.1/src/include/ipv4",
+					"../../depends/lwip-2.1.1/src/include/ipv6",
 					../../../cpe/include,
 					../../../net/core/include,
 					../../driver_tun/include,
@@ -777,9 +777,9 @@
 				);
 				HEADER_SEARCH_PATHS = (
 					../custom/lwip,
-					../../depends/lwip/src/include,
-					../../depends/lwip/src/include/ipv4,
-					../../depends/lwip/src/include/ipv6,
+					"../../depends/lwip-2.1.1/src/include",
+					"../../depends/lwip-2.1.1/src/include/ipv4",
+					"../../depends/lwip-2.1.1/src/include/ipv6",
 					../../../cpe/include,
 					../../../net/core/include,
 					../../driver_tun/include,
@@ -806,9 +806,9 @@
 				HEADER_SEARCH_PATHS = (
 					../../../cpe/include,
 					../custom/lwip,
-					../../depends/lwip/src/include,
-					../../depends/lwip/src/include/ipv4,
-					../../depends/lwip/src/include/ipv6,
+					"../../depends/lwip-2.1.1/src/include",
+					"../../depends/lwip-2.1.1/src/include/ipv4",
+					"../../depends/lwip-2.1.1/src/include/ipv6",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -826,9 +826,9 @@
 				HEADER_SEARCH_PATHS = (
 					../../../cpe/include,
 					../custom/lwip,
-					../../depends/lwip/src/include,
-					../../depends/lwip/src/include/ipv4,
-					../../depends/lwip/src/include/ipv6,
+					"../../depends/lwip-2.1.1/src/include",
+					"../../depends/lwip-2.1.1/src/include/ipv4",
+					"../../depends/lwip-2.1.1/src/include/ipv6",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
