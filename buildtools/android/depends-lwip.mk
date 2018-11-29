@@ -36,7 +36,7 @@ LOCAL_SRC_FILES := $(addprefix ../../depends/lwip-2.1.1/, \
                          src/core/ipv6/ip6_frag.c \
                          src/api/err.c \
                     ) \
-                    $(addprefix $(LOCAL_PATH)/../custom/lwip/, \
+                    $(addprefix ../custom/lwip/, \
                          sys.c \
                          error.c \
                      )
