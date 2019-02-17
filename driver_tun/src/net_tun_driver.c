@@ -57,7 +57,9 @@ net_tun_driver_create(
         sizeof(struct net_tun_dgram),
         net_tun_dgram_init,
         net_tun_dgram_fini,
-        net_tun_dgram_send);
+        net_tun_dgram_send,
+        /*watcher*/
+        0, NULL, NULL, NULL);
 
     if (base_driver == NULL) return NULL;
 
