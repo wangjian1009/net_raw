@@ -117,7 +117,7 @@ static void net_tun_device_start_read(net_tun_device_t i_device) {
                         NSData * packet = packets[i];
                         uint64_t packet_count = [packet length];
                         if (packet_count > UINT16_MAX) {
-                            CPE_ERROR(driver->m_em, "%s: packet input: packet " FMT_UINT64_T " overflow uint16", device->m_dev_name, packet_count);
+                            CPE_ERROR(driver->m_em, "tun: %s: packet input: packet " FMT_UINT64_T " overflow uint16", device->m_dev_name, packet_count);
                             continue;
                         }
 

@@ -277,7 +277,7 @@ net_address_t net_tun_driver_ipv6_address(net_tun_device_t device) {
 
 net_address_t net_tun_device_gen_local_address(net_tun_device_t device) {
     if (device->m_ipv4_address == NULL || device->m_ipv4_mask == NULL) {
-        CPE_ERROR(device->m_driver->m_em, "%s: gen local address: no ip or mask!", device->m_dev_name);
+        CPE_ERROR(device->m_driver->m_em, "tun %s: gen local address: no ip or mask!", device->m_dev_name);
         return NULL;
     }
 
@@ -303,7 +303,7 @@ static int net_tun_device_init_netif(net_tun_device_t device, net_address_t neti
     }
     else {
         if (device->m_ipv4_mask == NULL) {
-            CPE_ERROR(device->m_driver->m_em, "%s: have ipv4 address, but no ipv4 mask!", device->m_dev_name);
+            CPE_ERROR(device->m_driver->m_em, "tun: %s: have ipv4 address, but no ipv4 mask!", device->m_dev_name);
             return -1;
         }
 
@@ -311,7 +311,7 @@ static int net_tun_device_init_netif(net_tun_device_t device, net_address_t neti
             device->m_netif_ipv4_address = net_address_copy(net_tun_driver_schedule(device->m_driver), netif_ipv4_address);
             if (device->m_netif_ipv4_address == NULL) {
                 CPE_ERROR(
-                    device->m_driver->m_em, "%s: dup netif address from %s fail!", device->m_dev_name,
+                    device->m_driver->m_em, "tun: %s: dup netif address from %s fail!", device->m_dev_name,
                     net_address_dump(net_tun_driver_tmp_buffer(device->m_driver), netif_ipv4_address));
                 return -1;
             }
@@ -320,7 +320,7 @@ static int net_tun_device_init_netif(net_tun_device_t device, net_address_t neti
             device->m_netif_ipv4_address =  net_address_rand_same_network(device->m_ipv4_address, device->m_ipv4_mask);
             if (device->m_netif_ipv4_address == NULL) {
                 CPE_ERROR(
-                    device->m_driver->m_em, "%s: generate netif address from %s fail!", device->m_dev_name,
+                    device->m_driver->m_em, "tun: %s: generate netif address from %s fail!", device->m_dev_name,
                     net_address_dump(net_tun_driver_tmp_buffer(device->m_driver), device->m_ipv4_address));
                 return -1;
             }
@@ -367,7 +367,7 @@ static err_t net_tun_device_netif_do_output(struct netif *netif, struct pbuf *p)
     if (!p->next) {
         if (p->len > device->m_mtu) {
             CPE_ERROR(
-                driver->m_em, "%s: output: len %d overflow, mtu=%d",
+                driver->m_em, "tun: %s: output: len %d overflow, mtu=%d",
                 device->m_dev_name, p->len, device->m_mtu);
             goto out;
         }
@@ -375,7 +375,7 @@ static err_t net_tun_device_netif_do_output(struct netif *netif, struct pbuf *p)
         if (driver->m_debug >= 2) {
             CPE_INFO(
                 driver->m_em,
-                "%s: >>> %d |      %s", device->m_dev_name, p->len,
+                "tun: %s: >>> %d |      %s", device->m_dev_name, p->len,
                 net_tun_dump_raw_data(net_tun_driver_tmp_buffer(driver), NULL, (uint8_t *)p->payload, NULL));
         }
 
@@ -391,7 +391,7 @@ static err_t net_tun_device_netif_do_output(struct netif *netif, struct pbuf *p)
 
             device->m_output_buf = mem_alloc(driver->m_alloc, device->m_mtu);
             if (device->m_output_buf == NULL) {
-                CPE_ERROR(driver->m_em, "%s: output: alloc buf fail, mtu=%d", device->m_dev_name, device->m_mtu);
+                CPE_ERROR(driver->m_em, "tun: %s: output: alloc buf fail, mtu=%d", device->m_dev_name, device->m_mtu);
                 goto out;
             }
             device->m_output_capacity = device->m_mtu;
@@ -404,7 +404,7 @@ static err_t net_tun_device_netif_do_output(struct netif *netif, struct pbuf *p)
         do {
             if (p->len > device->m_mtu - len) {
                 CPE_ERROR(
-                    driver->m_em, "%s: output: len %d overflow, mtu=%d",
+                    driver->m_em, "tun: %s: output: len %d overflow, mtu=%d",
                     device->m_dev_name, p->len + len, device->m_mtu);
                 goto out;
             }
@@ -415,7 +415,7 @@ static err_t net_tun_device_netif_do_output(struct netif *netif, struct pbuf *p)
         if (driver->m_debug >= 2) {
             CPE_INFO(
                 device->m_driver->m_em,
-                "%s: >>> %d |       %s", device->m_dev_name, len,
+                "tun: %s: >>> %d |       %s", device->m_dev_name, len,
                 net_tun_dump_raw_data(net_tun_driver_tmp_buffer(driver), NULL, device_write_buf, NULL));
         }
         
@@ -455,7 +455,7 @@ static err_t net_tun_device_netif_input(struct pbuf *p, struct netif * netif) {
 int net_tun_device_packet_input(net_tun_driver_t driver, net_tun_device_t device, uint8_t const * packet_data, uint16_t packet_size) {
     if (packet_size > device->m_mtu) {
         CPE_ERROR(
-            driver->m_em, "%s: input packet length %d overflow, mtu=%d",
+            driver->m_em, "tun: %s: input packet length %d overflow, mtu=%d",
             device->m_dev_name, packet_size, device->m_mtu);
         return -1;
     }
@@ -466,27 +466,27 @@ int net_tun_device_packet_input(net_tun_driver_t driver, net_tun_device_t device
 
     if (driver->m_debug >= 2) {
         CPE_INFO(
-            driver->m_em, "%s: <<< %d |      %s",
+            driver->m_em, "tun: %s: <<< %d |      %s",
             device->m_dev_name, packet_size,
             net_tun_dump_raw_data(net_tun_driver_tmp_buffer(driver), ethhead, iphead, data));
     }
             
     struct pbuf *p = pbuf_alloc(PBUF_RAW, packet_size, PBUF_POOL);
     if (!p) {
-        CPE_ERROR(driver->m_em, "%s: packet input: pbuf_alloc fail", device->m_dev_name);
+        CPE_ERROR(driver->m_em, "tun: %s: packet input: pbuf_alloc fail", device->m_dev_name);
         return -1;
     }
 
     err_t err = pbuf_take(p, iphead, packet_size);
     if (err != ERR_OK) {
-        CPE_ERROR(driver->m_em, "%s: packet input: pbuf_take fail, error=%d (%s)", device->m_dev_name, err, lwip_strerr(err));
+        CPE_ERROR(driver->m_em, "tun: %s: packet input: pbuf_take fail, error=%d (%s)", device->m_dev_name, err, lwip_strerr(err));
         pbuf_free(p);
         return -1;
     }
 
     err = device->m_netif.input(p, &device->m_netif);
     if (err != ERR_OK) {
-        CPE_ERROR(driver->m_em, "%s: packet input: input fail, error=%d (%s)", device->m_dev_name, err, lwip_strerr(err));
+        CPE_ERROR(driver->m_em, "tun: %s: packet input: input fail, error=%d (%s)", device->m_dev_name, err, lwip_strerr(err));
         pbuf_free(p);
         return -1;
     }

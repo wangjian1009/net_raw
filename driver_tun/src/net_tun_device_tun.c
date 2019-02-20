@@ -119,7 +119,7 @@ int net_tun_device_packet_output(net_tun_device_t device, uint8_t *data, int dat
     }
     else {
         if (bytes != data_len) {
-            CPE_ERROR(device->m_driver->m_em, "%s: written %d expected %d", device->m_dev_name, bytes, data_len);
+            CPE_ERROR(device->m_driver->m_em, "tun: %s: written %d expected %d", device->m_dev_name, bytes, data_len);
         }
     }
     return 0;
@@ -134,7 +134,7 @@ static void net_tun_device_rw_cb(EV_P_ ev_io *w, int revents) {
         void * data = mem_buffer_alloc(&driver->m_data_buffer, device->m_mtu);
         if (data == NULL) {
             CPE_ERROR(
-                driver->m_em, "%s: rw: alloc data, size=%d fail",
+                driver->m_em, "tun: %s: rw: alloc data, size=%d fail",
                 device->m_dev_name, device->m_mtu);
             return;
         }
@@ -147,7 +147,7 @@ static void net_tun_device_rw_cb(EV_P_ ev_io *w, int revents) {
                 }
                 else {
                     CPE_ERROR(
-                        driver->m_em, "%s: rw: read data error, errno=%d %s",
+                        driver->m_em, "tun: %s: rw: read data error, errno=%d %s",
                         device->m_dev_name, errno, strerror(errno));
                     break;
                 }
