@@ -52,7 +52,7 @@ net_tun_driver_create(
         net_tun_endpoint_fini,
         net_tun_endpoint_connect,
         net_tun_endpoint_close,
-        net_tun_endpoint_on_output,
+        net_tun_endpoint_update,
         /*dgram*/
         sizeof(struct net_tun_dgram),
         net_tun_dgram_init,

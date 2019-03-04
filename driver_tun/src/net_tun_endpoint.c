@@ -246,7 +246,7 @@ void net_tun_endpoint_fini(net_endpoint_t base_endpoint) {
     }
 }
 
-int net_tun_endpoint_on_output(net_endpoint_t base_endpoint) {
+int net_tun_endpoint_update(net_endpoint_t base_endpoint) {
     if (net_endpoint_state(base_endpoint) != net_endpoint_state_established) return 0;
 
     net_tun_endpoint_t endpoint = net_endpoint_data(base_endpoint);
