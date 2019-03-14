@@ -14,7 +14,7 @@ int net_tun_device_init_dev(
     
     assert(tunnelFlow);
 
-    device->m_mtu = (uint16_t)settings.MTU;
+    device->m_mtu = (uint16_t)settings.MTU.integerValue;
 
     NEIPv4Settings * ipv4Settings = settings.IPv4Settings;
     if (ipv4Settings) {

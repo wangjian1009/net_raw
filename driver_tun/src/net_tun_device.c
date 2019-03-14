@@ -40,6 +40,8 @@ net_tun_device_create(
     , net_address_t netif_ipv6_address
     )
 {
+    net_driver_t base_driver = net_driver_from_data(driver);
+
     net_tun_device_t device = mem_alloc(driver->m_alloc, sizeof(struct net_tun_device));
     if (device == NULL) {
         CPE_ERROR(driver->m_em, "tun: device alloc fail!");
@@ -114,7 +116,7 @@ net_tun_device_create(
     }
     TAILQ_INSERT_TAIL(&driver->m_devices, device, m_next_for_driver);
     
-    if (driver->m_debug > 0) {
+    if (net_driver_debug(base_driver) > 0) {
         char ipv4_address[32];
         cpe_str_dup(
             ipv4_address, sizeof(ipv4_address),
@@ -361,6 +363,7 @@ static err_t net_tun_device_netif_init(struct netif *netif) {
 static err_t net_tun_device_netif_do_output(struct netif *netif, struct pbuf *p) {
     net_tun_device_t device = netif->state;
     net_tun_driver_t driver = device->m_driver;
+    net_driver_t base_driver = net_driver_from_data(driver);
 
     if (device->m_quitting) {
         return ERR_OK;
@@ -374,7 +377,7 @@ static err_t net_tun_device_netif_do_output(struct netif *netif, struct pbuf *p)
             goto out;
         }
 
-        if (driver->m_debug >= 2) {
+        if (net_driver_debug(base_driver) >= 2) {
             CPE_INFO(
                 driver->m_em,
                 "tun: %s: >>> %d |      %s", device->m_dev_name, p->len,
@@ -414,7 +417,7 @@ static err_t net_tun_device_netif_do_output(struct netif *netif, struct pbuf *p)
             len += p->len;
         } while ((p = p->next));
 
-        if (driver->m_debug >= 2) {
+        if (net_driver_debug(base_driver) >= 2) {
             CPE_INFO(
                 device->m_driver->m_em,
                 "tun: %s: >>> %d |       %s", device->m_dev_name, len,
@@ -455,6 +458,8 @@ static err_t net_tun_device_netif_input(struct pbuf *p, struct netif * netif) {
 }
 
 int net_tun_device_packet_input(net_tun_driver_t driver, net_tun_device_t device, uint8_t const * packet_data, uint16_t packet_size) {
+    net_driver_t base_driver = net_driver_from_data(driver);
+
     if (packet_size > device->m_mtu) {
         CPE_ERROR(
             driver->m_em, "tun: %s: input packet length %d overflow, mtu=%d",
@@ -466,7 +471,7 @@ int net_tun_device_packet_input(net_tun_driver_t driver, net_tun_device_t device
     uint8_t const * iphead = packet_data;
     uint8_t const * data = iphead + 20;
 
-    if (driver->m_debug >= 2) {
+    if (net_driver_debug(base_driver) >= 2) {
         CPE_INFO(
             driver->m_em, "tun: %s: <<< %d |      %s",
             device->m_dev_name, packet_size,
@@ -552,7 +557,7 @@ static int net_tun_device_do_accept(
         return -1;
     }
 
-    if (driver->m_debug >= 2) {
+    if (net_driver_debug(base_driver) >= 2) {
         CPE_INFO(driver->m_em, "tun: accept: success");
     }
 
@@ -562,6 +567,7 @@ static int net_tun_device_do_accept(
 static err_t net_tun_device_on_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
     net_tun_device_t device = arg;
     net_tun_driver_t driver = device->m_driver;
+    net_driver_t base_driver = net_driver_from_data(driver);
     net_address_t local_addr = NULL;
 
     assert(err == ERR_OK);
@@ -620,7 +626,7 @@ static err_t net_tun_device_on_accept(void *arg, struct tcp_pcb *newpcb, err_t e
         return ERR_OK;
     }
     
-    if (driver->m_debug) {
+    if (net_driver_debug(base_driver)) {
         CPE_INFO(
             driver->m_em, "tun: accept: no acceptor for %s",
             net_address_dump(net_tun_driver_tmp_buffer(device->m_driver), local_addr));

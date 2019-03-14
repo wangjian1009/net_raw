@@ -102,7 +102,6 @@ static int net_tun_driver_init(net_driver_t base_driver) {
     driver->m_sock_process_ctx = NULL;
     driver->m_data_monitor_fun = NULL;
     driver->m_data_monitor_ctx = NULL;
-    driver->m_debug = 0;
     driver->m_default_device = NULL;
 
     if (cpe_hash_table_init(
@@ -169,14 +168,6 @@ static void net_tun_driver_fini(net_driver_t base_driver) {
 
 void net_tun_driver_free(net_tun_driver_t driver) {
     net_driver_free(net_driver_from_data(driver));
-}
-
-uint8_t net_tun_driver_debug(net_tun_driver_t driver) {
-    return driver->m_debug;
-}
-
-void net_tun_driver_set_debug(net_tun_driver_t driver, uint8_t debug) {
-    driver->m_debug = debug;
 }
 
 void net_tun_driver_set_sock_create_processor(

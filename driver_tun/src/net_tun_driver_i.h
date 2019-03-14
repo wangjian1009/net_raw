@@ -34,7 +34,6 @@ struct net_tun_driver {
 #endif
     mem_allocrator_t m_alloc;
     error_monitor_t m_em;
-    uint8_t m_debug;
 
 #if NET_TUN_USE_EV
     struct ev_timer m_tcp_timer;

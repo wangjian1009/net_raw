@@ -18,9 +18,6 @@ net_tun_driver_t net_tun_driver_cast(net_driver_t driver);
 
 void net_tun_driver_free(net_tun_driver_t driver);
 
-uint8_t net_tun_driver_debug(net_tun_driver_t driver);
-void net_tun_driver_set_debug(net_tun_driver_t driver, uint8_t debug);
-
 typedef int (*net_tun_driver_sock_create_process_fun_t)(
     net_tun_driver_t driver, void * ctx, int fd, net_address_t remote_addr);
 
