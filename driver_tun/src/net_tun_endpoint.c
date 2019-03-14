@@ -49,7 +49,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
                               be done with the pbuf in case of an error.*/
 
     if (net_endpoint_state(base_endpoint) == net_endpoint_state_deleting) {
-        return ERR_OK;
+        return ERR_RST;
     }
     
     if (!p) {
@@ -61,8 +61,8 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
 
         net_endpoint_set_error(base_endpoint, net_endpoint_error_source_network, net_endpoint_network_errno_remote_closed, NULL);
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
-            net_endpoint_free(base_endpoint);
-            return ERR_ABRT;
+            net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
+            return ERR_CLSD;
         }
         else {
             return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
@@ -119,8 +119,8 @@ static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t l
             base_endpoint, net_endpoint_error_source_network,
             net_endpoint_network_errno_network_error, "tun write error");
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
-            net_endpoint_free(base_endpoint);
-            return ERR_ABRT; 
+            net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
+            return ERR_CLSD; 
         }
     }
 
@@ -152,7 +152,7 @@ static void net_tun_endpoint_err_func(void *arg, err_t err) {
 
         net_endpoint_set_error(base_endpoint, net_endpoint_error_source_network, net_endpoint_network_errno_remote_closed, NULL);
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_disable) != 0) {
-            net_endpoint_free(base_endpoint);
+            net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
         }
     }
     else {
@@ -165,7 +165,7 @@ static void net_tun_endpoint_err_func(void *arg, err_t err) {
         
         net_endpoint_set_error(base_endpoint, net_endpoint_error_source_network, net_endpoint_network_errno_network_error, lwip_strerr(err));
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
-            net_endpoint_free(base_endpoint);
+            net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
         }
     }
 }
@@ -214,8 +214,8 @@ static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, er
             base_endpoint, net_endpoint_error_source_network,
             net_endpoint_network_errno_network_error, lwip_strerr(err));
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
-            net_endpoint_free(base_endpoint);
-            return ERR_ABRT;
+            net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
+            return ERR_CLSD;
         }
         return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
     }
@@ -227,8 +227,8 @@ static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, er
     }
 
     if (net_endpoint_set_state(base_endpoint, net_endpoint_state_established) != 0) {
-        net_endpoint_free(base_endpoint);
-        return ERR_ABRT;
+        net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
+        return ERR_CLSD;
     }
 
     return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
