@@ -338,6 +338,8 @@ static int net_tun_device_init_netif(net_tun_device_t device, net_address_t neti
         return -1;
     }
 
+    device->m_netif.mtu = device->m_mtu;
+
     netif_set_up(&device->m_netif);
     netif_set_link_up(&device->m_netif);
 
