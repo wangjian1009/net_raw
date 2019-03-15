@@ -63,11 +63,13 @@ void net_tun_print_raw_data(write_stream_t ws, uint8_t const * ethhead, uint8_t 
             stream_printf(ws, "TCP: %s:%d ==> %s:%d", ip_from, port_from, ip_to, port_to);
         }
 
+        uint16_t tcp_head_len = (uint16_t)data[12];
+        tcp_head_len = (tcp_head_len >> 4) * sizeof(uint32_t);
         uint32_t sn;
         CPE_COPY_NTOH32(&sn, data + 4);
         uint32_t ack;
         CPE_COPY_NTOH32(&ack, data + 8);
-        stream_printf(ws, " sn=" FMT_UINT32_T ", ack=" FMT_UINT32_T, sn, ack);
+        stream_printf(ws, " head-len=%d, sn=" FMT_UINT32_T ", ack=" FMT_UINT32_T, (int)tcp_head_len, sn, ack);
 
         uint8_t flag = data[13];
         stream_printf(ws, ", flags=(");
