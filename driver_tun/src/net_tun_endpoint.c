@@ -70,8 +70,26 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
     }
 
     assert(p->tot_len > 0);
-
-    uint32_t size = p->tot_len;
+    uint32_t total_len = p->tot_len;
+    
+    uint32_t size = net_endpoint_buf_capacity(base_endpoint, net_ep_buf_read);
+    if (size == NET_ENDPOINT_NO_LIMIT) {
+        size = total_len;
+    }
+    else if (size == 0) {
+        if (net_endpoint_driver_debug(base_endpoint) >= 2|| net_schedule_debug(schedule) >= 2) {
+            CPE_INFO(
+                driver->m_em, "tun: %s: no left space(capacity=%d), would block!",
+                net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), size);
+        }
+        return ERR_INPROGRESS;
+    }
+    else {
+        if (size > total_len) {
+            size = total_len;
+        }
+    }
+    
     void * data = net_endpoint_buf_alloc(base_endpoint, &size);
     if (data == NULL) {
         CPE_ERROR(
@@ -98,13 +116,24 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
         }
     }
 
-    pbuf_free(p);
-
     if (endpoint->m_pcb) {
         tcp_recved(endpoint->m_pcb, size);
-        return ERR_OK;
+        if (size < total_len) {
+            if (net_endpoint_driver_debug(base_endpoint) >= 2|| net_schedule_debug(schedule) >= 2) {
+                CPE_INFO(
+                    driver->m_em, "tun: %s: input-size=%d, but write %d, would block!",
+                    net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint),
+                    total_len, size);
+            }
+            return ERR_INPROGRESS;
+        }
+        else {
+            pbuf_free(p);
+            return ERR_OK;
+        }
     }
     else {
+        pbuf_free(p);        
         return ERR_ABRT;
     }
 }
@@ -172,32 +201,23 @@ static void net_tun_endpoint_err_func(void *arg, err_t err) {
 
 static err_t net_tun_endpoint_poll_func(void *arg, struct tcp_pcb *pcb) {
     net_tun_endpoint_t endpoint = arg;
-    /* net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint); */
-    /* net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint)); */
+    net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
+    net_schedule_t schedule = net_endpoint_schedule(base_endpoint);
+    net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
 
-    /* CPE_INFO( */
-    /*     driver->m_em, "tun: %s: poll", */
-    /*     net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint)); */
-    
-    /* if (conn->state == NETCONN_WRITE) { */
-    /*     lwip_netconn_do_writemore(conn); */
-    /* } */
-    /* else if (conn->state == NETCONN_CLOSE) { */
-    /*     lwip_netconn_do_close_internal(conn); */
-    /* } */
+    if (endpoint->m_pcb == NULL) {
+        return ERR_ABRT;
+    }
 
-    /* /\* Did a nonblocking write fail before? Then check available write-space. *\/ */
-    /* if (conn->flags & NETCONN_FLAG_CHECK_WRITESPACE) { */
-    /*     /\* If the queued byte- or pbuf-count drops below the configured low-water limit, */
-    /*        let select mark this pcb as writable again. *\/ */
-    /*     if ((conn->pcb.tcp != NULL) && (tcp_sndbuf(conn->pcb.tcp) > TCP_SNDLOWAT) && */
-    /*         (tcp_sndqueuelen(conn->pcb.tcp) < TCP_SNDQUEUELOWAT)) { */
-    /*         conn->flags &= ~NETCONN_FLAG_CHECK_WRITESPACE; */
-    /*         API_EVENT(conn, NETCONN_EVT_SENDPLUS, 0); */
-    /*     } */
-    /* } */
+    uint32_t capacity = net_endpoint_buf_capacity(base_endpoint, net_ep_buf_read);
 
-    return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
+    if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
+        CPE_INFO(
+            driver->m_em, "tun: %s: poll, capacity=%d",
+            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint), capacity);
+    }
+
+    return capacity == 0 ? ERR_WOULDBLOCK : ERR_OK;
 }
 
 static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, err_t err) {
