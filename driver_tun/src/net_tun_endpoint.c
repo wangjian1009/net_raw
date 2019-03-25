@@ -13,7 +13,7 @@
 static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
 static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t len);
 static void net_tun_endpoint_err_func(void *arg, err_t err);
-static err_t net_tun_endpoint_poll_func(void *arg, struct tcp_pcb *pcb);
+//static err_t net_tun_endpoint_poll_func(void *arg, struct tcp_pcb *pcb);
 static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, err_t err);
 static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint);
 
@@ -35,7 +35,7 @@ void net_tun_endpoint_set_pcb(struct net_tun_endpoint * endpoint, struct tcp_pcb
         tcp_err(endpoint->m_pcb, net_tun_endpoint_err_func);
         tcp_recv(endpoint->m_pcb, net_tun_endpoint_recv_func);
         tcp_sent(endpoint->m_pcb, net_tun_endpoint_sent_func);
-        tcp_poll(endpoint->m_pcb, net_tun_endpoint_poll_func, 4);
+        //tcp_poll(endpoint->m_pcb, net_tun_endpoint_poll_func, 4);
     }
 }
 
@@ -72,35 +72,40 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
     assert(p->tot_len > 0);
     uint32_t total_len = p->tot_len;
     
-    uint32_t size = net_endpoint_buf_capacity(base_endpoint, net_ep_buf_read);
-    if (size == NET_ENDPOINT_NO_LIMIT) {
-        size = total_len;
+    uint32_t capacity = net_endpoint_buf_capacity(base_endpoint, net_ep_buf_read);
+    if (capacity == NET_ENDPOINT_NO_LIMIT) {
+        capacity = total_len;
     }
-    else if (size == 0) {
-        if (net_endpoint_driver_debug(base_endpoint) >= 2|| net_schedule_debug(schedule) >= 2) {
+
+    if (capacity < total_len) {
+        if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
             CPE_INFO(
-                driver->m_em, "tun: %s: no left space(capacity=%d), would block!",
-                net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), size);
+                driver->m_em, "tun: %s: recv require %d but only %d, would block!",
+                net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), total_len, capacity);
         }
-        return ERR_INPROGRESS;
-    }
-    else {
-        if (size > total_len) {
-            size = total_len;
-        }
-    }
-    
-    void * data = net_endpoint_buf_alloc(base_endpoint, &size);
-    if (data == NULL) {
-        CPE_ERROR(
-            driver->m_em, "tun: %s: no buffer for data, size=%d",
-            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint), size);
         return ERR_MEM;
     }
 
-    pbuf_copy_partial(p, data, size, 0);
+    void * data = net_endpoint_buf_alloc(base_endpoint, &capacity);
+    if (data == NULL) {
+        CPE_ERROR(
+            driver->m_em, "tun: %s: no buffer for data, size=%d",
+            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint), capacity);
+        return ERR_MEM;
+    }
 
-    if (net_endpoint_buf_supply(base_endpoint, net_ep_buf_read, size) != 0) {
+    pbuf_copy_partial(p, data, total_len, 0);
+    pbuf_free(p);
+
+    tcp_recved(endpoint->m_pcb, total_len);
+    
+    if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
+        CPE_INFO(
+            driver->m_em, "tun: %s: recv %d bytes",
+            net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), total_len);
+    }
+
+    if (net_endpoint_buf_supply(base_endpoint, net_ep_buf_read, total_len) != 0) {
         if (net_endpoint_is_active(base_endpoint)) {
             if (!net_endpoint_have_error(base_endpoint)) {
                 net_endpoint_set_error(base_endpoint, net_endpoint_error_source_network, net_endpoint_network_errno_logic, NULL);
@@ -116,26 +121,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
         }
     }
 
-    if (endpoint->m_pcb) {
-        tcp_recved(endpoint->m_pcb, size);
-        if (size < total_len) {
-            if (net_endpoint_driver_debug(base_endpoint) >= 2|| net_schedule_debug(schedule) >= 2) {
-                CPE_INFO(
-                    driver->m_em, "tun: %s: input-size=%d, but write %d, would block!",
-                    net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint),
-                    total_len, size);
-            }
-            return ERR_INPROGRESS;
-        }
-        else {
-            pbuf_free(p);
-            return ERR_OK;
-        }
-    }
-    else {
-        pbuf_free(p);        
-        return ERR_ABRT;
-    }
+    return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
 }
 
 static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t len) {
@@ -199,26 +185,21 @@ static void net_tun_endpoint_err_func(void *arg, err_t err) {
     }
 }
 
-static err_t net_tun_endpoint_poll_func(void *arg, struct tcp_pcb *pcb) {
-    net_tun_endpoint_t endpoint = arg;
-    net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
-    net_schedule_t schedule = net_endpoint_schedule(base_endpoint);
-    net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+/* static err_t net_tun_endpoint_poll_func(void *arg, struct tcp_pcb *pcb) { */
+/*     net_tun_endpoint_t endpoint = arg; */
 
-    if (endpoint->m_pcb == NULL) {
-        return ERR_ABRT;
-    }
-
-    uint32_t capacity = net_endpoint_buf_capacity(base_endpoint, net_ep_buf_read);
-
-    if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
-        CPE_INFO(
-            driver->m_em, "tun: %s: poll, capacity=%d",
-            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint), capacity);
-    }
-
-    return capacity == 0 ? ERR_WOULDBLOCK : ERR_OK;
-}
+/*     /\* if (net_tun_endpoint_do_write(endpoint) != 0) { *\/ */
+/*     /\*     net_endpoint_set_error( *\/ */
+/*     /\*         base_endpoint, net_endpoint_error_source_network, *\/ */
+/*     /\*         net_endpoint_network_errno_network_error, "tun write error"); *\/ */
+/*     /\*     if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) { *\/ */
+/*     /\*         net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting); *\/ */
+/*     /\*         return ERR_CLSD;  *\/ */
+/*     /\*     } *\/ */
+/*     /\* } *\/ */
+    
+/*     return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK; */
+/* } */
 
 static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, err_t err) {
     net_tun_endpoint_t endpoint = arg;
@@ -320,14 +301,6 @@ static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
             return -1;
         }
 
-        err = tcp_output(endpoint->m_pcb);
-        if (err != ERR_OK) {
-            CPE_ERROR(
-                driver->m_em, "tun: %s: write: tcp_output fail %d (%s)!",
-                net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint), err, lwip_strerr(err));
-            return -1;
-        }
-        
         if (net_endpoint_driver_debug(base_endpoint)) {
             CPE_INFO(
                 driver->m_em, "tun: %s: send %d bytes data!",
@@ -338,6 +311,14 @@ static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
         net_endpoint_buf_consume(base_endpoint, net_ep_buf_write, data_size);
     }
 
+    err_t err = tcp_output(endpoint->m_pcb);
+    if (err != ERR_OK) {
+        CPE_ERROR(
+            driver->m_em, "tun: %s: write: tcp_output fail %d (%s)!",
+            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint), err, lwip_strerr(err));
+        return -1;
+    }
+    
     return 0;
 }
 
