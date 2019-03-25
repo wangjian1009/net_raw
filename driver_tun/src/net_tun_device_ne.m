@@ -4,6 +4,7 @@
 #include "net_address.h"
 #include "net_tun_device_i.h"
 
+static net_tun_driver_t s_tun_driver = NULL;
 static void net_tun_device_start_read(net_tun_device_t device);
 
 int net_tun_device_init_dev(
@@ -51,13 +52,19 @@ int net_tun_device_init_dev(
 
     device->m_packets = [[NSMutableArray<NSData *> alloc] init];
     device->m_versions = [[NSMutableArray<NSNumber *> alloc] init];
-        
+
+    assert(s_tun_driver == NULL);
+    s_tun_driver = driver;
+
     net_tun_device_start_read(device);
     
     return 0;
 }
 
 void net_tun_device_fini_dev(net_tun_driver_t driver, net_tun_device_t device) {
+    assert(s_tun_driver == driver);
+    s_tun_driver = NULL;
+
     if (device->m_bridger) {
         device->m_bridger->m_device = NULL;
         [device->m_bridger release];
@@ -101,6 +108,8 @@ static void net_tun_device_start_read(net_tun_device_t i_device) {
     NetTunDeviceBridger * bridger = i_device->m_bridger;
     [bridger retain];
 
+    NEPacketTunnelFlow * checkTunnelFlow = i_device->m_tunnelFlow;
+    
     [i_device->m_tunnelFlow readPacketsWithCompletionHandler: ^(NSArray<NSData *> *packets, NSArray<NSNumber *> *protocols) {
             dispatch_async(
                 dispatch_get_main_queue(),
@@ -108,8 +117,23 @@ static void net_tun_device_start_read(net_tun_device_t i_device) {
                     net_tun_device_t device = bridger->m_device;
                     [bridger release];
                     if (device == NULL) {
-                        NSLog(@"net_tun_device_read: device free, return");
-                        return;
+                        if (s_tun_driver == NULL) {
+                            NSLog(@"net_tun_device_read: device free (not reopen) return");
+                            return;
+                        }
+                        else {
+                            TAILQ_FOREACH(device, &s_tun_driver->m_devices, m_next_for_driver) {
+                                if (device->m_tunnelFlow == checkTunnelFlow) break;
+                            }
+                        }
+
+                        if (device == NULL) {
+                            NSLog(@"tun: device: device free (reopen, but no match flow) return");
+                            return;
+                        }
+                        else {
+                            NSLog(@"tun: device: reopen");
+                        }
                     }
                     
                     net_tun_driver_t driver = device->m_driver;
