@@ -60,7 +60,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
         }
 
         net_endpoint_set_error(base_endpoint, net_endpoint_error_source_network, net_endpoint_network_errno_remote_closed, NULL);
-        if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
+        if (net_endpoint_set_state(base_endpoint, net_endpoint_state_disable) != 0) {
             net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
             return ERR_CLSD;
         }
