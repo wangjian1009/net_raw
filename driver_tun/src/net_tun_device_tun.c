@@ -116,6 +116,9 @@ int net_tun_device_packet_output(net_tun_device_t device, uint8_t *data, int dat
     if (bytes < 0) {
         // malformed packets will cause errors, ignore them and act like
         // the packet was accepeted
+        CPE_ERROR(
+            device->m_driver->m_em, "tun: %s: written fail, errno=%d (%s)",
+            device->m_dev_name, errno, strerror(errno));
     }
     else {
         if (bytes != data_len) {
