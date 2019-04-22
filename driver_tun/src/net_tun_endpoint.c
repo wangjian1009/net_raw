@@ -348,9 +348,11 @@ int net_tun_endpoint_connect(net_endpoint_t base_endpoint) {
             net_address_to_lwip_ipv6(&local_lwip_addr.u_addr.ip6, local_address);
             break;
         case net_address_domain:
+        case net_address_local:
             CPE_ERROR(
-                em, "tun: %s: connect not support domain address!",
-                net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
+                em, "tun: %s: connect not support %s address!",
+                net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint),
+                net_address_type_str(net_address_type(local_address)));
             tcp_abort(pcb);
             return -1;
         }
@@ -379,9 +381,11 @@ int net_tun_endpoint_connect(net_endpoint_t base_endpoint) {
         net_address_to_lwip_ipv6(&remote_lwip_addr.u_addr.ip6, remote_addr);
         break;
     case net_address_domain:
+    case net_address_local:
         CPE_ERROR(
-            em, "tun: %s: connect not support domain address!",
-            net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
+            em, "tun: %s: connect not support %s!",
+            net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint),
+            net_address_type_str(net_address_type(remote_addr)));
         tcp_abort(pcb);
         return -1;
     }

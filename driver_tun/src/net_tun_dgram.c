@@ -30,6 +30,9 @@ int net_tun_dgram_init(net_dgram_t base_dgram) {
         case net_address_domain:
             CPE_ERROR(driver->m_em, "tun: dgyam: not support domain address!");
             return -1;
+        case net_address_local:
+            CPE_ERROR(driver->m_em, "tun: dgyam: not support local address!");
+            return -1;
         }
 
         dgram->m_pcb = udp_new();
