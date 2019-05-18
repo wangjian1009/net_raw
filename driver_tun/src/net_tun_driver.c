@@ -85,6 +85,10 @@ net_tun_driver_t net_tun_driver_cast(net_driver_t driver) {
     return strcmp(net_driver_name(driver), "tun") == 0 ? net_driver_data(driver) : NULL;
 }
 
+net_driver_t net_tun_driver_base_driver(net_tun_driver_t driver) {
+    return net_driver_from_data(driver);
+}
+
 static int net_tun_driver_init(net_driver_t base_driver) {
     net_schedule_t schedule = net_driver_schedule(base_driver);
     net_tun_driver_t driver = net_driver_data(base_driver);
