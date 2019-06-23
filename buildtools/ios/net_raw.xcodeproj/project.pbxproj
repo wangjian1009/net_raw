@@ -754,7 +754,9 @@
 					"../../depends/lwip-2.1.1/src/include",
 					"../../depends/lwip-2.1.1/src/include/ipv4",
 					"../../depends/lwip-2.1.1/src/include/ipv6",
-					../../../cpe/include,
+					../../../cpe/pal/include,
+					../../../cpe/utils/include,
+					../../../cpe/utils_sock/include,
 					../../../net/core/include,
 					../../driver_tun/include,
 				);
@@ -780,7 +782,9 @@
 					"../../depends/lwip-2.1.1/src/include",
 					"../../depends/lwip-2.1.1/src/include/ipv4",
 					"../../depends/lwip-2.1.1/src/include/ipv6",
-					../../../cpe/include,
+					../../../cpe/pal/include,
+					../../../cpe/utils/include,
+					../../../cpe/utils_sock/include,
 					../../../net/core/include,
 					../../driver_tun/include,
 				);
@@ -801,7 +805,8 @@
 				GCC_WARN_UNUSED_VALUE = NO;
 				GCC_WARN_UNUSED_VARIABLE = NO;
 				HEADER_SEARCH_PATHS = (
-					../../../cpe/include,
+					../../../cpe/pal/include,
+					../../../cpe/utils/include,
 					../custom/lwip,
 					"../../depends/lwip-2.1.1/src/include",
 					"../../depends/lwip-2.1.1/src/include/ipv4",
@@ -822,7 +827,8 @@
 				GCC_WARN_UNUSED_VALUE = NO;
 				GCC_WARN_UNUSED_VARIABLE = NO;
 				HEADER_SEARCH_PATHS = (
-					../../../cpe/include,
+					../../../cpe/pal/include,
+					../../../cpe/utils/include,
 					../custom/lwip,
 					"../../depends/lwip-2.1.1/src/include",
 					"../../depends/lwip-2.1.1/src/include/ipv4",

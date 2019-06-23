@@ -9,7 +9,9 @@ set_property(TARGET net_driver_tun PROPERTY INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_LIST_DIR}/../../depends/lwip-2.1.1/src/include
   ${CMAKE_CURRENT_LIST_DIR}/../../depends/lwip-2.1.1/src/include/ipv4
   ${CMAKE_CURRENT_LIST_DIR}/../../depends/lwip-2.1.1/src/include/ipv6
-  ${CMAKE_CURRENT_LIST_DIR}/../../../cpe/include
+  ${CMAKE_CURRENT_LIST_DIR}/../../../cpe/pal/include
+  ${CMAKE_CURRENT_LIST_DIR}/../../../cpe/utils/include
+  ${CMAKE_CURRENT_LIST_DIR}/../../../cpe/utils_sock/include
   ${CMAKE_CURRENT_LIST_DIR}/../../../net/core/include
   ${net_driver_tun_base}/include
   )

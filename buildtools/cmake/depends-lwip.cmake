@@ -43,7 +43,7 @@ endif()
 add_library(lwip STATIC ${lwip_source})
 
 set_property(TARGET lwip PROPERTY INCLUDE_DIRECTORIES
-  ${CMAKE_CURRENT_LIST_DIR}/../../../cpe/include
+  ${CMAKE_CURRENT_LIST_DIR}/../../../cpe/pal/include
   ${lwip_base}/src/include
   ${lwip_base}/src/include/ipv4
   ${lwip_base}/src/include/ipv6
