@@ -14,15 +14,15 @@
 
 static int net_tun_driver_init(net_driver_t driver);
 static void net_tun_driver_fini(net_driver_t driver);
-#if NET_TUN_USE_EV
-static void net_tun_driver_tcp_timer_cb(EV_P_ ev_timer *watcher, int revents);
+#if NET_TUN_USE_DRIVER
+static void net_tun_driver_tcp_timer_cb(net_timer_t timer, void * ctx);
 #endif
 
 net_tun_driver_t
 net_tun_driver_create(
     net_schedule_t schedule
-#if NET_TUN_USE_EV
-    , void * ev_loop
+#if NET_TUN_USE_DRIVER
+    , net_driver_t inner_driver
 #endif
     )
 {
@@ -65,9 +65,15 @@ net_tun_driver_create(
 
     net_tun_driver_t driver = net_driver_data(base_driver);
 
-#if NET_TUN_USE_EV
-    driver->m_ev_loop = ev_loop;
-    ev_timer_start(driver->m_ev_loop, &driver->m_tcp_timer);
+#if NET_TUN_USE_DRIVER
+    driver->m_inner_driver = inner_driver;
+
+    driver->m_tcp_timer = net_timer_create(inner_driver, net_tun_driver_tcp_timer_cb, driver);
+    if (driver->m_tcp_timer == NULL) {
+        net_driver_free(base_driver);
+        return NULL;
+    }
+    net_timer_active(driver->m_tcp_timer, TCP_TMR_INTERVAL);
 #endif
 
     g_lwip_em = driver->m_em;
@@ -95,8 +101,9 @@ static int net_tun_driver_init(net_driver_t base_driver) {
 
     driver->m_alloc = net_schedule_allocrator(schedule);
     driver->m_em = net_schedule_em(schedule);
-#if NET_TUN_USE_EV
-    driver->m_ev_loop = NULL;
+#if NET_TUN_USE_DRIVER
+    driver->m_inner_driver = NULL;
+    driver->m_tcp_timer = NULL;
 #endif    
     
     TAILQ_INIT(&driver->m_devices);
@@ -119,11 +126,6 @@ static int net_tun_driver_init(net_driver_t base_driver) {
         return -1;
     }
 
-#if NET_TUN_USE_EV
-    double tcp_timer_interval = ((double)TCP_TMR_INTERVAL / 1000.0);
-    ev_timer_init(&driver->m_tcp_timer, net_tun_driver_tcp_timer_cb, tcp_timer_interval, tcp_timer_interval);
-#endif
-
 #if NET_TUN_USE_DQ
     driver->m_tcp_timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
     dispatch_retain(driver->m_tcp_timer);
@@ -145,8 +147,11 @@ static int net_tun_driver_init(net_driver_t base_driver) {
 static void net_tun_driver_fini(net_driver_t base_driver) {
     net_tun_driver_t driver = net_driver_data(base_driver);
 
-#if NET_TUN_USE_EV
-    ev_timer_stop(driver->m_ev_loop, &driver->m_tcp_timer);
+#if NET_TUN_USE_DRIVER
+    if (driver->m_tcp_timer) {
+        net_timer_free(driver->m_tcp_timer);
+        driver->m_tcp_timer = NULL;
+    }
 #endif
 
 #if NET_TUN_USE_DQ
@@ -199,11 +204,11 @@ mem_buffer_t net_tun_driver_tmp_buffer(net_tun_driver_t driver) {
     return net_schedule_tmp_buffer(net_driver_schedule(net_driver_from_data(driver)));
 }
 
-#if NET_TUN_USE_EV
+#if NET_TUN_USE_DRIVER
 
-static void net_tun_driver_tcp_timer_cb(EV_P_ ev_timer *watcher, int revents) {
+static void net_tun_driver_tcp_timer_cb(net_timer_t timer, void * ctx) {
     tcp_tmr();
-    return;
+    net_timer_active(timer, TCP_TMR_INTERVAL);
 }
 
 #endif

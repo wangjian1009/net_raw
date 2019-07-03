@@ -14,9 +14,6 @@
 #include "cpe/utils/hash.h"
 #include "net_schedule.h"
 #include "net_tun_driver.h"
-#if NET_TUN_USE_EV
-#include "ev.h"
-#endif
 #if NET_TUN_USE_DQ
 #include <dispatch/source.h>
 #endif
@@ -29,14 +26,15 @@ typedef struct net_tun_endpoint * net_tun_endpoint_t;
 typedef struct net_tun_dgram * net_tun_dgram_t;
 
 struct net_tun_driver {
-#if NET_TUN_USE_EV
-    struct ev_loop * m_ev_loop;
-#endif
     mem_allocrator_t m_alloc;
     error_monitor_t m_em;
 
-#if NET_TUN_USE_EV
-    struct ev_timer m_tcp_timer;
+#if NET_TUN_USE_DRIVER
+    net_driver_t m_inner_driver;
+#endif
+    
+#if NET_TUN_USE_DRIVER
+    net_timer_t m_tcp_timer;
 #endif
     
 #if NET_TUN_USE_DQ

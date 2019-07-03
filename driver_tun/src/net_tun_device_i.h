@@ -30,7 +30,7 @@ struct net_tun_device {
 #if NET_TUN_USE_DEV_TUN
     uint8_t m_dev_fd_close;
     int m_dev_fd;
-    struct ev_io m_watcher;
+    net_watcher_t m_watcher;
 #endif
 
     /*使用NetworkExtention设备接口 */

@@ -13,15 +13,16 @@
 #include "cpe/pal/pal_unistd.h"
 #include "cpe/utils/string_utils.h"
 #include "net_address.h"
+#include "net_watcher.h"
 #include "net_tun_device_i.h"
 #include "net_tun_utils.h"
 
 #if NET_TUN_USE_DEV_TUN
 
-static void net_tun_device_rw_cb(EV_P_ ev_io *w, int revents);
+static void net_tun_device_rw_cb(void * ctx, int fd, uint8_t do_read, uint8_t do_write);
 static int net_tun_device_read_config(net_tun_device_t device);
 static int net_tun_device_set_nonblock(net_tun_device_t device);
-static void net_tun_device_start_rw(net_tun_device_t device);
+static int net_tun_device_start_rw(net_tun_device_t device);
 
 int net_tun_device_init_dev_by_fd(
     net_tun_driver_t driver, net_tun_device_t device
@@ -49,7 +50,7 @@ int net_tun_device_init_dev_by_fd(
 
     if (net_tun_device_set_nonblock(device) != 0) return -1;
 
-    net_tun_device_start_rw(device);
+    if (net_tun_device_start_rw(device) != 0) return -1;
 
     return 0;
 }
@@ -83,12 +84,16 @@ int net_tun_device_init_dev_by_name(net_tun_driver_t driver, net_tun_device_t de
 
     if (net_tun_device_read_config(device) != 0) goto create_error;
     if (net_tun_device_set_nonblock(device) != 0) goto create_error;
-
-    net_tun_device_start_rw(device);
+    if (net_tun_device_start_rw(device) != 0) goto create_error;
 
     return 0;
 
 create_error:
+    if (device->m_watcher) {
+        net_watcher_free(device->m_watcher);
+        device->m_watcher = NULL;
+    }
+    
     if (device->m_dev_fd != -1) {
         close(device->m_dev_fd);
         device->m_dev_fd = -1;
@@ -99,8 +104,11 @@ create_error:
 }
 
 void net_tun_device_fini_dev(net_tun_driver_t driver, net_tun_device_t device) {
-    ev_io_stop(driver->m_ev_loop, &device->m_watcher);
-
+    if (device->m_watcher) {
+        net_watcher_free(device->m_watcher);
+        device->m_watcher = NULL;
+    }
+    
     if (device->m_dev_fd_close) {
         close(device->m_dev_fd);
     }
@@ -128,11 +136,11 @@ int net_tun_device_packet_output(net_tun_device_t device, uint8_t *data, int dat
     return 0;
 }
 
-static void net_tun_device_rw_cb(EV_P_ ev_io *w, int revents) {
-    net_tun_device_t device = w->data;
+static void net_tun_device_rw_cb(void * ctx, int fd, uint8_t do_read, uint8_t do_write) {
+    net_tun_device_t device = ctx;
     net_tun_driver_t driver = device->m_driver;
     
-    if (revents & EV_READ) {
+    if (do_read) {
         mem_buffer_clear_data(&driver->m_data_buffer);
         void * data = mem_buffer_alloc(&driver->m_data_buffer, device->m_mtu);
         if (data == NULL) {
@@ -228,10 +236,18 @@ static int net_tun_device_set_nonblock(net_tun_device_t device) {
     return 0;
 }
 
-static void net_tun_device_start_rw(net_tun_device_t device) {
-    device->m_watcher.data = device;
-    ev_io_init(&device->m_watcher, net_tun_device_rw_cb, device->m_dev_fd, EV_READ);
-    ev_io_start(device->m_driver->m_ev_loop, &device->m_watcher);
+static int net_tun_device_start_rw(net_tun_device_t device) {
+    net_tun_driver_t driver = device->m_driver;
+    
+    device->m_watcher = net_watcher_create(
+        device->m_driver->m_inner_driver, device->m_dev_fd, device, net_tun_device_rw_cb);
+    if (device->m_watcher == NULL) {
+        CPE_ERROR(device->m_driver->m_em, "tun: %s: create watcher fail", device->m_dev_name);
+        return -1;
+    }
+
+    net_watcher_update_read(device->m_watcher, 1);
+    return 0;
 }
 
 #endif

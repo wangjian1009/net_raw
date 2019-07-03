@@ -7,8 +7,8 @@ NET_BEGIN_DECL
 
 net_tun_driver_t net_tun_driver_create(
     net_schedule_t schedule
-#if NET_TUN_USE_EV
-    , void * ev_loop
+#if NET_TUN_USE_DRIVER
+    , net_driver_t inner_driver
 #endif    
     );
 

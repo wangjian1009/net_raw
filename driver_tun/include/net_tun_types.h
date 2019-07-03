@@ -14,7 +14,7 @@ typedef enum net_tun_wildcard_acceptor_mode {
 } net_tun_wildcard_acceptor_mode_t;
     
 #if ! NET_TUN_USE_DQ
-#  define NET_TUN_USE_EV 1
+#  define NET_TUN_USE_DRIVER 1
 #endif
 
 #if ! NET_TUN_USE_DEV_NE
