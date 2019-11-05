@@ -2,7 +2,7 @@
 #define NET_TUN_DERICE_H_INCLEDED
 #include "net_tun_types.h"
 #if NET_TUN_USE_DEV_NE
-#import <NetworkExtension/NEPacketTunnelFlow.h>
+#import <NetworkExtension/NetworkExtension.h>
 #endif
 
 NET_BEGIN_DECL
