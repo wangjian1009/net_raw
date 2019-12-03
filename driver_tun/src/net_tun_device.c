@@ -523,7 +523,7 @@ static int net_tun_device_do_accept(
     net_acceptor_t base_acceptor = acceptor ? net_acceptor_from_data(acceptor) : NULL;
     net_protocol_t protocol = base_acceptor ? net_acceptor_protocol(base_acceptor) : wildcard_acceptor->m_protocol;
         
-    net_endpoint_t base_endpoint = net_endpoint_create(base_driver, protocol);
+    net_endpoint_t base_endpoint = net_endpoint_create(base_driver, protocol, NULL);
     if (base_endpoint == NULL) {
         CPE_ERROR(driver->m_em, "tun: accept: create endpoint fail");
         return -1;
