@@ -11,6 +11,7 @@ void net_tun_endpoint_fini(net_endpoint_t base_endpoint);
 int net_tun_endpoint_connect(net_endpoint_t base_endpoint);
 void net_tun_endpoint_close(net_endpoint_t base_endpoint);
 int net_tun_endpoint_update(net_endpoint_t base_endpoint);
+int net_tun_endpoint_update_option(net_endpoint_t base_endpoint, net_endpoint_option_t opt, uint8_t is_enable);
 
 void net_tun_endpoint_set_pcb(struct net_tun_endpoint * endpoint, struct tcp_pcb * pcb);
     
