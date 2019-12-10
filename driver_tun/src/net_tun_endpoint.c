@@ -69,19 +69,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
     assert(p->tot_len > 0);
     uint32_t total_len = p->tot_len;
     
-    uint32_t capacity = net_endpoint_buf_capacity(base_endpoint, net_ep_buf_read);
-    if (capacity == NET_ENDPOINT_NO_LIMIT) {
-        capacity = total_len;
-    }
-
-    if (capacity < total_len) {
-        if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
-            CPE_INFO(
-                driver->m_em, "tun: %s: recv require %d but only %d, would block!",
-                net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), total_len, capacity);
-        }
-        return ERR_MEM;
-    }
+    uint32_t capacity = total_len;
 
     void * data = net_endpoint_buf_alloc(base_endpoint, &capacity);
     if (data == NULL) {
