@@ -234,35 +234,6 @@ int net_tun_endpoint_update(net_endpoint_t base_endpoint) {
     return net_tun_endpoint_do_write(endpoint);
 }
 
-int net_tun_endpoint_update_option(net_endpoint_t base_endpoint, net_endpoint_option_t opt, uint8_t is_enable) {
-    if (net_endpoint_state(base_endpoint) != net_endpoint_state_established) return 0;
-
-    net_tun_endpoint_t endpoint = net_endpoint_data(base_endpoint);
-    net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
-
-    if (endpoint->m_pcb == NULL) {
-        CPE_ERROR(
-            driver->m_em, "tun: %s: on output: not connected!",
-            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
-        return -1;
-    }
-
-    switch(opt) {
-    case net_endpoint_option_no_delay:
-        if (is_enable) {
-            tcp_set_flags(endpoint->m_pcb, TF_NODELAY);
-        }
-        else {
-            tcp_clear_flags(endpoint->m_pcb, TF_NODELAY);
-        }
-        break;
-    default:
-        break;
-    }
-    
-    return 0;
-}
-
 static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
     net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
     net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
