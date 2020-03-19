@@ -400,7 +400,16 @@ int net_tun_endpoint_connect(net_endpoint_t base_endpoint) {
             return -1;
         }
 
-        net_endpoint_set_address(base_endpoint, local_address, 1);
+        if (net_endpoint_set_address(base_endpoint, local_address) != 0) {
+            CPE_ERROR(
+                em, "tun: %s: connect success, set local address fail",
+                net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
+            net_address_free(local_address);
+            tcp_abort(pcb);
+            return -1;
+        }
+
+        net_address_free(local_address);
     }
 
     if (net_schedule_debug(schedule) >= 2) {

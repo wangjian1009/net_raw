@@ -529,18 +529,20 @@ static int net_tun_device_do_accept(
         return -1;
     }
 
-    if (net_endpoint_set_address(base_endpoint, local_addr, 0) != 0) {
+    if (net_endpoint_set_address(base_endpoint, local_addr) != 0) {
         CPE_ERROR(driver->m_em, "tun: accept: set address fail");
         net_endpoint_free(base_endpoint);
         return -1;
     }
 
     net_address_t remote_addr = net_address_from_lwip(driver, &newpcb->remote_ip, newpcb->remote_port);
-    if (net_endpoint_set_remote_address(base_endpoint, remote_addr, 1) != 0) {
+    if (net_endpoint_set_remote_address(base_endpoint, remote_addr) != 0) {
         CPE_ERROR(driver->m_em, "tun: accept: set remote address fail");
         net_endpoint_free(base_endpoint);
+        net_address_free(remote_addr);
         return -1;
     }
+    net_address_free(remote_addr);
     remote_addr = NULL;
 
     int external_init_rv = base_acceptor
