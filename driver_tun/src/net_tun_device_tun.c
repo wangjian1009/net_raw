@@ -120,7 +120,7 @@ int net_tun_device_packet_output(net_tun_device_t device, uint8_t *data, int dat
     assert(data_len >= 0);
     assert(data_len <= device->m_mtu);
 
-    int bytes = write(device->m_dev_fd, data, data_len);
+    int bytes = (int)write(device->m_dev_fd, data, data_len);
     if (bytes < 0) {
         // malformed packets will cause errors, ignore them and act like
         // the packet was accepeted
@@ -151,7 +151,7 @@ static void net_tun_device_rw_cb(void * ctx, int fd, uint8_t do_read, uint8_t do
         }
         
         do {
-            int bytes = read(device->m_dev_fd, data, device->m_mtu);
+            int bytes = (int)read(device->m_dev_fd, data, device->m_mtu);
             if (bytes <= 0) {
                 if (bytes == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
                     break;
