@@ -46,7 +46,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
                               be done with the pbuf in case of an error.*/
 
     if (net_endpoint_state(base_endpoint) == net_endpoint_state_deleting) {
-        return ERR_RST;
+        return ERR_ABRT;
     }
     
     if (!p) {
@@ -66,6 +66,15 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
         }
     }
 
+    if (!net_endpoint_expect_read(base_endpoint)) {
+        if (net_endpoint_driver_debug(base_endpoint) >= 2) {
+            CPE_INFO(
+                driver->m_em, "tun: %s: ignore read for not expect read",
+                net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
+        }
+        return ERR_INPROGRESS;
+    }
+    
     assert(p->tot_len > 0);
     uint32_t total_len = p->tot_len;
     
@@ -76,7 +85,23 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
         CPE_ERROR(
             driver->m_em, "tun: %s: no buffer for data, size=%d",
             net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint), capacity);
-        return ERR_MEM;
+
+        if (!net_endpoint_have_error(base_endpoint)) {
+            net_endpoint_set_error(
+                base_endpoint, net_endpoint_error_source_network,
+                net_endpoint_network_errno_logic, "alloc buffer fail");
+        }
+
+        if (net_endpoint_set_state(base_endpoint, net_endpoint_state_logic_error) != 0) {
+            if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
+                CPE_INFO(
+                    driver->m_em, "tun: %s: free for alloc buffer!",
+                    net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
+            }
+            net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
+        }
+
+        return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
     }
 
     pbuf_copy_partial(p, data, total_len, 0);
@@ -255,7 +280,13 @@ int net_tun_endpoint_update(net_endpoint_t base_endpoint) {
 
         if (net_tun_endpoint_do_write(endpoint) != 0) return -1;
     }
-    
+
+    if (net_endpoint_state(base_endpoint) != net_endpoint_state_established) return 0;
+
+    /* if (net_endpoint_expect_read(base_endpoint)) { */
+    /*     //TODO: */
+    /* } */
+
     return 0;
 }
 
