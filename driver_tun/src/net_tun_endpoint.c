@@ -12,6 +12,7 @@
 
 static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
 static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t len);
+static err_t net_tun_endpoint_poll_func(void *arg, struct tcp_pcb *tpcb);
 static void net_tun_endpoint_err_func(void *arg, err_t err);
 static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, err_t err);
 static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint);
@@ -126,6 +127,25 @@ static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t l
     return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
 }
 
+static err_t net_tun_endpoint_poll_func(void *arg, struct tcp_pcb *tpcb) {
+    net_tun_endpoint_t endpoint = arg;
+    net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
+    net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+
+    if (net_endpoint_buf_is_empty(base_endpoint, net_ep_buf_write)) {
+        net_endpoint_set_is_writing(base_endpoint, 0);
+    }
+    else {
+        if (net_tun_endpoint_do_write(endpoint) != 0) {
+            if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
+                net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
+            }
+        }
+    }
+
+    return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
+}
+
 static void net_tun_endpoint_err_func(void *arg, err_t err) {
     net_tun_endpoint_t endpoint = arg;
     net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
@@ -231,7 +251,12 @@ int net_tun_endpoint_update(net_endpoint_t base_endpoint) {
         return -1;
     }
 
-    return net_tun_endpoint_do_write(endpoint);
+    if (!net_endpoint_is_writing(base_endpoint)) {
+        net_endpoint_set_is_writing(base_endpoint, 1);
+        tcp_poll(endpoint->m_pcb, net_tun_endpoint_poll_func, 0);
+    }
+
+    return 0;
 }
 
 static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
@@ -287,6 +312,8 @@ static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
                 net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint), err, lwip_strerr(err));
             return -1;
         }
+
+        tcp_poll(endpoint->m_pcb, net_tun_endpoint_poll_func, 0);
     }
 
     return 0;
