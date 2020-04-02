@@ -103,7 +103,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
     
     if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
         CPE_INFO(
-            driver->m_em, "tun: %s: <== %d bytes",
+            driver->m_em, "tun: %s: <== %d",
             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), total_len);
     }
 
@@ -130,13 +130,21 @@ static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t l
     net_tun_endpoint_t endpoint = arg;
     net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
     net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+    net_schedule_t schedule = net_endpoint_schedule(base_endpoint);
 
     assert(len > 0);
     assert(len <= endpoint->m_sending_count);
     assert(net_endpoint_is_writing(base_endpoint));
 
     endpoint->m_sending_count -= len;
-    
+
+    if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
+        CPE_INFO(
+            driver->m_em, "tun: %s:    ==> %d, sending=%d!",
+            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
+            len, endpoint->m_sending_count);
+    }
+
     if (net_tun_endpoint_do_write(endpoint) != 0) {
         net_endpoint_set_error(
             base_endpoint, net_endpoint_error_source_network,
@@ -285,6 +293,7 @@ int net_tun_endpoint_update(net_endpoint_t base_endpoint) {
 static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
     net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
     net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+    net_schedule_t schedule = net_endpoint_schedule(base_endpoint);
 
     assert(endpoint->m_pcb);
     while(net_endpoint_state(base_endpoint) == net_endpoint_state_established
@@ -318,9 +327,9 @@ static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
         }
 
         endpoint->m_sending_count += data_size;
-        if (net_endpoint_driver_debug(base_endpoint)) {
+        if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
             CPE_INFO(
-                driver->m_em, "tun: %s: ==> %d bytes data, sending=%d!",
+                driver->m_em, "tun: %s: ==>    %d, sending=%d!",
                 net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
                 data_size, endpoint->m_sending_count);
         }
