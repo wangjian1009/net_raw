@@ -66,15 +66,6 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
         }
     }
 
-    if (!net_endpoint_expect_read(base_endpoint)) {
-        if (net_endpoint_driver_debug(base_endpoint) >= 2) {
-            CPE_INFO(
-                driver->m_em, "tun: %s: ignore read for not expect read",
-                net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
-        }
-        return ERR_INPROGRESS;
-    }
-    
     assert(p->tot_len > 0);
     uint32_t total_len = p->tot_len;
     
@@ -101,6 +92,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
             net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
         }
 
+        pbuf_free(p);
         return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
     }
 
