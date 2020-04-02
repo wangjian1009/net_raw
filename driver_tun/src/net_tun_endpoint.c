@@ -290,6 +290,27 @@ int net_tun_endpoint_update(net_endpoint_t base_endpoint) {
     return 0;
 }
 
+int net_tun_endpoint_set_no_delay(net_endpoint_t base_endpoint, uint8_t is_enable) {
+    net_tun_endpoint_t endpoint = net_endpoint_data(base_endpoint);
+    assert(endpoint->m_pcb);
+
+    if (is_enable) {
+        tcp_set_flags(endpoint->m_pcb, TF_NODELAY);
+    }
+    else {
+        tcp_clear_flags(endpoint->m_pcb, TF_NODELAY);
+    }
+    
+    return 0;
+}
+
+int net_tun_endpoint_get_mss(net_endpoint_t base_endpoint, uint32_t * mss) {
+    net_tun_endpoint_t endpoint = net_endpoint_data(base_endpoint);
+    assert(endpoint->m_pcb);
+    *mss = tcp_mss(endpoint->m_pcb);
+    return 0;
+}
+
 static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
     net_endpoint_t base_endpoint = net_endpoint_from_data(endpoint);
     net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));

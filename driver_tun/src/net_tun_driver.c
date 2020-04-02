@@ -53,6 +53,8 @@ net_tun_driver_create(
         net_tun_endpoint_connect,
         net_tun_endpoint_close,
         net_tun_endpoint_update,
+        net_tun_endpoint_set_no_delay,
+        net_tun_endpoint_get_mss,
         /*dgram*/
         sizeof(struct net_tun_dgram),
         net_tun_dgram_init,
