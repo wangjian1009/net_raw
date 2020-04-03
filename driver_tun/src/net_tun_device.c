@@ -48,15 +48,13 @@ net_tun_device_create(
     device->m_listener_ip4 = NULL;
     device->m_listener_ip6 = NULL;
     device->m_mtu = 0;
-    device->m_output_capacity = 0;
-    device->m_output_buf = NULL;
+    device->m_write_combine_buf = NULL;
     device->m_quitting = 0;
     device->m_dev_name[0] = 0;
     
 #if NET_TUN_USE_DEV_TUN
     device->m_dev_fd_close = 0;
     device->m_dev_fd = -1;
-    device->m_output_buf = NULL;
 #endif
 
 #if NET_TUN_USE_DEV_NE
@@ -76,7 +74,16 @@ net_tun_device_create(
         return NULL;
     }
 #endif
-
+    assert(device->m_mtu > 0);
+    assert(device->m_write_combine_buf == NULL);
+    device->m_write_combine_buf = mem_alloc(driver->m_alloc, device->m_mtu);
+    if (device->m_write_combine_buf == NULL) {
+        CPE_ERROR(
+            driver->m_em, "tun: dev %s: alloc write buf fail, mtu=%d",
+            device->m_dev_name, device->m_mtu);
+        goto create_errror;
+    }
+    
     uint8_t netif_init = 0;
     if (net_tun_device_init_netif(device, netif_settings) != 0) {
         goto create_errror;
@@ -117,6 +124,11 @@ create_errror:
     }
     
     net_tun_device_fini_dev(driver, device);
+
+    if (device->m_write_combine_buf) {
+        mem_free(driver->m_alloc, device->m_write_combine_buf);
+        device->m_write_combine_buf = NULL;
+    }
     
     mem_free(driver->m_alloc, device);
 
@@ -161,9 +173,9 @@ void net_tun_device_free(net_tun_device_t device) {
         netif_set_default(&driver->m_default_device->m_netif);
     }
 
-    if (device->m_output_buf) {
-        mem_free(driver->m_alloc, device->m_output_buf);
-        device->m_output_buf = NULL;
+    if (device->m_write_combine_buf) {
+        mem_free(driver->m_alloc, device->m_write_combine_buf);
+        device->m_write_combine_buf = NULL;
     }
     
     mem_free(driver->m_alloc, device);
@@ -210,6 +222,14 @@ static int net_tun_device_init_netif(
     netif_set_link_up(&device->m_netif);
     netif_set_pretend_tcp(&device->m_netif, 1);
 
+    if (netif_settings->m_ipv6_address) {
+        // add IPv6 address
+        ip6_addr_t ip6addr;
+        net_address_to_lwip_ipv6(&ip6addr, netif_settings->m_ipv6_address);
+        netif_ip6_addr_set(&device->m_netif, 0, &ip6addr);
+        netif_ip6_addr_set_state(&device->m_netif, 0, IP6_ADDR_VALID);
+    }
+    
     return 0;
 }
 
@@ -246,27 +266,12 @@ static err_t net_tun_device_netif_do_output(struct netif *netif, struct pbuf *p)
                 net_tun_dump_raw_data(net_tun_driver_tmp_buffer(driver), NULL, (uint8_t *)p->payload, NULL));
         }
 
-        net_tun_device_packet_output(device, (uint8_t *)p->payload, p->len);
+        net_tun_device_packet_write(device, (uint8_t *)p->payload, p->len);
     }
     else {
-        if (device->m_mtu > device->m_output_capacity) {
-            if (device->m_output_buf) {
-                mem_free(driver->m_alloc, device->m_output_buf);
-                device->m_output_buf = NULL;
-                device->m_output_capacity = 0;
-            }
+        assert(device->m_write_combine_buf);
 
-            device->m_output_buf = mem_alloc(driver->m_alloc, device->m_mtu);
-            if (device->m_output_buf == NULL) {
-                CPE_ERROR(driver->m_em, "tun: %s: output: alloc buf fail, mtu=%d", device->m_dev_name, device->m_mtu);
-                goto out;
-            }
-            device->m_output_capacity = device->m_mtu;
-        }
-
-        assert(device->m_output_buf);
-
-        void * device_write_buf = device->m_output_buf;
+        void * device_write_buf = device->m_write_combine_buf;
         int len = 0;
         do {
             if (p->len > device->m_mtu - len) {
@@ -286,7 +291,7 @@ static err_t net_tun_device_netif_do_output(struct netif *netif, struct pbuf *p)
                 net_tun_dump_raw_data(net_tun_driver_tmp_buffer(driver), NULL, device_write_buf, NULL));
         }
         
-        net_tun_device_packet_output(device, device_write_buf, len);
+        net_tun_device_packet_write(device, device_write_buf, len);
     }
 
 out:

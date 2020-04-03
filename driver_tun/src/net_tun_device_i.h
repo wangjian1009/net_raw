@@ -19,10 +19,11 @@ struct net_tun_device {
     struct tcp_pcb * m_listener_ip4;
     struct tcp_pcb * m_listener_ip6;
     uint16_t m_mtu;
-    uint8_t * m_output_buf;
-    uint16_t m_output_capacity;
     uint8_t m_quitting;
     char m_dev_name[16];
+
+    /*device write buf*/
+    uint8_t * m_write_combine_buf;
     
     /*使用tun设备接口 */
 #if NET_TUN_USE_DEV_TUN
@@ -59,6 +60,6 @@ int net_tun_device_init_dev(
 void net_tun_device_fini_dev(net_tun_driver_t driver, net_tun_device_t device);
 
 int net_tun_device_packet_input(net_tun_driver_t driver, net_tun_device_t device, uint8_t const * data, uint16_t bytes);
-int net_tun_device_packet_output(net_tun_device_t device, uint8_t *data, int data_len);
+int net_tun_device_packet_write(net_tun_device_t device, uint8_t *data, int data_len);
 
 #endif

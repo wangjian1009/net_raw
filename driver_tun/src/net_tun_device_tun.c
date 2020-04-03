@@ -190,7 +190,7 @@ void net_tun_device_fini_dev(net_tun_driver_t driver, net_tun_device_t device) {
     device->m_dev_fd_close = 0;
 }
 
-int net_tun_device_packet_output(net_tun_device_t device, uint8_t *data, int data_len) {
+int net_tun_device_packet_write(net_tun_device_t device, uint8_t *data, int data_len) {
     assert(data_len >= 0);
     assert(data_len <= device->m_mtu);
 
