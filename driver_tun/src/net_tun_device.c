@@ -13,10 +13,9 @@
 #include "net_tun_wildcard_acceptor_i.h"
 #include "net_tun_endpoint.h"
 
-static int net_tun_device_init_netif(
-    net_tun_device_t device,
-    net_tun_device_netif_options_t netif_settings);
+static int net_tun_device_init_netif(net_tun_device_t device, net_tun_device_netif_options_t netif_settings);
 static int net_tun_device_init_listener_ip4(net_tun_device_t device);
+static int net_tun_device_init_listener_ip6(net_tun_device_t device);
 
 static err_t net_tun_device_netif_init(struct netif *netif);
 static err_t net_tun_device_netif_input(struct pbuf *p, struct netif *inp);
@@ -93,6 +92,12 @@ net_tun_device_create(
 
     if (net_tun_device_init_listener_ip4(device) != 0) {
         goto create_errror;
+    }
+
+    if (netif_settings && netif_settings->m_ipv6_address) {
+        if (net_tun_device_init_listener_ip6(device) != 0) {
+            goto create_errror;
+        }
     }
     
     if (driver->m_default_device == NULL) {
@@ -439,15 +444,15 @@ static int net_tun_device_do_accept(
     return 0;
 }
 
-static err_t net_tun_device_on_accept(void *arg, struct tcp_pcb *newpcb, err_t err) {
-    net_tun_device_t device = arg;
+static err_t net_tun_device_on_accept(
+    net_tun_device_t device, struct tcp_pcb * newpcb, err_t err, struct tcp_pcb * this_listener)
+{
     net_tun_driver_t driver = device->m_driver;
     net_driver_t base_driver = net_driver_from_data(driver);
     net_address_t local_addr = NULL;
 
     assert(err == ERR_OK);
 
-    struct tcp_pcb *this_listener = device->m_listener_ip4;
     assert(this_listener);
     tcp_accepted(this_listener);
 
@@ -511,14 +516,25 @@ static err_t net_tun_device_on_accept(void *arg, struct tcp_pcb *newpcb, err_t e
     return ERR_ABRT;
 }
 
+static err_t net_tun_device_on_accept_ipv4(void *arg, struct tcp_pcb * newpcb, err_t err) {
+    net_tun_device_t device = arg;
+    return net_tun_device_on_accept(device, newpcb, err, device->m_listener_ip4);
+}
+
+static err_t net_tun_device_on_accept_ipv6(void *arg, struct tcp_pcb * newpcb, err_t err) {
+    net_tun_device_t device = arg;
+    return net_tun_device_on_accept(device, newpcb, err, device->m_listener_ip6);
+}
+
 static int net_tun_device_init_listener_ip4(net_tun_device_t device) {
     net_tun_driver_t driver = device->m_driver;
-    struct tcp_pcb * l = tcp_new();
+    struct tcp_pcb *l = tcp_new_ip_type(IPADDR_TYPE_V4);
     if (l == NULL) {
         CPE_ERROR(driver->m_em, "tun: listener4: tcp_new failed");
         return -1;
     }
 
+    // ensure the listener only accepts connections from this netif
     tcp_bind_netif(l, &device->m_netif);
 
     device->m_listener_ip4 = tcp_listen_with_backlog(l, TCP_DEFAULT_LISTEN_BACKLOG);
@@ -529,7 +545,30 @@ static int net_tun_device_init_listener_ip4(net_tun_device_t device) {
     }
 
     tcp_arg(device->m_listener_ip4, device);
-    tcp_accept(device->m_listener_ip4, net_tun_device_on_accept);
+    tcp_accept(device->m_listener_ip4, net_tun_device_on_accept_ipv4);
+
+    return 0;
+}
+
+static int net_tun_device_init_listener_ip6(net_tun_device_t device) {
+    net_tun_driver_t driver = device->m_driver;
+    struct tcp_pcb * l = tcp_new_ip_type(IPADDR_TYPE_V6);
+    if (l == NULL) {
+        CPE_ERROR(driver->m_em, "tun: listener4: tcp_new failed");
+        return -1;
+    }
+
+    tcp_bind_netif(l, &device->m_netif);
+
+    device->m_listener_ip6 = tcp_listen_with_backlog(l, TCP_DEFAULT_LISTEN_BACKLOG);
+    if (device->m_listener_ip6 == NULL) {
+        CPE_ERROR(driver->m_em, "tun: listener4: tcp_listen fail");
+        tcp_close(l);
+        return -1;
+    }
+
+    tcp_arg(device->m_listener_ip6, device);
+    tcp_accept(device->m_listener_ip6, net_tun_device_on_accept_ipv6);
 
     return 0;
 }
