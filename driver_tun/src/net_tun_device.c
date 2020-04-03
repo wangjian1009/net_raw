@@ -55,6 +55,7 @@ net_tun_device_create(
 #if NET_TUN_USE_DEV_TUN
     device->m_dev_fd_close = 0;
     device->m_dev_fd = -1;
+    device->m_dev_input_packet = NULL;
 #endif
 
 #if NET_TUN_USE_DEV_NE

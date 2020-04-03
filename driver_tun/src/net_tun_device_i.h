@@ -29,6 +29,7 @@ struct net_tun_device {
 #if NET_TUN_USE_DEV_TUN
     uint8_t m_dev_fd_close;
     int m_dev_fd;
+    uint8_t * m_dev_input_packet;
     net_watcher_t m_watcher;
 #endif
 

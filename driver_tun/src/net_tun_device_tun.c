@@ -45,6 +45,8 @@ int net_tun_device_init_dev(
     }
 
     if (net_tun_device_set_nonblock(device) != 0) goto PROCESS_ERROR;
+
+    device->m_dev_input_packet = NULL;
     
     if (net_tun_device_start_rw(device) != 0) goto PROCESS_ERROR;
 
@@ -64,6 +66,8 @@ PROCESS_ERROR:
         device->m_watcher = NULL;
     }
 
+    assert(device->m_dev_input_packet == NULL);
+    
     return -1; 
 }
 
@@ -182,12 +186,19 @@ void net_tun_device_fini_dev(net_tun_driver_t driver, net_tun_device_t device) {
         net_watcher_free(device->m_watcher);
         device->m_watcher = NULL;
     }
-    
-    if (device->m_dev_fd_close) {
-        close(device->m_dev_fd);
+
+    if (device->m_dev_fd != -1) {
+        if (device->m_dev_fd_close) {
+            close(device->m_dev_fd);
+        }
+        device->m_dev_fd = -1;
     }
-    device->m_dev_fd = -1;
     device->m_dev_fd_close = 0;
+
+    if (device->m_dev_input_packet) {
+        mem_free(driver->m_alloc, device->m_dev_input_packet);
+        device->m_dev_input_packet = NULL;
+    }
 }
 
 int net_tun_device_packet_write(net_tun_device_t device, uint8_t *data, int data_len) {
