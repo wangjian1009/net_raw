@@ -3,6 +3,8 @@
 #include "net_tun_device.h"
 #include "net_tun_driver_i.h"
 
+#define NET_TUN_ETHERNET_HEADER_LENGTH 14
+
 #if NET_TUN_USE_DEV_NE
 @interface NetTunDeviceBridger : NSObject {
     @public net_tun_device_t m_device;
@@ -16,16 +18,12 @@ struct net_tun_device {
     struct netif m_netif;
     struct tcp_pcb * m_listener_ip4;
     struct tcp_pcb * m_listener_ip6;
-    net_address_t m_netif_ipv4_address;
-    net_address_t m_netif_ipv6_address;
     uint16_t m_mtu;
     uint8_t * m_output_buf;
     uint16_t m_output_capacity;
     uint8_t m_quitting;
-    net_address_t m_ipv4_address;
-    net_address_t m_ipv4_mask;
-    net_address_t m_ipv6_address;
     char m_dev_name[16];
+    
     /*使用tun设备接口 */
 #if NET_TUN_USE_DEV_TUN
     uint8_t m_dev_fd_close;
@@ -43,15 +41,12 @@ struct net_tun_device {
 };
 
 #if NET_TUN_USE_DEV_TUN
-int net_tun_device_init_dev_by_fd(
-    net_tun_driver_t driver, net_tun_device_t device
-    , int dev_fd
-    , uint16_t dev_mtu
-    , net_address_t dev_ipv4_address
-    , net_address_t dev_ipv4_mask
-    , net_address_t dev_ipv6_address);
 
-int net_tun_device_init_dev_by_name(net_tun_driver_t driver, net_tun_device_t device, const char * name);
+int net_tun_device_init_dev(
+    net_tun_driver_t driver,
+    net_tun_device_t device,
+    net_tun_device_init_data_t settings);
+
 #endif
 
 #if NET_TUN_USE_DEV_NE

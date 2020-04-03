@@ -13,7 +13,9 @@
 #include "net_tun_wildcard_acceptor_i.h"
 #include "net_tun_endpoint.h"
 
-static int net_tun_device_init_netif(net_tun_device_t device, net_address_t netif_ipv4_address, net_address_t netif_ipv6_address);
+static int net_tun_device_init_netif(
+    net_tun_device_t device,
+    net_tun_device_netif_options_t netif_settings);
 static int net_tun_device_init_listener_ip4(net_tun_device_t device);
 
 static err_t net_tun_device_netif_init(struct netif *netif);
@@ -25,19 +27,13 @@ net_tun_device_t
 net_tun_device_create(
     net_tun_driver_t driver
 #if NET_TUN_USE_DEV_TUN
-    , int dev_fd
-    , uint16_t dev_mtu
-    , net_address_t dev_ipv4_address
-    , net_address_t dev_ipv4_mask
-    , net_address_t dev_ipv6_address
-    , const char * dev_name
+    , net_tun_device_init_data_t settings
 #endif
 #if NET_TUN_USE_DEV_NE
     , NEPacketTunnelFlow * tunnelFlow
     , NEPacketTunnelNetworkSettings * settings
 #endif
-    , net_address_t netif_ipv4_address
-    , net_address_t netif_ipv6_address
+    , net_tun_device_netif_options_t netif_settings
     )
 {
     net_driver_t base_driver = net_driver_from_data(driver);
@@ -51,20 +47,16 @@ net_tun_device_create(
     device->m_driver = driver;
     device->m_listener_ip4 = NULL;
     device->m_listener_ip6 = NULL;
-    device->m_netif_ipv4_address = NULL;
-    device->m_netif_ipv6_address = NULL;
     device->m_mtu = 0;
     device->m_output_capacity = 0;
     device->m_output_buf = NULL;
     device->m_quitting = 0;
-    device->m_ipv4_address = NULL;
-    device->m_ipv4_mask = NULL;
-    device->m_ipv6_address = NULL;
     device->m_dev_name[0] = 0;
     
 #if NET_TUN_USE_DEV_TUN
     device->m_dev_fd_close = 0;
     device->m_dev_fd = -1;
+    device->m_output_buf = NULL;
 #endif
 
 #if NET_TUN_USE_DEV_NE
@@ -72,22 +64,7 @@ net_tun_device_create(
 #endif
 
 #if NET_TUN_USE_DEV_TUN
-    if (dev_fd) {
-        if (net_tun_device_init_dev_by_fd(
-                driver, device, dev_fd,
-                dev_mtu, dev_ipv4_address, dev_ipv4_mask, dev_ipv6_address) != 0) {
-            mem_free(driver->m_alloc, device);
-            return NULL;
-        }
-    }
-    else if (dev_name) {
-        if (net_tun_device_init_dev_by_name(driver, device, dev_name) != 0) {
-            mem_free(driver->m_alloc, device);
-            return NULL;
-        }
-    }
-    else {
-        CPE_ERROR(driver->m_em, "tun: device: no fd or device name!");
+    if (net_tun_device_init_dev(driver, device, settings) != 0) {
         mem_free(driver->m_alloc, device);
         return NULL;
     }
@@ -101,7 +78,7 @@ net_tun_device_create(
 #endif
 
     uint8_t netif_init = 0;
-    if (net_tun_device_init_netif(device, netif_ipv4_address, netif_ipv6_address) != 0) {
+    if (net_tun_device_init_netif(device, netif_settings) != 0) {
         goto create_errror;
     }
     netif_init = 1;
@@ -117,59 +94,14 @@ net_tun_device_create(
     TAILQ_INSERT_TAIL(&driver->m_devices, device, m_next_for_driver);
     
     if (net_driver_debug(base_driver) > 0) {
-        char ipv4_address[32];
-        cpe_str_dup(
-            ipv4_address, sizeof(ipv4_address),
-            device->m_ipv4_address ? net_address_dump(net_tun_driver_tmp_buffer(driver), device->m_ipv4_address) : "");
-
-        char ipv4_mask[32];
-        cpe_str_dup(
-            ipv4_mask, sizeof(ipv4_mask),
-            device->m_ipv4_mask ? net_address_dump(net_tun_driver_tmp_buffer(driver), device->m_ipv4_mask) : "");
-
-        char ipv6_address[64];
-        cpe_str_dup(
-            ipv6_address, sizeof(ipv6_address),
-            device->m_ipv6_address ? net_address_dump(net_tun_driver_tmp_buffer(driver), device->m_ipv6_address) : "");
-        
-        char netif_ipv4_address[32];
-        cpe_str_dup(
-            netif_ipv4_address, sizeof(netif_ipv4_address),
-            device->m_netif_ipv4_address ? net_address_dump(net_tun_driver_tmp_buffer(driver), device->m_netif_ipv4_address) : "");
-
         CPE_INFO(
-            driver->m_em, "tun: device: created: mtu=%d, ipv4-address=%s, ipv4-mask=%s, ipv6-address=%s, netif-ipv4-address=%s",
-            device->m_mtu, ipv4_address, ipv4_mask, ipv6_address, netif_ipv4_address);
+            driver->m_em, "tun: device: created: name=%s, mtu=%d",
+            device->m_dev_name, device->m_mtu);
     }
     
     return device;
 
 create_errror:
-    if (device->m_ipv4_address) {
-        net_address_free(device->m_ipv4_address);
-        device->m_ipv4_address = NULL;
-    }
-
-    if (device->m_ipv4_mask) {
-        net_address_free(device->m_ipv4_mask);
-        device->m_ipv4_mask = NULL;
-    }
-
-    if (device->m_ipv6_address) {
-        net_address_free(device->m_ipv6_address);
-        device->m_ipv6_address = NULL;
-    }
-
-    if (device->m_netif_ipv4_address) {
-        net_address_free(device->m_netif_ipv4_address);
-        device->m_netif_ipv4_address = NULL;
-    }
-
-    if (device->m_netif_ipv6_address) {
-        net_address_free(device->m_netif_ipv6_address);
-        device->m_netif_ipv6_address = NULL;
-    }
-    
     if (device->m_listener_ip4) {
         tcp_close(device->m_listener_ip4);
         device->m_listener_ip4 = NULL;
@@ -229,31 +161,6 @@ void net_tun_device_free(net_tun_device_t device) {
         netif_set_default(&driver->m_default_device->m_netif);
     }
 
-    if (device->m_ipv4_address) {
-        net_address_free(device->m_ipv4_address);
-        device->m_ipv4_address = NULL;
-    }
-
-    if (device->m_ipv4_mask) {
-        net_address_free(device->m_ipv4_mask);
-        device->m_ipv4_mask = NULL;
-    }
-
-    if (device->m_ipv6_address) {
-        net_address_free(device->m_ipv6_address);
-        device->m_ipv6_address = NULL;
-    }
-    
-    if (device->m_netif_ipv4_address) {
-        net_address_free(device->m_netif_ipv4_address);
-        device->m_netif_ipv4_address = NULL;
-    }
-
-    if (device->m_netif_ipv6_address) {
-        net_address_free(device->m_netif_ipv6_address);
-        device->m_netif_ipv6_address = NULL;
-    }
-
     if (device->m_output_buf) {
         mem_free(driver->m_alloc, device->m_output_buf);
         device->m_output_buf = NULL;
@@ -270,71 +177,25 @@ net_tun_device_t net_tun_device_default(net_tun_driver_t driver) {
     return driver->m_default_device;
 }
 
-net_address_t net_tun_driver_ipv4_address(net_tun_device_t device) {
-    return device->m_ipv4_address;
-}
-
-net_address_t net_tun_driver_ipv4_mask(net_tun_device_t device) {
-    return device->m_ipv4_mask;
-}
-
-net_address_t net_tun_driver_ipv6_address(net_tun_device_t device) {
-    return device->m_ipv4_address;
-}
-
-net_address_t net_tun_device_gen_local_address(net_tun_device_t device) {
-    if (device->m_ipv4_address == NULL || device->m_ipv4_mask == NULL) {
-        CPE_ERROR(device->m_driver->m_em, "tun %s: gen local address: no ip or mask!", device->m_dev_name);
-        return NULL;
-    }
-
-    return net_address_rand_same_network(device->m_ipv4_address, device->m_ipv4_mask);
-}
-
-net_address_t net_tun_device_netif_ipv4_address(net_tun_device_t device) {
-    return device->m_netif_ipv4_address;
-}
-
-net_address_t net_tun_device_netif_ipv6_address(net_tun_device_t device) {
-    return device->m_netif_ipv6_address;
-}
-
-static int net_tun_device_init_netif(net_tun_device_t device, net_address_t netif_ipv4_address, net_address_t netif_ipv6_address) {
+static int net_tun_device_init_netif(
+    net_tun_device_t device, net_tun_device_netif_options_t netif_settings)
+{
     // make addresses for netif
     ip4_addr_t addr;
     ip4_addr_t netmask;
 
-    if (device->m_ipv4_address == NULL) {
+    if (netif_settings == NULL || netif_settings->m_ipv4_address == NULL) {
         ip4_addr_set_any(&addr);
         ip4_addr_set_any(&netmask);
     }
     else {
-        if (device->m_ipv4_mask == NULL) {
+        if (netif_settings->m_ipv4_mask == NULL) {
             CPE_ERROR(device->m_driver->m_em, "tun: %s: have ipv4 address, but no ipv4 mask!", device->m_dev_name);
             return -1;
         }
 
-        if (netif_ipv4_address) {
-            device->m_netif_ipv4_address = net_address_copy(net_tun_driver_schedule(device->m_driver), netif_ipv4_address);
-            if (device->m_netif_ipv4_address == NULL) {
-                CPE_ERROR(
-                    device->m_driver->m_em, "tun: %s: dup netif address from %s fail!", device->m_dev_name,
-                    net_address_dump(net_tun_driver_tmp_buffer(device->m_driver), netif_ipv4_address));
-                return -1;
-            }
-        }
-        else {
-            device->m_netif_ipv4_address =  net_address_rand_same_network(device->m_ipv4_address, device->m_ipv4_mask);
-            if (device->m_netif_ipv4_address == NULL) {
-                CPE_ERROR(
-                    device->m_driver->m_em, "tun: %s: generate netif address from %s fail!", device->m_dev_name,
-                    net_address_dump(net_tun_driver_tmp_buffer(device->m_driver), device->m_ipv4_address));
-                return -1;
-            }
-        }
-
-        net_address_to_lwip_ipv4(&addr, device->m_netif_ipv4_address);
-        net_address_to_lwip_ipv4(&netmask, device->m_ipv4_mask);
+        net_address_to_lwip_ipv4(&addr, netif_settings->m_ipv4_address);
+        net_address_to_lwip_ipv4(&netmask, netif_settings->m_ipv4_mask);
     }
     
     ip4_addr_t gw;
@@ -345,12 +206,8 @@ static int net_tun_device_init_netif(net_tun_device_t device, net_address_t neti
         return -1;
     }
 
-    device->m_netif.mtu = device->m_mtu;
-
     netif_set_up(&device->m_netif);
     netif_set_link_up(&device->m_netif);
-
-    //set netif pretend TCP
     netif_set_pretend_tcp(&device->m_netif, 1);
 
     return 0;

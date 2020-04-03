@@ -12,7 +12,12 @@ typedef enum net_tun_wildcard_acceptor_mode {
     net_tun_wildcard_acceptor_mode_white,
     net_tun_wildcard_acceptor_mode_black,
 } net_tun_wildcard_acceptor_mode_t;
-    
+
+typedef enum net_tun_device_type {
+    net_tun_device_tun,
+    net_tun_device_tap,
+} net_tun_device_type_t;
+
 #if ! NET_TUN_USE_DQ
 #  define NET_TUN_USE_DRIVER 1
 #endif

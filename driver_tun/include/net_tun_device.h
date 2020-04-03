@@ -7,36 +7,51 @@
 
 NET_BEGIN_DECL
 
+#if NET_TUN_USE_DEV_TUN
+
+typedef enum net_tun_device_init_type {
+    net_tun_device_init_string,
+#ifndef CPE_OS_WIN
+    net_tun_device_init_fd,
+#endif
+} net_tun_device_init_type_t;
+
+struct net_tun_device_init_data {
+    net_tun_device_type_t m_dev_type;
+    net_tun_device_init_type_t m_init_type;
+    union {
+        char *m_string;
+        struct {
+            int m_fd;
+            int m_mtu;
+        };
+    } m_init_data;
+};
+typedef struct net_tun_device_init_data * net_tun_device_init_data_t;
+#endif
+
+struct net_tun_device_netif_options {
+    net_address_t m_ipv4_address;
+    net_address_t m_ipv4_mask;
+    net_address_t m_ipv6_address;
+};
+typedef struct net_tun_device_netif_options * net_tun_device_netif_options_t;
+
 net_tun_device_t
 net_tun_device_create(
     net_tun_driver_t driver
 #if NET_TUN_USE_DEV_TUN
-    , int dev_fd
-    , uint16_t dev_mtu
-    , net_address_t dev_ipv4_address
-    , net_address_t dev_ipv4_mask
-    , net_address_t dev_ipv6_address
-    , const char * dev_name
+    , net_tun_device_init_data_t settings
 #endif    
 #if NET_TUN_USE_DEV_NE
     , NEPacketTunnelFlow * tunnelFlow
     , NEPacketTunnelNetworkSettings * settings
 #endif
-    , net_address_t netif_ipv4_address
-    , net_address_t netif_ipv6_address
-    );
+    , net_tun_device_netif_options_t netif_settings);
 
 void net_tun_device_free(net_tun_device_t device);
 
 net_tun_device_t net_tun_device_default(net_tun_driver_t driver);
-net_address_t net_tun_device_gen_local_address(net_tun_device_t device);
-
-net_address_t net_tun_device_ipv4_address(net_tun_device_t device);
-net_address_t net_tun_device_ipv4_mask(net_tun_device_t device);
-net_address_t net_tun_device_ipv6_address(net_tun_device_t device);
-
-net_address_t net_tun_device_netif_ipv4_address(net_tun_device_t device);
-net_address_t net_tun_device_netif_ipv6_address(net_tun_device_t device);
 
 void net_tun_device_clear_all(net_tun_driver_t driver);
 
