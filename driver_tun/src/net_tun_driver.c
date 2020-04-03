@@ -210,6 +210,10 @@ mem_buffer_t net_tun_driver_tmp_buffer(net_tun_driver_t driver) {
     return net_schedule_tmp_buffer(net_driver_schedule(net_driver_from_data(driver)));
 }
 
+uint8_t net_tun_driver_debug(net_tun_driver_t driver) {
+    return net_driver_debug(net_driver_from_data(driver));
+}
+
 #if NET_TUN_USE_DRIVER
 
 static void net_tun_driver_tcp_timer_cb(net_timer_t timer, void * ctx) {

@@ -58,7 +58,10 @@ struct net_tun_driver {
 };
 
 mem_buffer_t net_tun_driver_tmp_buffer(net_tun_driver_t driver);
+
 net_schedule_t net_tun_driver_schedule(net_tun_driver_t driver);
+uint8_t net_tun_driver_debug(net_tun_driver_t driver);
+
 void net_tun_dirver_do_timer(net_tun_driver_t driver);
 
 #endif

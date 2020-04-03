@@ -82,7 +82,7 @@ int net_tun_device_init_dev_by_fd(
     device->m_dev_fd = settings->m_init_data.m_fd;
     device->m_mtu = settings->m_init_data.m_mtu;
     device->m_dev_fd_close = 0;
-    snprintf(device->m_dev_name, sizeof(device->m_dev_name), "tun-fd-%d", device->m_dev_fd);
+    snprintf(device->m_dev_name, sizeof(device->m_dev_name), "fd-%d", device->m_dev_fd);
 
     return 0;
 }
@@ -202,6 +202,8 @@ void net_tun_device_fini_dev(net_tun_driver_t driver, net_tun_device_t device) {
 }
 
 int net_tun_device_packet_write(net_tun_device_t device, uint8_t *data, int data_len) {
+    net_tun_driver_t driver = device->m_driver;
+
     assert(data_len >= 0);
     assert(data_len <= device->m_mtu);
 
@@ -210,12 +212,23 @@ int net_tun_device_packet_write(net_tun_device_t device, uint8_t *data, int data
         // malformed packets will cause errors, ignore them and act like
         // the packet was accepeted
         CPE_ERROR(
-            device->m_driver->m_em, "tun: %s: written fail, errno=%d (%s)",
-            device->m_dev_name, errno, strerror(errno));
+            driver->m_em, "tun: %s: >>> %d |       errno=%d (%s)",
+            device->m_dev_name, data_len, errno, strerror(errno));
     }
     else {
         if (bytes != data_len) {
-            CPE_ERROR(device->m_driver->m_em, "tun: %s: written %d expected %d", device->m_dev_name, bytes, data_len);
+            CPE_ERROR(
+                driver->m_em, "tun: %s: >>> %d |       part, %d/%d",
+                device->m_dev_name, bytes, bytes, data_len);
+        }
+        else {
+            if (net_tun_driver_debug(driver) >= 2) {
+                CPE_INFO(
+                    device->m_driver->m_em,
+                    "tun: %s: >>> %d |       %s",
+                    device->m_dev_name, data_len,
+                    net_tun_dump_raw_data(net_tun_driver_tmp_buffer(driver), NULL, data, NULL));
+            }
         }
     }
     return 0;

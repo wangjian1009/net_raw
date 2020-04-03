@@ -265,13 +265,6 @@ static err_t net_tun_device_netif_do_output(struct netif *netif, struct pbuf *p)
             goto out;
         }
 
-        if (net_driver_debug(base_driver) >= 2) {
-            CPE_INFO(
-                driver->m_em,
-                "tun: %s: >>> %d |      %s", device->m_dev_name, p->len,
-                net_tun_dump_raw_data(net_tun_driver_tmp_buffer(driver), NULL, (uint8_t *)p->payload, NULL));
-        }
-
         net_tun_device_packet_write(device, (uint8_t *)p->payload, p->len);
     }
     else {
@@ -290,13 +283,6 @@ static err_t net_tun_device_netif_do_output(struct netif *netif, struct pbuf *p)
             len += p->len;
         } while ((p = p->next));
 
-        if (net_driver_debug(base_driver) >= 2) {
-            CPE_INFO(
-                device->m_driver->m_em,
-                "tun: %s: >>> %d |       %s", device->m_dev_name, len,
-                net_tun_dump_raw_data(net_tun_driver_tmp_buffer(driver), NULL, device_write_buf, NULL));
-        }
-        
         net_tun_device_packet_write(device, device_write_buf, len);
     }
 
@@ -554,7 +540,7 @@ static int net_tun_device_init_listener_ip6(net_tun_device_t device) {
     net_tun_driver_t driver = device->m_driver;
     struct tcp_pcb * l = tcp_new_ip_type(IPADDR_TYPE_V6);
     if (l == NULL) {
-        CPE_ERROR(driver->m_em, "tun: listener4: tcp_new failed");
+        CPE_ERROR(driver->m_em, "tun:  listener6: tcp_new failed");
         return -1;
     }
 
@@ -562,7 +548,7 @@ static int net_tun_device_init_listener_ip6(net_tun_device_t device) {
 
     device->m_listener_ip6 = tcp_listen_with_backlog(l, TCP_DEFAULT_LISTEN_BACKLOG);
     if (device->m_listener_ip6 == NULL) {
-        CPE_ERROR(driver->m_em, "tun: listener4: tcp_listen fail");
+        CPE_ERROR(driver->m_em, "tun:  listener6: tcp_listen fail");
         tcp_close(l);
         return -1;
     }
