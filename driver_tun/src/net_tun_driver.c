@@ -1,5 +1,8 @@
 #include <assert.h>
 #include "cpe/pal/pal_string.h"
+#include "lwip/nd6.h"
+#include "lwip/ip4_frag.h"
+#include "lwip/ip6_frag.h"
 #include "net_schedule.h"
 #include "net_driver.h"
 #include "net_timer.h"
@@ -107,7 +110,8 @@ static int net_tun_driver_init(net_driver_t base_driver) {
     driver->m_inner_driver = NULL;
     driver->m_tcp_timer = NULL;
 #endif    
-    
+    driver->m_tcp_timer_counter = 0;
+
     TAILQ_INIT(&driver->m_devices);
     TAILQ_INIT(&driver->m_wildcard_acceptors);
 
@@ -131,7 +135,7 @@ static int net_tun_driver_init(net_driver_t base_driver) {
 #if NET_TUN_USE_DQ
     driver->m_tcp_timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
     dispatch_retain(driver->m_tcp_timer);
-    dispatch_source_set_event_handler(driver->m_tcp_timer, ^{ tcp_tmr(); });
+    dispatch_source_set_event_handler(driver->m_tcp_timer, ^{ net_tun_dirver_do_timer(driver); });
     uint64_t tcp_timer_interval = ((uint64_t)TCP_TMR_INTERVAL) * 1000000u;
     dispatch_source_set_timer(
         driver->m_tcp_timer,
@@ -209,8 +213,33 @@ mem_buffer_t net_tun_driver_tmp_buffer(net_tun_driver_t driver) {
 #if NET_TUN_USE_DRIVER
 
 static void net_tun_driver_tcp_timer_cb(net_timer_t timer, void * ctx) {
-    tcp_tmr();
+    net_tun_dirver_do_timer(ctx);
     net_timer_active(timer, TCP_TMR_INTERVAL);
+
+}
+
+void net_tun_dirver_do_timer(net_tun_driver_t driver) {
+    tcp_tmr();
+    
+    driver->m_tcp_timer_counter = (driver->m_tcp_timer_counter + 1) % 4;
+    
+    // every second, call other timer functions
+    if (driver->m_tcp_timer_counter == 0) {
+#if IP_REASSEMBLY
+        assert(IP_TMR_INTERVAL == 4 * TCP_TMR_INTERVAL);
+        ip_reass_tmr();
+#endif
+        
+#if LWIP_IPV6
+        assert(ND6_TMR_INTERVAL == 4 * TCP_TMR_INTERVAL);
+        nd6_tmr();
+#endif
+    
+#if LWIP_IPV6 && LWIP_IPV6_REASS
+        assert(IP6_REASS_TMR_INTERVAL == 4 * TCP_TMR_INTERVAL);
+        ip6_reass_tmr();
+#endif
+    }
 }
 
 #endif

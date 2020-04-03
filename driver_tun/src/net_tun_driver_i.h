@@ -40,6 +40,9 @@ struct net_tun_driver {
 #if NET_TUN_USE_DQ
     __unsafe_unretained dispatch_source_t m_tcp_timer;    
 #endif
+
+    uint8_t m_tcp_timer_counter;
+
     struct mem_buffer m_data_buffer;
 
     net_tun_device_t m_default_device;
@@ -56,5 +59,6 @@ struct net_tun_driver {
 
 mem_buffer_t net_tun_driver_tmp_buffer(net_tun_driver_t driver);
 net_schedule_t net_tun_driver_schedule(net_tun_driver_t driver);
+void net_tun_dirver_do_timer(net_tun_driver_t driver);
 
 #endif
