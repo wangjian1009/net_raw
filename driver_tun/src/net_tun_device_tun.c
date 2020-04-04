@@ -212,20 +212,20 @@ int net_tun_device_packet_write(net_tun_device_t device, uint8_t *data, int data
         // malformed packets will cause errors, ignore them and act like
         // the packet was accepeted
         CPE_ERROR(
-            driver->m_em, "tun: %s: >>> %d |       errno=%d (%s)",
+            driver->m_em, "tun: %s: >>> %.5d |      errno=%d (%s)",
             device->m_dev_name, data_len, errno, strerror(errno));
     }
     else {
         if (bytes != data_len) {
             CPE_ERROR(
-                driver->m_em, "tun: %s: >>> %d |       part, %d/%d",
+                driver->m_em, "tun: %s: >>> %.5d |      part, %d/%d",
                 device->m_dev_name, bytes, bytes, data_len);
         }
         else {
             if (net_tun_driver_debug(driver) >= 2) {
                 CPE_INFO(
                     device->m_driver->m_em,
-                    "tun: %s: >>> %d |       %s",
+                    "tun: %s: >>> %.5d |      %s",
                     device->m_dev_name, data_len,
                     net_tun_dump_raw_data(net_tun_driver_tmp_buffer(driver), NULL, data, NULL));
             }
