@@ -511,7 +511,39 @@ int net_tun_endpoint_connect(net_endpoint_t base_endpoint) {
     return net_endpoint_set_state(base_endpoint, net_endpoint_state_connecting);
 }
 
-void net_tun_endpoint_shutdown(net_endpoint_t base_endpoint) {
+int net_tun_endpoint_shutdown(net_endpoint_t base_endpoint, net_endpoint_shutdown_way_t way) {
+    net_tun_endpoint_t endpoint = net_endpoint_data(base_endpoint);
+    net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+
+    if (endpoint->m_pcb == NULL) {
+        CPE_ERROR(
+            driver->m_em, "tun: %s: tcp shutdown %s, no pcb",
+            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
+            net_endpoint_shutdown_way_str(way));
+        return -1;
+    }
+
+    err_t err = tcp_shutdown(
+        endpoint->m_pcb,
+        (way == net_endpoint_shutdown_read || way == net_endpoint_shutdown_both) ? 1 : 0,
+        (way == net_endpoint_shutdown_write || way == net_endpoint_shutdown_both) ? 1 : 0);
+    if (err != ERR_OK) {
+        CPE_ERROR(
+            driver->m_em, "tun: %s: tcp shutdown %s, error=%d (%s)",
+            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
+            net_endpoint_shutdown_way_str(way),
+            err, lwip_strerr(err));
+        return -1;
+    }
+
+    if (net_endpoint_driver_debug(base_endpoint) >= 2) {
+        CPE_INFO(
+            driver->m_em, "tun: %s: tcp shutdown %s",
+            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
+            net_endpoint_shutdown_way_str(way));
+    }
+
+    return 0;
 }
 
 void net_tun_endpoint_close(net_endpoint_t base_endpoint) {
