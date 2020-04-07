@@ -511,6 +511,9 @@ int net_tun_endpoint_connect(net_endpoint_t base_endpoint) {
     return net_endpoint_set_state(base_endpoint, net_endpoint_state_connecting);
 }
 
+void net_tun_endpoint_shutdown(net_endpoint_t base_endpoint) {
+}
+
 void net_tun_endpoint_close(net_endpoint_t base_endpoint) {
     net_tun_endpoint_t endpoint = net_endpoint_data(base_endpoint);
     net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));

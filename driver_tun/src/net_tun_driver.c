@@ -54,6 +54,7 @@ net_tun_driver_create(
         net_tun_endpoint_init,
         net_tun_endpoint_fini,
         net_tun_endpoint_connect,
+        net_tun_endpoint_shutdown,
         net_tun_endpoint_close,
         net_tun_endpoint_update,
         net_tun_endpoint_set_no_delay,
