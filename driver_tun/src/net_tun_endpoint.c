@@ -140,11 +140,17 @@ static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t l
 
     if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
         CPE_INFO(
-            driver->m_em, "tun: %s:    ==> %d, sending=%d!",
+            driver->m_em, "tun: %s:    ==> %d, sending=%d, to-send=%d!",
             net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
-            len, endpoint->m_sending_count);
+            len, endpoint->m_sending_count, net_endpoint_buf_size(base_endpoint, net_ep_buf_write));
     }
 
+    if (endpoint->m_sending_count == 0
+        && net_endpoint_state(base_endpoint) == net_endpoint_state_established)
+    {
+        net_endpoint_set_is_writing(base_endpoint, 0);
+    }
+    
     if (net_tun_endpoint_do_write(endpoint) != 0) {
         net_endpoint_set_error(
             base_endpoint, net_endpoint_error_source_network,
@@ -155,12 +161,6 @@ static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t l
         }
     }
 
-    if (endpoint->m_sending_count == 0
-        && net_endpoint_state(base_endpoint) == net_endpoint_state_established)
-    {
-        net_endpoint_set_is_writing(base_endpoint, 0);
-    }
-    
     return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
 }
 
@@ -273,11 +273,6 @@ int net_tun_endpoint_update(net_endpoint_t base_endpoint) {
     if (net_endpoint_state(base_endpoint) != net_endpoint_state_established) return 0;
     
     if (!net_endpoint_buf_is_empty(base_endpoint, net_ep_buf_write)) {
-        if (!net_endpoint_is_writing(base_endpoint)) {
-            assert(endpoint->m_sending_count == 0);
-            net_endpoint_set_is_writing(base_endpoint, 1);
-        }
-
         if (net_tun_endpoint_do_write(endpoint) != 0) return -1;
     }
 
@@ -331,12 +326,24 @@ static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
         }
         
         if (data_size == 0) {
+            if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
+                CPE_INFO(
+                    driver->m_em, "tun: %s: ==>    ignore for no send buf, left-size=%d!",
+                    net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
+                    (int)net_endpoint_buf_size(base_endpoint, net_ep_buf_write));
+            }
             break;
         }
 
         err_t err = tcp_write(endpoint->m_pcb, data, data_size, TCP_WRITE_FLAG_COPY);
         if (err != ERR_OK) {
             if (err == ERR_MEM) {
+                if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
+                    CPE_INFO(
+                        driver->m_em, "tun: %s: ==>    %d ignore for mem, left-size=%d!",
+                        net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
+                        data_size, (int)net_endpoint_buf_size(base_endpoint, net_ep_buf_write));
+                }
                 break;
             }
 
@@ -348,14 +355,16 @@ static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
         }
 
         endpoint->m_sending_count += data_size;
+        net_endpoint_buf_consume(base_endpoint, net_ep_buf_write, data_size);
+        
         if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
             CPE_INFO(
-                driver->m_em, "tun: %s: ==>    %d, sending=%d!",
+                driver->m_em, "tun: %s: ==>    %d, sending=%d, to-send=%d!",
                 net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
-                data_size, endpoint->m_sending_count);
+                data_size, endpoint->m_sending_count, net_endpoint_buf_size(base_endpoint, net_ep_buf_write));
         }
-        
-        net_endpoint_buf_consume(base_endpoint, net_ep_buf_write, data_size);
+
+        net_endpoint_set_is_writing(base_endpoint, 1);
     }
 
     if (net_endpoint_state(base_endpoint) == net_endpoint_state_established) {
