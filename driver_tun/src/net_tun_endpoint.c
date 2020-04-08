@@ -56,8 +56,24 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
                 net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
         }
 
+        net_endpoint_state_t next_state = net_endpoint_state_disable;
+
+        switch (net_endpoint_state(base_endpoint)) {
+        case net_endpoint_state_established:
+            if (tpcb->state == CLOSE_WAIT) {
+                next_state = net_endpoint_state_read_closed;
+            }
+            break;
+        case net_endpoint_state_write_closed:
+            break;
+        case net_endpoint_state_closing:
+            break;
+        default:
+            break;
+        }
+
         net_endpoint_set_error(base_endpoint, net_endpoint_error_source_network, net_endpoint_network_errno_remote_closed, NULL);
-        if (net_endpoint_set_state(base_endpoint, net_endpoint_state_read_closed) != 0) {
+        if (net_endpoint_set_state(base_endpoint, next_state) != 0) {
             net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
             return ERR_CLSD;
         }
