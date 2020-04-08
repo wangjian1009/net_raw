@@ -145,9 +145,7 @@ static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t l
             len, endpoint->m_sending_count, net_endpoint_buf_size(base_endpoint, net_ep_buf_write));
     }
 
-    if (endpoint->m_sending_count == 0
-        && net_endpoint_is_active_for_write(base_endpoint))
-    {
+    if (endpoint->m_sending_count == 0 && net_endpoint_is_active_for_write(base_endpoint)) {
         net_endpoint_set_is_writing(base_endpoint, 0);
     }
     
@@ -268,13 +266,11 @@ int net_tun_endpoint_update(net_endpoint_t base_endpoint) {
         return -1;
     }
 
-    if (!net_endpoint_is_active_for_write(base_endpoint)) return 0;
-    
-    if (!net_endpoint_buf_is_empty(base_endpoint, net_ep_buf_write)) {
-        if (net_tun_endpoint_do_write(endpoint) != 0) return -1;
+    if (net_endpoint_is_active_for_write(base_endpoint)) {
+        if (!net_endpoint_buf_is_empty(base_endpoint, net_ep_buf_write)) {
+            if (net_tun_endpoint_do_write(endpoint) != 0) return -1;
+        }
     }
-
-    if (!net_endpoint_is_active_for_write(base_endpoint)) return 0;
 
     /* if (net_endpoint_expect_read(base_endpoint)) { */
     /*     //TODO: */
@@ -310,7 +306,7 @@ static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
     net_schedule_t schedule = net_endpoint_schedule(base_endpoint);
 
     assert(endpoint->m_pcb);
-    while(net_endpoint_state(base_endpoint) == net_endpoint_state_established
+    while(net_endpoint_is_active_for_write(base_endpoint)
           && !net_endpoint_buf_is_empty(base_endpoint, net_ep_buf_write))
     {
         uint32_t data_size;
