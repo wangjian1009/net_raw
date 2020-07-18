@@ -29,19 +29,19 @@ int net_tun_device_init_dev(
             return -1;
         }
         
-        const char * str_ipv4_address = [ipv4Settings.addresses[0] UTF8String];
-        device->m_ipv4_address = net_address_create_ipv4(schedule, str_ipv4_address, 0);
-        if (device->m_ipv4_address == NULL) {
-            CPE_ERROR(driver->m_em, "tun: address %s format error!", str_ipv4_address);
-            return -1;
-        }
+        // const char * str_ipv4_address = [ipv4Settings.addresses[0] UTF8String];
+        // device->m_ipv4_address = net_address_create_ipv4(schedule, str_ipv4_address, 0);
+        // if (device->m_ipv4_address == NULL) {
+        //     CPE_ERROR(driver->m_em, "tun: address %s format error!", str_ipv4_address);
+        //     return -1;
+        // }
 
-        const char * str_ipv4_mask = [ipv4Settings.subnetMasks[0] UTF8String];
-        device->m_ipv4_mask = net_address_create_ipv4(schedule, str_ipv4_mask, 0);
-        if (device->m_ipv4_mask == NULL) {
-            CPE_ERROR(driver->m_em, "tun: mask %s format error!", str_ipv4_mask);
-            return -1;
-        }
+        // const char * str_ipv4_mask = [ipv4Settings.subnetMasks[0] UTF8String];
+        // device->m_ipv4_mask = net_address_create_ipv4(schedule, str_ipv4_mask, 0);
+        // if (device->m_ipv4_mask == NULL) {
+        //     CPE_ERROR(driver->m_em, "tun: mask %s format error!", str_ipv4_mask);
+        //     return -1;
+        // }
     }
 
     device->m_bridger = [[NetTunDeviceBridger alloc] init];
@@ -83,7 +83,7 @@ void net_tun_device_fini_dev(net_tun_driver_t driver, net_tun_device_t device) {
     device->m_versions = NULL;
 }
 
-int net_tun_device_packet_output(net_tun_device_t device, uint8_t *data, int data_len) {
+int net_tun_device_packet_write(net_tun_device_t device, uint8_t *data, int data_len) {
     assert(data_len >= 0);
     assert(data_len <= device->m_mtu);
 
