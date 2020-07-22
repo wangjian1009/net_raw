@@ -8,46 +8,19 @@ static net_tun_driver_t s_tun_driver = NULL;
 static void net_tun_device_start_read(net_tun_device_t device);
 
 int net_tun_device_init_dev(
-    net_tun_driver_t driver, net_tun_device_t device,
-    NEPacketTunnelFlow * tunnelFlow,  NEPacketTunnelNetworkSettings * settings)
+    net_tun_driver_t driver, net_tun_device_t device, net_tun_device_init_data_t settings)
 {
     net_schedule_t schedule = net_tun_driver_schedule(driver);
-    
-    assert(tunnelFlow);
 
-    device->m_mtu = (uint16_t)settings.MTU.integerValue;
+    assert(settings);
+    assert(settings->m_tunnelFlow);
 
-    NEIPv4Settings * ipv4Settings = settings.IPv4Settings;
-    if (ipv4Settings) {
-        if (ipv4Settings.addresses.count == 0) {
-            CPE_ERROR(driver->m_em, "tun: ipv4 no address configured!");
-            return -1;
-        }
-
-        if (ipv4Settings.addresses.count != ipv4Settings.subnetMasks.count) {
-            CPE_ERROR(driver->m_em, "tun: ipv4 address and mask count mismatch!");
-            return -1;
-        }
-        
-        // const char * str_ipv4_address = [ipv4Settings.addresses[0] UTF8String];
-        // device->m_ipv4_address = net_address_create_ipv4(schedule, str_ipv4_address, 0);
-        // if (device->m_ipv4_address == NULL) {
-        //     CPE_ERROR(driver->m_em, "tun: address %s format error!", str_ipv4_address);
-        //     return -1;
-        // }
-
-        // const char * str_ipv4_mask = [ipv4Settings.subnetMasks[0] UTF8String];
-        // device->m_ipv4_mask = net_address_create_ipv4(schedule, str_ipv4_mask, 0);
-        // if (device->m_ipv4_mask == NULL) {
-        //     CPE_ERROR(driver->m_em, "tun: mask %s format error!", str_ipv4_mask);
-        //     return -1;
-        // }
-    }
+    device->m_mtu = settings->m_mtu;
 
     device->m_bridger = [[NetTunDeviceBridger alloc] init];
     device->m_bridger->m_device = device;
     
-    device->m_tunnelFlow = tunnelFlow;
+    device->m_tunnelFlow = settings->m_tunnelFlow;
     [device->m_tunnelFlow retain];
 
     device->m_packets = [[NSMutableArray<NSData *> alloc] init];

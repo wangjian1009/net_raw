@@ -27,8 +27,16 @@ struct net_tun_device_init_data {
         };
     } m_init_data;
 };
-typedef struct net_tun_device_init_data * net_tun_device_init_data_t;
 #endif
+
+#if NET_TUN_USE_DEV_NE
+struct net_tun_device_init_data {
+    NEPacketTunnelFlow * m_tunnelFlow;
+    uint16_t m_mtu;
+};
+#endif
+
+typedef struct net_tun_device_init_data * net_tun_device_init_data_t;
 
 struct net_tun_device_netif_options {
     net_address_t m_ipv4_address;
@@ -40,13 +48,7 @@ typedef struct net_tun_device_netif_options * net_tun_device_netif_options_t;
 net_tun_device_t
 net_tun_device_create(
     net_tun_driver_t driver
-#if NET_TUN_USE_DEV_TUN
     , net_tun_device_init_data_t settings
-#endif    
-#if NET_TUN_USE_DEV_NE
-    , NEPacketTunnelFlow * tunnelFlow
-    , NEPacketTunnelNetworkSettings * settings
-#endif
     , net_tun_device_netif_options_t netif_settings);
 
 void net_tun_device_free(net_tun_device_t device);
@@ -54,6 +56,8 @@ void net_tun_device_free(net_tun_device_t device);
 net_tun_device_t net_tun_device_default(net_tun_driver_t driver);
 
 void net_tun_device_clear_all(net_tun_driver_t driver);
+
+void net_tun_device_netif_options_clear(net_tun_device_netif_options_t netif_options);
 
 NET_END_DECL
 
