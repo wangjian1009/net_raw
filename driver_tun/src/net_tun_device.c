@@ -175,12 +175,9 @@ static int net_tun_device_init_netif(
     ip4_addr_t addr;
     ip4_addr_t netmask;
 
-    CPE_ERROR(device->m_driver->m_em, "tun: device: xxxx 1!");
-    
     if (netif_settings == NULL || netif_settings->m_ipv4_address == NULL) {
         ip4_addr_set_any(&addr);
         ip4_addr_set_any(&netmask);
-        CPE_ERROR(device->m_driver->m_em, "tun: device: xxxx 2!");
     }
     else {
         if (netif_settings->m_ipv4_mask == NULL) {
@@ -190,24 +187,20 @@ static int net_tun_device_init_netif(
 
         net_address_to_lwip_ipv4(&addr, netif_settings->m_ipv4_address);
         net_address_to_lwip_ipv4(&netmask, netif_settings->m_ipv4_mask);
-        CPE_ERROR(device->m_driver->m_em, "tun: device: xxxx 3!");
     }
     
     ip4_addr_t gw;
     ip4_addr_set_any(&gw);
 
-    CPE_ERROR(device->m_driver->m_em, "tun: device: xxxx 4!");
     if (!netif_add(&device->m_netif, &addr, &netmask, &gw, device, net_tun_device_netif_init, net_tun_device_netif_input)) {
         CPE_ERROR(device->m_driver->m_em, "tun: device: add netif fail!");
         return -1;
     }
 
-    CPE_ERROR(device->m_driver->m_em, "tun: device: xxxx 5!");
     netif_set_up(&device->m_netif);
     netif_set_link_up(&device->m_netif);
     netif_set_pretend_tcp(&device->m_netif, 1);
 
-    CPE_ERROR(device->m_driver->m_em, "tun: device: xxxx 6!");
     if (netif_settings->m_ipv6_address) {
         // add IPv6 address
         ip6_addr_t ip6addr;
