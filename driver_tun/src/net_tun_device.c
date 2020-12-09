@@ -1,5 +1,6 @@
 #include <assert.h>
 #include "cpe/pal/pal_string.h"
+#include "cpe/pal/pal_strings.h"
 #include "cpe/pal/pal_unistd.h"
 #include "cpe/utils/string_utils.h"
 #include "net_address.h"
@@ -192,6 +193,7 @@ static int net_tun_device_init_netif(
     ip4_addr_t gw;
     ip4_addr_set_any(&gw);
 
+    bzero(&device->m_netif, sizeof(device->m_netif));
     if (!netif_add(&device->m_netif, &addr, &netmask, &gw, device, net_tun_device_netif_init, net_tun_device_netif_input)) {
         CPE_ERROR(device->m_driver->m_em, "tun: device: add netif fail!");
         return -1;
