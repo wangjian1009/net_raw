@@ -56,13 +56,15 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
                 net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
         }
 
+        net_tun_endpoint_set_pcb(endpoint, NULL);
+            
         net_endpoint_set_error(base_endpoint, net_endpoint_error_source_network, net_endpoint_network_errno_remote_closed, NULL);
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_disable) != 0) {
             net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
-            return ERR_CLSD;
+            return ERR_ABRT;
         }
         else {
-            return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
+            return ERR_ABRT;
         }
     }
 
@@ -186,6 +188,9 @@ static void net_tun_endpoint_err_func(void *arg, err_t err) {
                 net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
         }
 
+        net_tun_endpoint_set_pcb(endpoint, NULL);
+        endpoint->m_pcb = NULL;
+
         net_endpoint_set_error(base_endpoint, net_endpoint_error_source_network, net_endpoint_network_errno_remote_closed, NULL);
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_disable) != 0) {
             net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
@@ -199,7 +204,11 @@ static void net_tun_endpoint_err_func(void *arg, err_t err) {
                 (int)err, lwip_strerr(err));
         }
         
-        net_endpoint_set_error(base_endpoint, net_endpoint_error_source_network, net_endpoint_network_errno_network_error, lwip_strerr(err));
+        net_endpoint_set_error(
+            base_endpoint,
+            net_endpoint_error_source_network,
+            net_endpoint_network_errno_network_error, lwip_strerr(err));
+
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
             net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
         }
