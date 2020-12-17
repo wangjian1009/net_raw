@@ -71,6 +71,10 @@
 #define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS 1
 #define SYS_LIGHTWEIGHT_PROT 0
 
+/* #define LWIP_DEBUG 1 */
+/* #define TCP_OUTPUT_DEBUG LWIP_DBG_ON */
+/* #define TCP_RST_DEBUG LWIP_DBG_ON */
+
 #define mem_calloc lwip_mem_calloc
 #define mem_free lwip_mem_free
 
