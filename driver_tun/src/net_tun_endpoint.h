@@ -4,7 +4,6 @@
 
 struct net_tun_endpoint {
     struct tcp_pcb * m_pcb;
-    uint32_t m_sending_count;
 };
 
 int net_tun_endpoint_init(net_endpoint_t base_endpoint);

@@ -15,6 +15,7 @@ static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t l
 static void net_tun_endpoint_err_func(void *arg, err_t err);
 static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, err_t err);
 static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint);
+static uint32_t net_tun_tcp_seg_total_len(struct tcp_seg * seg);
 
 void net_tun_endpoint_set_pcb(struct net_tun_endpoint * endpoint, struct tcp_pcb * pcb) {
     if (endpoint->m_pcb) {
@@ -58,7 +59,10 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
 
         net_tun_endpoint_set_pcb(endpoint, NULL);
             
-        net_endpoint_set_error(base_endpoint, net_endpoint_error_source_network, net_endpoint_network_errno_remote_closed, NULL);
+        net_endpoint_set_error(
+            base_endpoint,
+            net_endpoint_error_source_network,
+            net_endpoint_network_errno_remote_closed, NULL);
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_disable) != 0) {
             net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
             return ERR_ABRT;
@@ -112,7 +116,10 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
     if (net_endpoint_buf_supply(base_endpoint, net_ep_buf_read, total_len) != 0) {
         if (net_endpoint_is_active(base_endpoint)) {
             if (!net_endpoint_have_error(base_endpoint)) {
-                net_endpoint_set_error(base_endpoint, net_endpoint_error_source_network, net_endpoint_network_errno_logic, NULL);
+                net_endpoint_set_error(
+                    base_endpoint,
+                    net_endpoint_error_source_network,
+                    net_endpoint_network_errno_logic, NULL);
             }
             if (net_endpoint_set_state(base_endpoint, net_endpoint_state_logic_error) != 0) {
                 if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
@@ -135,16 +142,15 @@ static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t l
     net_schedule_t schedule = net_endpoint_schedule(base_endpoint);
 
     assert(len > 0);
-    assert(len <= endpoint->m_sending_count);
     assert(net_endpoint_is_writing(base_endpoint));
-
-    endpoint->m_sending_count -= len;
 
     if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
         CPE_INFO(
-            driver->m_em, "tun: %s:    ==> %d, sending=%d!",
+            driver->m_em, "tun: %s:    ==> %d, unsent=%d, unacked=%d!",
             net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
-            len, endpoint->m_sending_count);
+            len,
+            net_tun_tcp_seg_total_len(endpoint->m_pcb->unsent),
+            net_tun_tcp_seg_total_len(endpoint->m_pcb->unacked));
     }
 
     if (net_tun_endpoint_do_write(endpoint) != 0) {
@@ -157,12 +163,13 @@ static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t l
         }
     }
 
-    if (endpoint->m_sending_count == 0
+    if (endpoint->m_pcb->unsent == NULL
+        && endpoint->m_pcb->unacked == NULL
         && net_endpoint_state(base_endpoint) == net_endpoint_state_established)
     {
         net_endpoint_set_is_writing(base_endpoint, 0);
     }
-    
+
     return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
 }
 
@@ -184,14 +191,14 @@ static void net_tun_endpoint_err_func(void *arg, err_t err) {
     if (err == ERR_RST) {
         if (net_endpoint_driver_debug(base_endpoint)) {
             CPE_INFO(
-                driver->m_em, "tun: %s: remote disconnected!",
+                driver->m_em, "tun: %s: remote reseted!",
                 net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
         }
 
-        net_tun_endpoint_set_pcb(endpoint, NULL);
-        endpoint->m_pcb = NULL;
-
-        net_endpoint_set_error(base_endpoint, net_endpoint_error_source_network, net_endpoint_network_errno_remote_closed, NULL);
+        net_endpoint_set_error(
+            base_endpoint,
+            net_endpoint_error_source_network,
+            net_endpoint_network_errno_remote_closed, NULL);
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_disable) != 0) {
             net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
         }
@@ -252,7 +259,6 @@ static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, er
 int net_tun_endpoint_init(net_endpoint_t base_endpoint) {
     net_tun_endpoint_t endpoint = net_endpoint_data(base_endpoint);
     endpoint->m_pcb = NULL;
-    endpoint->m_sending_count = 0;
     return 0;
 }
 
@@ -283,7 +289,7 @@ int net_tun_endpoint_update(net_endpoint_t base_endpoint) {
     
     if (!net_endpoint_buf_is_empty(base_endpoint, net_ep_buf_write)) {
         if (!net_endpoint_is_writing(base_endpoint)) {
-            assert(endpoint->m_sending_count == 0);
+            assert(endpoint->m_pcb->snd_queuelen == 0);
             net_endpoint_set_is_writing(base_endpoint, 1);
         }
 
@@ -356,18 +362,21 @@ static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
             return -1;
         }
 
-        endpoint->m_sending_count += data_size;
         if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
             CPE_INFO(
-                driver->m_em, "tun: %s: ==>    %d, sending=%d!",
+                driver->m_em, "tun: %s: ==>    %d, unsent=%d, unacked=%d!",
                 net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
-                data_size, endpoint->m_sending_count);
+                data_size,
+                net_tun_tcp_seg_total_len(endpoint->m_pcb->unsent),
+                net_tun_tcp_seg_total_len(endpoint->m_pcb->unacked));
         }
         
         net_endpoint_buf_consume(base_endpoint, net_ep_buf_write, data_size);
     }
 
-    if (net_endpoint_state(base_endpoint) == net_endpoint_state_established) {
+    if (net_endpoint_state(base_endpoint) == net_endpoint_state_established
+        && endpoint->m_pcb->unacked == NULL)
+    {
         err_t err = tcp_output(endpoint->m_pcb);
         if (err != ERR_OK) {
             CPE_ERROR(
@@ -539,3 +548,13 @@ void net_tun_endpoint_close(net_endpoint_t base_endpoint) {
     }
 }
 
+static uint32_t net_tun_tcp_seg_total_len(struct tcp_seg * seg) {
+    uint32_t n = 0;
+
+    while(seg) {
+        n += seg->len;
+        seg = seg->next;
+    }
+    
+    return n;
+}
