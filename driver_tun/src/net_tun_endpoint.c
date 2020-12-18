@@ -16,7 +16,6 @@ static void net_tun_endpoint_err_func(void *arg, err_t err);
 static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, err_t err);
 static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint);
 static uint32_t net_tun_tcp_seg_total_len(struct tcp_seg * seg);
-static const char * net_tun_tcp_sate_str(enum tcp_state state);
 
 void net_tun_endpoint_set_pcb(struct net_tun_endpoint * endpoint, struct tcp_pcb * pcb) {
     if (endpoint->m_pcb) {
@@ -48,14 +47,16 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
                               be done with the pbuf in case of an error.*/
 
     if (net_endpoint_state(base_endpoint) == net_endpoint_state_deleting) {
-        return ERR_ABRT;
+        pbuf_free(p);
+        return ERR_OK;
     }
     
     if (!p) {
         if (net_endpoint_driver_debug(base_endpoint) >= 2) {
             CPE_INFO(
-                driver->m_em, "tun: %s: client closed",
-                net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
+                driver->m_em, "tun: %s: client closed, tcp-state=%s",
+                net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
+                endpoint->m_pcb ? tcp_debug_state_str(tcp_dbg_get_tcp_state(endpoint->m_pcb)) : "N/A");
         }
 
         net_tun_endpoint_set_pcb(endpoint, NULL);
@@ -66,10 +67,10 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
             net_endpoint_network_errno_remote_closed, NULL);
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_disable) != 0) {
             net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
-            return ERR_ABRT;
+            return ERR_OK;
         }
         else {
-            return ERR_ABRT;
+            return ERR_OK;
         }
     }
 
@@ -100,7 +101,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
         }
 
         pbuf_free(p);
-        return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
+        return ERR_OK;
     }
 
     pbuf_copy_partial(p, data, total_len, 0);
@@ -133,7 +134,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
         }
     }
 
-    return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
+    return ERR_OK;
 }
 
 static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t len) {
@@ -172,7 +173,7 @@ static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t l
         net_endpoint_set_is_writing(base_endpoint, 0);
     }
 
-    return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
+    return ERR_OK;
 }
 
 static void net_tun_endpoint_err_func(void *arg, err_t err) {
@@ -230,18 +231,25 @@ static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, er
     net_schedule_t schedule = net_endpoint_schedule(base_endpoint);
     error_monitor_t em = net_schedule_em(schedule);
 
+    assert(tpcb == endpoint->m_pcb);
+    
     if (err != ERR_OK) {
         CPE_ERROR(
             em, "ev: %s: connect error, errno=%d (%s)",
             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), err, lwip_strerr(err));
+
+        assert(endpoint->m_pcb);
+        tcp_abort(endpoint->m_pcb);
+        net_tun_endpoint_set_pcb(endpoint, NULL);
+        
         net_endpoint_set_error(
             base_endpoint, net_endpoint_error_source_network,
             net_endpoint_network_errno_network_error, lwip_strerr(err));
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
             net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
-            return ERR_CLSD;
+            return ERR_ABRT;
         }
-        return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
+        return ERR_ABRT;
     }
 
     if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
@@ -251,11 +259,18 @@ static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, er
     }
 
     if (net_endpoint_set_state(base_endpoint, net_endpoint_state_established) != 0) {
+        err_t r_e = ERR_OK;
+        if (endpoint->m_pcb) {
+            tcp_abort(endpoint->m_pcb);
+            net_tun_endpoint_set_pcb(endpoint, NULL);
+            r_e = ERR_ABRT;
+        }
+        
         net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
-        return ERR_CLSD;
+        return r_e;
     }
 
-    return endpoint->m_pcb == NULL ? ERR_ABRT : ERR_OK;
+    return ERR_OK;
 }
 
 int net_tun_endpoint_init(net_endpoint_t base_endpoint) {
@@ -266,12 +281,18 @@ int net_tun_endpoint_init(net_endpoint_t base_endpoint) {
 
 void net_tun_endpoint_fini(net_endpoint_t base_endpoint) {
     net_tun_endpoint_t endpoint = net_endpoint_data(base_endpoint);
-    //net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
+    net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
 
     if (endpoint->m_pcb) {
+        CPE_ERROR(
+            driver->m_em, "tun: %s: fini: abort, tcp-state=%s!",
+            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
+            tcp_debug_state_str(tcp_dbg_get_tcp_state(endpoint->m_pcb)));
+        tcp_abort(endpoint->m_pcb);
         net_tun_endpoint_set_pcb(endpoint, NULL);
-        assert(endpoint->m_pcb == NULL);
     }
+
+    assert(endpoint->m_pcb == NULL);
 }
 
 int net_tun_endpoint_update(net_endpoint_t base_endpoint) {
@@ -526,12 +547,15 @@ void net_tun_endpoint_close(net_endpoint_t base_endpoint) {
     net_tun_endpoint_t endpoint = net_endpoint_data(base_endpoint);
     net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
 
-    if (endpoint->m_pcb == NULL) return;
+    if (endpoint->m_pcb == NULL) {
+        if (net_endpoint_driver_debug(base_endpoint) >= 2) {
+            CPE_INFO(
+                driver->m_em, "tun: %s: close, no pcb, ignore",
+                net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
+        }
+        return;
+    }
 
-    tcp_err(endpoint->m_pcb, NULL);
-    tcp_recv(endpoint->m_pcb, NULL);
-    tcp_sent(endpoint->m_pcb, NULL);
-    
     err_t err = tcp_shutdown(endpoint->m_pcb, 0, 1);
     if (err != ERR_OK) {
         CPE_ERROR(
@@ -541,13 +565,15 @@ void net_tun_endpoint_close(net_endpoint_t base_endpoint) {
         net_tun_endpoint_set_pcb(endpoint, NULL);
         return;
     }
-    endpoint->m_pcb = NULL;
     
     if (net_endpoint_driver_debug(base_endpoint) >= 2) {
         CPE_INFO(
-            driver->m_em, "tun: %s: tcp closed",
-            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
+            driver->m_em, "tun: %s: close: tcp-state=%s",
+            net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
+            endpoint->m_pcb ? tcp_debug_state_str(tcp_dbg_get_tcp_state(endpoint->m_pcb)) : "N/A");
     }
+
+    net_tun_endpoint_set_pcb(endpoint, NULL);
 }
 
 static uint32_t net_tun_tcp_seg_total_len(struct tcp_seg * seg) {
@@ -559,33 +585,4 @@ static uint32_t net_tun_tcp_seg_total_len(struct tcp_seg * seg) {
     }
     
     return n;
-}
-
-static const char * net_tun_tcp_sate_str(enum tcp_state state) {
-    switch(state) {
-    case CLOSED:
-        return "CLOSED";
-    case LISTEN:
-        return "LISTEN";
-    case SYN_SENT:
-        return "SYN_SENT";
-    case SYN_RCVD:
-        return "SYN_RCVD";
-    case ESTABLISHED:
-        return "ESTABLISHED";
-    case FIN_WAIT_1:
-        return "FIN_WAIT_1";
-    case FIN_WAIT_2:
-        return "FIN_WAIT_2";
-    case CLOSE_WAIT:
-        return "CLOSE_WAIT";
-    case CLOSING:
-        return "CLOSING";
-    case LAST_ACK:
-        return "LAST_ACK";
-    case TIME_WAIT:
-        return "TIME_WAIT";
-    default:
-        return "unknown";
-    }
 }
