@@ -303,7 +303,7 @@ int net_tun_device_packet_input(net_tun_driver_t driver, net_tun_device_t device
 
     uint8_t const * ethhead = NULL;
     uint8_t const * iphead = packet_data;
-    uint8_t const * data = iphead + 20;
+    uint8_t const * data = iphead + TCP_HLEN;
 
     if (net_driver_debug(base_driver) >= 2) {
         CPE_INFO(

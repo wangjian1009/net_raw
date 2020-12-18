@@ -11,7 +11,7 @@ void net_tun_print_raw_data(write_stream_t ws, uint8_t const * ethhead, uint8_t 
     }
 
     if (data == NULL && iphead) {
-        data = iphead + 20;
+        data = iphead + TCP_HLEN;
     }
 
     if (iphead == NULL) return;
