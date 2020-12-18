@@ -16,6 +16,7 @@ static void net_tun_endpoint_err_func(void *arg, err_t err);
 static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, err_t err);
 static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint);
 static uint32_t net_tun_tcp_seg_total_len(struct tcp_seg * seg);
+static const char * net_tun_tcp_sate_str(enum tcp_state state);
 
 void net_tun_endpoint_set_pcb(struct net_tun_endpoint * endpoint, struct tcp_pcb * pcb) {
     if (endpoint->m_pcb) {
@@ -530,7 +531,7 @@ void net_tun_endpoint_close(net_endpoint_t base_endpoint) {
     tcp_recv(endpoint->m_pcb, NULL);
     tcp_sent(endpoint->m_pcb, NULL);
     
-    err_t err = tcp_close(endpoint->m_pcb);
+    err_t err = tcp_shutdown(endpoint->m_pcb, 0, 1);
     if (err != ERR_OK) {
         CPE_ERROR(
             driver->m_em, "tun: %s: tcp close failed, error=%d (%s)",
@@ -557,4 +558,33 @@ static uint32_t net_tun_tcp_seg_total_len(struct tcp_seg * seg) {
     }
     
     return n;
+}
+
+static const char * net_tun_tcp_sate_str(enum tcp_state state) {
+    switch(state) {
+    case CLOSED:
+        return "CLOSED";
+    case LISTEN:
+        return "LISTEN";
+    case SYN_SENT:
+        return "SYN_SENT";
+    case SYN_RCVD:
+        return "SYN_RCVD";
+    case ESTABLISHED:
+        return "ESTABLISHED";
+    case FIN_WAIT_1:
+        return "FIN_WAIT_1";
+    case FIN_WAIT_2:
+        return "FIN_WAIT_2";
+    case CLOSE_WAIT:
+        return "CLOSE_WAIT";
+    case CLOSING:
+        return "CLOSING";
+    case LAST_ACK:
+        return "LAST_ACK";
+    case TIME_WAIT:
+        return "TIME_WAIT";
+    default:
+        return "unknown";
+    }
 }
