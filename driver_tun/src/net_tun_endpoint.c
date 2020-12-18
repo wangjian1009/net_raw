@@ -164,9 +164,10 @@ static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t l
         }
     }
 
-    if (endpoint->m_pcb->unsent == NULL
-        && endpoint->m_pcb->unacked == NULL
-        && net_endpoint_state(base_endpoint) == net_endpoint_state_established)
+    if (net_endpoint_state(base_endpoint) == net_endpoint_state_established
+        && (endpoint->m_pcb != NULL
+            && endpoint->m_pcb->unsent == NULL
+            && endpoint->m_pcb->unacked == NULL))
     {
         net_endpoint_set_is_writing(base_endpoint, 0);
     }
