@@ -308,7 +308,9 @@ int net_tun_device_packet_input(net_tun_driver_t driver, net_tun_device_t device
         CPE_INFO(
             driver->m_em, "tun: %s: <<< %.5d |      %s",
             device->m_dev_name, packet_size,
-            net_tun_dump_raw_data(net_tun_driver_tmp_buffer(driver), iphead, packet_size));
+            net_tun_dump_raw_data(
+                net_tun_driver_tmp_buffer(driver), iphead, packet_size,
+                net_driver_debug(base_driver) >= 3));
     }
             
     struct pbuf *p = pbuf_alloc(PBUF_RAW, packet_size, PBUF_POOL);

@@ -57,6 +57,23 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
                 net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
                 endpoint->m_pcb ? tcp_debug_state_str(tcp_dbg_get_tcp_state(endpoint->m_pcb)) : "N/A");
         }
+
+        if (endpoint->m_pcb) {
+            err_t err = tcp_shutdown(endpoint->m_pcb, 0, 1);
+            if (err != ERR_OK) {
+                CPE_ERROR(
+                    driver->m_em, "tun: %s: remote closed, tsp-state=%s, shutdown tx fail, error=%d (%s)",
+                    net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
+                    tcp_debug_state_str(tcp_dbg_get_tcp_state(endpoint->m_pcb)), err, lwip_strerr(err));
+            }
+            else {
+                CPE_INFO(
+                    driver->m_em, "tun: %s: remote closed, tsp-state=%s, shutdown tx success",
+                    net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
+                    tcp_debug_state_str(tcp_dbg_get_tcp_state(endpoint->m_pcb)));
+            }
+        }
+
         net_tun_endpoint_set_pcb(endpoint, NULL);
             
         net_endpoint_set_error(

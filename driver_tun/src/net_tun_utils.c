@@ -6,7 +6,7 @@
 
 static const char * s_tcp_flags[] = { "FIN", "SYN", "RST", "PSH", "ACK", "URG" };
 
-void net_tun_print_raw_data(write_stream_t ws, uint8_t const * iphead, uint32_t packet_size) {
+void net_tun_print_raw_data(write_stream_t ws, uint8_t const * iphead, uint32_t packet_size, uint8_t dump_content) {
     assert(iphead);
 
     uint8_t iphlen = (iphead[0]&0X0F) * sizeof(uint32_t);
@@ -63,8 +63,10 @@ void net_tun_print_raw_data(write_stream_t ws, uint8_t const * iphead, uint32_t 
         }
         stream_printf(ws, ")");
 
-        stream_printf(ws, "\n");
-        stream_dump_data(ws, ipdata + tcp_head_len, ipdata_len - tcp_head_len, 0);
+        if (dump_content && ipdata_len > tcp_head_len) {
+            stream_printf(ws, "\n");
+            stream_dump_data(ws, ipdata + tcp_head_len, ipdata_len - tcp_head_len, 0);
+        }
         break;
     }
     case IPPROTO_UDP: {
@@ -87,12 +89,14 @@ print_with_protocol:
     stream_printf(ws, "%s: %s ==> %s", protocol, ip_from, ip_to);
 }
 
-const char * net_tun_dump_raw_data(mem_buffer_t buffer, uint8_t const * iphead, uint32_t data_size) {
+const char * net_tun_dump_raw_data(
+    mem_buffer_t buffer, uint8_t const * iphead, uint32_t data_size, uint8_t dump_content)
+{
     struct write_stream_buffer stream = CPE_WRITE_STREAM_BUFFER_INITIALIZER(buffer);
 
     mem_buffer_clear_data(buffer);
     
-    net_tun_print_raw_data((write_stream_t)&stream, iphead, data_size);
+    net_tun_print_raw_data((write_stream_t)&stream, iphead, data_size, dump_content);
     stream_putc((write_stream_t)&stream, 0);
     
     return mem_buffer_make_continuous(buffer, 0);
