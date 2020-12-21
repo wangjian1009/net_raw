@@ -6,31 +6,18 @@
 
 static const char * s_tcp_flags[] = { "FIN", "SYN", "RST", "PSH", "ACK", "URG" };
 
-void net_tun_print_raw_data(write_stream_t ws, uint8_t const * ethhead, uint8_t const * iphead, uint8_t const * data) {
-    if (iphead == NULL && ethhead) {
-    }
+void net_tun_print_raw_data(write_stream_t ws, uint8_t const * iphead, uint32_t packet_size) {
+    assert(iphead);
 
-    if (data == NULL && iphead) {
-        data = iphead + TCP_HLEN;
-    }
-
-    if (iphead == NULL) return;
-
-    char mac_from[32];
-    char mac_to[32];
-    if (ethhead) {
-        snprintf(
-            mac_from, sizeof(mac_from), "(%.2X:%02X:%02X:%02X:%02X:%02X)",
-            ethhead[6]&0xFF, ethhead[7]&0xFF, ethhead[8]&0xFF, ethhead[9]&0xFF, ethhead[10]&0xFF, ethhead[11]&0xFF);
-        snprintf(
-            mac_to, sizeof(mac_to), "(%.2X:%02X:%02X:%02X:%02X:%02X)",
-            ethhead[0]&0xFF, ethhead[1]&0xFF, ethhead[2]&0xFF,ethhead[3]&0xFF, ethhead[4]&0xFF, ethhead[5]&0xFF);
-    }
-    else {
-        mac_from[0] = 0;
-        mac_to[0] = 0;
+    uint8_t iphlen = (iphead[0]&0X0F) * sizeof(uint32_t);
+    if (iphlen > packet_size) {
+        stream_printf(ws, "too small data, iphlen=" FMT_UINT32_T ", packet-size" FMT_UINT32_T, iphlen, packet_size);
+        return;
     }
     
+    uint8_t const * ipdata = iphead + iphlen;
+    uint32_t ipdata_len = packet_size - iphlen;
+
     char ip_from[32];
     char ip_to[32];
     snprintf(ip_from, sizeof(ip_from), "%d.%d.%d.%d", iphead[12]&0XFF, iphead[13]&0XFF, iphead[14]&0XFF, iphead[15]&0XFF);
@@ -52,26 +39,19 @@ void net_tun_print_raw_data(write_stream_t ws, uint8_t const * ethhead, uint8_t 
         goto print_with_protocol;
 #endif
     case IPPROTO_TCP: {
-        uint16_t port_from = ((((uint16_t)data[0])<<8) & 0XFF00) | (((uint16_t)data[1]) & 0XFF);
-        uint16_t port_to = ((((uint16_t)data[2])<<8) & 0XFF00) | (((uint16_t)data[3]) & 0XFF);
-        if (ethhead) {
-            stream_printf(
-                ws, "TCP: %s:%d(%s) ==> %s:%d(%s)",
-                ip_from, port_from, mac_from, ip_to, port_to, mac_to);
-        }
-        else {
-            stream_printf(ws, "TCP: %s:%d ==> %s:%d", ip_from, port_from, ip_to, port_to);
-        }
+        uint16_t port_from = ((((uint16_t)ipdata[0])<<8) & 0XFF00) | (((uint16_t)ipdata[1]) & 0XFF);
+        uint16_t port_to = ((((uint16_t)ipdata[2])<<8) & 0XFF00) | (((uint16_t)ipdata[3]) & 0XFF);
+        stream_printf(ws, "TCP: %s:%d ==> %s:%d", ip_from, port_from, ip_to, port_to);
 
-        uint16_t tcp_head_len = (uint16_t)data[12];
+        uint16_t tcp_head_len = (uint16_t)ipdata[12];
         tcp_head_len = (tcp_head_len >> 4) * sizeof(uint32_t);
         uint32_t sn;
-        CPE_COPY_NTOH32(&sn, data + 4);
+        CPE_COPY_NTOH32(&sn, ipdata + 4);
         uint32_t ack;
-        CPE_COPY_NTOH32(&ack, data + 8);
+        CPE_COPY_NTOH32(&ack, ipdata + 8);
         stream_printf(ws, " head-len=%d, sn=" FMT_UINT32_T ", ack=" FMT_UINT32_T, (int)tcp_head_len, sn, ack);
 
-        uint8_t flag = data[13];
+        uint8_t flag = ipdata[13];
         stream_printf(ws, ", flags=(");
         uint8_t i;
         uint8_t flag_count = 0;
@@ -82,18 +62,15 @@ void net_tun_print_raw_data(write_stream_t ws, uint8_t const * ethhead, uint8_t 
             }
         }
         stream_printf(ws, ")");
-        
+
+        stream_printf(ws, "\n");
+        stream_dump_data(ws, ipdata + tcp_head_len, ipdata_len - tcp_head_len, 0);
         break;
     }
     case IPPROTO_UDP: {
-        uint16_t port_from = ((((uint16_t)data[0])<<8) & 0XFF00) | (((uint16_t)data[1]) & 0XFF);
-        uint16_t port_to = ((((uint16_t)data[2])<<8) & 0XFF00) | (((uint16_t)data[3]) & 0XFF);
-        if (ethhead) {
-            stream_printf(ws, "UDP: %s:%d(%s) ==> %s:%d(%s)", ip_from, port_from, mac_from, ip_to, port_to, mac_to);
-        }
-        else {
-            stream_printf(ws, "UDP: %s:%d ==> %s:%d", ip_from, port_from, ip_to, port_to);
-        }
+        uint16_t port_from = ((((uint16_t)ipdata[0])<<8) & 0XFF00) | (((uint16_t)ipdata[1]) & 0XFF);
+        uint16_t port_to = ((((uint16_t)ipdata[2])<<8) & 0XFF00) | (((uint16_t)ipdata[3]) & 0XFF);
+        stream_printf(ws, "UDP: %s:%d ==> %s:%d", ip_from, port_from, ip_to, port_to);
         break;
     }
     case IPPROTO_RAW:
@@ -107,20 +84,15 @@ void net_tun_print_raw_data(write_stream_t ws, uint8_t const * ethhead, uint8_t 
     return;
     
 print_with_protocol:
-    if (ethhead) {
-        stream_printf(ws, "%s: %s(%s) ==> %s(%s)", protocol, ip_from, mac_from, ip_to, mac_to);
-    }
-    else {
-        stream_printf(ws, "%s: %s ==> %s", protocol, ip_from, ip_to);
-    }
+    stream_printf(ws, "%s: %s ==> %s", protocol, ip_from, ip_to);
 }
 
-const char * net_tun_dump_raw_data(mem_buffer_t buffer, uint8_t const * ethhead, uint8_t const * iphead, uint8_t const * data) {
+const char * net_tun_dump_raw_data(mem_buffer_t buffer, uint8_t const * iphead, uint32_t data_size) {
     struct write_stream_buffer stream = CPE_WRITE_STREAM_BUFFER_INITIALIZER(buffer);
 
     mem_buffer_clear_data(buffer);
     
-    net_tun_print_raw_data((write_stream_t)&stream, ethhead, iphead, data);
+    net_tun_print_raw_data((write_stream_t)&stream, iphead, data_size);
     stream_putc((write_stream_t)&stream, 0);
     
     return mem_buffer_make_continuous(buffer, 0);

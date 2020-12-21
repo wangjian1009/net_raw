@@ -22,7 +22,6 @@ void net_tun_endpoint_set_pcb(struct net_tun_endpoint * endpoint, struct tcp_pcb
         tcp_err(endpoint->m_pcb, NULL);
         tcp_recv(endpoint->m_pcb, NULL);
         tcp_sent(endpoint->m_pcb, NULL);
-        tcp_close(endpoint->m_pcb);
         endpoint->m_pcb = NULL;
     }
 
@@ -54,11 +53,10 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
     if (!p) {
         if (net_endpoint_driver_debug(base_endpoint) >= 2) {
             CPE_INFO(
-                driver->m_em, "tun: %s: client closed, tcp-state=%s",
+                driver->m_em, "tun: %s: remote closed, tcp-state=%s",
                 net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
                 endpoint->m_pcb ? tcp_debug_state_str(tcp_dbg_get_tcp_state(endpoint->m_pcb)) : "N/A");
         }
-
         net_tun_endpoint_set_pcb(endpoint, NULL);
             
         net_endpoint_set_error(
@@ -375,6 +373,11 @@ static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
         err_t err = tcp_write(endpoint->m_pcb, data, data_size, TCP_WRITE_FLAG_COPY);
         if (err != ERR_OK) {
             if (err == ERR_MEM) {
+                if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
+                    CPE_INFO(
+                        driver->m_em, "tun: %s: write: send buf is full",
+                        net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint));
+                }
                 break;
             }
 

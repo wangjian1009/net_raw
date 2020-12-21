@@ -2,8 +2,8 @@
 #define NET_TUN_UTILS_H_INCLEDED
 #include "net_tun_driver_i.h"
 
-void net_tun_print_raw_data(write_stream_t ws, uint8_t const * ethhead, uint8_t const * iphead, uint8_t const * data);
-const char * net_tun_dump_raw_data(mem_buffer_t tmp_buffer, uint8_t const * ethhead, uint8_t const * iphead, uint8_t const * data);
+void net_tun_print_raw_data(write_stream_t ws, uint8_t const * iphead, uint32_t packet_size);
+const char * net_tun_dump_raw_data(mem_buffer_t tmp_buffer, uint8_t const * iphead, uint32_t packet_size);
 
 net_address_t net_tun_iphead_source_addr(net_tun_driver_t driver, uint8_t const * iphead);
 net_address_t net_tun_iphead_target_addr(net_tun_driver_t driver, uint8_t const * iphead);
