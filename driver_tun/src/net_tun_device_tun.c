@@ -21,7 +21,7 @@
 
 static void net_tun_device_rw_cb(void * ctx, int fd, uint8_t do_read, uint8_t do_write);
 static int net_tun_device_read_config(net_tun_device_t device);
-static int net_tun_device_set_nonblock(net_tun_device_t device);
+static int net_tun_device_setup_fd(net_tun_device_t device);
 static int net_tun_device_start_rw(net_tun_device_t device);
 static int net_tun_device_init_dev_by_fd(
     net_tun_driver_t driver, net_tun_device_t device, net_tun_device_init_data_t settings);
@@ -44,7 +44,7 @@ int net_tun_device_init_dev(
         break;
     }
 
-    if (net_tun_device_set_nonblock(device) != 0) goto PROCESS_ERROR;
+    if (net_tun_device_setup_fd(device) != 0) goto PROCESS_ERROR;
 
     device->m_dev_input_packet = NULL;
     
@@ -271,7 +271,7 @@ static void net_tun_device_rw_cb(void * ctx, int fd, uint8_t do_read, uint8_t do
     }
 }
 
-static int net_tun_device_set_nonblock(net_tun_device_t device) {
+static int net_tun_device_setup_fd(net_tun_device_t device) {
 #ifdef _MSC_VER
     u_long flag;
     flag = 1;
@@ -280,10 +280,24 @@ static int net_tun_device_set_nonblock(net_tun_device_t device) {
         return -1;
     }
 #else
-    if (fcntl(device->m_dev_fd, F_SETFL, O_NONBLOCK) < 0) {
-        CPE_ERROR(device->m_driver->m_em, "tun: %s: set nonblock fail, %d %s", device->m_dev_name, errno, strerror(errno));
+    int s = fcntl(device->m_dev_fd, F_GETFL);
+
+    s |= O_NONBLOCK;
+    s &= ~O_SYNC;
+
+    if (fcntl(device->m_dev_fd, F_SETFL, s) < 0) {
+        CPE_ERROR(device->m_driver->m_em, "tun: %s: set fd flag fail, %d %s", device->m_dev_name, errno, strerror(errno));
         return -1;
     }
+
+    s = fcntl(device->m_dev_fd, F_GETFL);
+    CPE_INFO(
+        device->m_driver->m_em, "tun: %s: setup fd: Buffering is %s",
+        device->m_dev_name, (s & O_SYNC) == O_SYNC ? "ON" : "OFF");
+    CPE_INFO(
+        device->m_driver->m_em, "tun: %s: setup fd: NONBLOCK is %s",
+        device->m_dev_name, (s & O_NONBLOCK) == O_NONBLOCK ? "ON" : "OFF");
+    
 #endif
     return 0;
 }
