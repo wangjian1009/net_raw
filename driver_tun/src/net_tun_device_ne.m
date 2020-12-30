@@ -1,4 +1,5 @@
 #include <assert.h>
+#include "net_tun_driver_i.h"
 #include "cpe/pal/pal_stdio.h"
 #include "cpe/utils/string_utils.h"
 #include "net_address.h"

@@ -1,4 +1,5 @@
 #include "assert.h"
+#include "net_tun_driver_i.h"
 #include "cpe/pal/pal_socket.h"
 #include "cpe/pal/pal_string.h"
 #include "cpe/pal/pal_strings.h"

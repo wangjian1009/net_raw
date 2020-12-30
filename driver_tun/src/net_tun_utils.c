@@ -1,8 +1,8 @@
 #include <assert.h>
+#include "net_tun_utils.h"
 #include "cpe/pal/pal_socket.h"
 #include "cpe/utils/stream_buffer.h"
 #include "net_address.h"
-#include "net_tun_utils.h"
 
 static const char * s_tcp_flags[] = { "FIN", "SYN", "RST", "PSH", "ACK", "URG" };
 
