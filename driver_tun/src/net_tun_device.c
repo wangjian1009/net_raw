@@ -400,18 +400,18 @@ static int net_tun_device_do_accept(
     net_address_free(remote_addr);
     remote_addr = NULL;
 
+    if (net_endpoint_set_state(base_endpoint, net_endpoint_state_established) != 0) {
+        CPE_ERROR(driver->m_em, "tun: accept: set state fail");
+        net_tun_endpoint_set_pcb(endpoint, NULL);
+        net_endpoint_free(base_endpoint);
+        return -1;
+    }
+    
     int external_init_rv = base_acceptor
         ? net_acceptor_on_new_endpoint(base_acceptor, base_endpoint)
         : wildcard_acceptor->m_on_new_endpoint(wildcard_acceptor->m_on_new_endpoint_ctx, base_endpoint);
     if (external_init_rv != 0) {
         CPE_ERROR(driver->m_em, "tun: accept: on accept fail");
-        net_tun_endpoint_set_pcb(endpoint, NULL);
-        net_endpoint_free(base_endpoint);
-        return -1;
-    }
-
-    if (net_endpoint_set_state(base_endpoint, net_endpoint_state_established) != 0) {
-        CPE_ERROR(driver->m_em, "tun: accept: set state fail");
         net_tun_endpoint_set_pcb(endpoint, NULL);
         net_endpoint_free(base_endpoint);
         return -1;
