@@ -416,7 +416,7 @@ static int net_tun_device_do_accept(
         net_endpoint_free(base_endpoint);
         return -1;
     }
-
+    
     if (net_driver_debug(base_driver) >= 2) {
         CPE_INFO(driver->m_em, "tun: accept: success");
     }
