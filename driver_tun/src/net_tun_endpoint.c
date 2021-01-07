@@ -300,8 +300,9 @@ void net_tun_endpoint_fini(net_endpoint_t base_endpoint) {
     net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
 
     if (endpoint->m_pcb) {
+        struct tcp_pcb * pcb = endpoint->m_pcb;
         net_tun_endpoint_set_pcb(endpoint, NULL);
-        tcp_abort(endpoint->m_pcb);
+        tcp_abort(pcb);
     }
 
     assert(endpoint->m_pcb == NULL);
