@@ -68,10 +68,12 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
                     tcp_debug_state_str(tcp_dbg_get_tcp_state(endpoint->m_pcb)), err, lwip_strerr(err));
             }
             else {
-                CPE_INFO(
-                    driver->m_em, "tun: %s: remote closed, tsp-state=%s, shutdown tx success",
-                    net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
-                    tcp_debug_state_str(tcp_dbg_get_tcp_state(endpoint->m_pcb)));
+                if (net_endpoint_driver_debug(base_endpoint) >= 2) {
+                    CPE_INFO(
+                        driver->m_em, "tun: %s: remote closed, tsp-state=%s, shutdown tx success",
+                        net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint),
+                        tcp_debug_state_str(tcp_dbg_get_tcp_state(endpoint->m_pcb)));
+                }
             }
         }
 
