@@ -38,6 +38,7 @@ net_tun_driver_create(
         sizeof(struct net_tun_driver),
         net_tun_driver_init,
         net_tun_driver_fini,
+        NULL,
         /*timer*/
         0,
         NULL,
