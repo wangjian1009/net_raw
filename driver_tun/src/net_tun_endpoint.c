@@ -162,7 +162,6 @@ static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t l
     net_schedule_t schedule = net_endpoint_schedule(base_endpoint);
 
     assert(len > 0);
-    assert(net_endpoint_is_writing(base_endpoint));
 
     if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
         CPE_INFO(
@@ -184,9 +183,9 @@ static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t l
     }
 
     if (net_endpoint_state(base_endpoint) == net_endpoint_state_established
-        && (endpoint->m_pcb != NULL
-            && endpoint->m_pcb->unsent == NULL
-            && endpoint->m_pcb->unacked == NULL))
+        && endpoint->m_pcb != NULL
+        && net_endpoint_is_writing(base_endpoint)
+        && tcp_sndbuf(endpoint->m_pcb) > 0)
     {
         net_endpoint_set_is_writing(base_endpoint, 0);
     }
@@ -326,11 +325,6 @@ int net_tun_endpoint_update(net_endpoint_t base_endpoint) {
     if (net_endpoint_state(base_endpoint) != net_endpoint_state_established) return 0;
     
     if (!net_endpoint_buf_is_empty(base_endpoint, net_ep_buf_write)) {
-        if (!net_endpoint_is_writing(base_endpoint)) {
-            assert(endpoint->m_pcb->snd_queuelen == 0);
-            net_endpoint_set_is_writing(base_endpoint, 1);
-        }
-
         if (net_tun_endpoint_do_write(endpoint) != 0) return -1;
     }
 
@@ -373,19 +367,27 @@ static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
     while(net_endpoint_state(base_endpoint) == net_endpoint_state_established
           && !net_endpoint_buf_is_empty(base_endpoint, net_ep_buf_write))
     {
-        uint32_t data_size;
-        void * data = net_endpoint_buf_peak(base_endpoint, net_ep_buf_write, &data_size);
-
+        uint32_t data_size = net_endpoint_buf_size(base_endpoint, net_ep_buf_write);
         assert(data_size > 0);
-        assert(data);
-        
         if (data_size > tcp_sndbuf(endpoint->m_pcb)) {
             data_size = tcp_sndbuf(endpoint->m_pcb);
         }
-        
         if (data_size == 0) {
+            if (!net_endpoint_is_writing(base_endpoint)) {
+                net_endpoint_set_is_writing(base_endpoint, 1);
+            }
             break;
         }
+        
+        void * data = NULL;
+        if (net_endpoint_buf_peak_with_size(base_endpoint, net_ep_buf_write, data_size, &data) != 0) {
+            CPE_ERROR(
+                driver->m_em, "tun: %s: write: tcp_write peak data with size %d fail",
+                net_endpoint_dump(net_tun_driver_tmp_buffer(driver), base_endpoint), data_size);
+            return -1;
+        }
+        
+        assert(data);
 
         err_t err = tcp_write(endpoint->m_pcb, data, data_size, TCP_WRITE_FLAG_COPY);
         if (err != ERR_OK) {
