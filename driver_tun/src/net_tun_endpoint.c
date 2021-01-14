@@ -419,9 +419,7 @@ static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint) {
         net_endpoint_buf_consume(base_endpoint, net_ep_buf_write, data_size);
     }
 
-    if (net_endpoint_state(base_endpoint) == net_endpoint_state_established
-        && endpoint->m_pcb->unacked == NULL)
-    {
+    if (net_endpoint_state(base_endpoint) == net_endpoint_state_established) {
         err_t err = tcp_output(endpoint->m_pcb);
         if (err != ERR_OK) {
             CPE_ERROR(
