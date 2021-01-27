@@ -109,7 +109,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
                 net_endpoint_network_errno_logic, "alloc buffer fail");
         }
 
-        if (net_endpoint_set_state(base_endpoint, net_endpoint_state_logic_error) != 0) {
+        if (net_endpoint_set_state(base_endpoint, net_endpoint_state_error) != 0) {
             if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
                 CPE_INFO(
                     driver->m_em, "tun: %s: free for alloc buffer!",
@@ -141,7 +141,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
                     net_endpoint_error_source_network,
                     net_endpoint_network_errno_logic, NULL);
             }
-            if (net_endpoint_set_state(base_endpoint, net_endpoint_state_logic_error) != 0) {
+            if (net_endpoint_set_state(base_endpoint, net_endpoint_state_error) != 0) {
                 if (net_endpoint_driver_debug(base_endpoint) || net_schedule_debug(schedule) >= 2) {
                     CPE_INFO(
                         driver->m_em, "tun: %s: free for process fail!",
@@ -176,7 +176,7 @@ static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t l
         net_endpoint_set_error(
             base_endpoint, net_endpoint_error_source_network,
             net_endpoint_network_errno_network_error, "tun write error");
-        if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
+        if (net_endpoint_set_state(base_endpoint, net_endpoint_state_error) != 0) {
             net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
             return ERR_CLSD; 
         }
@@ -236,7 +236,7 @@ static void net_tun_endpoint_err_func(void *arg, err_t err) {
             net_endpoint_error_source_network,
             net_endpoint_network_errno_network_error, lwip_strerr(err));
 
-        if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
+        if (net_endpoint_set_state(base_endpoint, net_endpoint_state_error) != 0) {
             net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
         }
     }
@@ -262,7 +262,7 @@ static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, er
         net_endpoint_set_error(
             base_endpoint, net_endpoint_error_source_network,
             net_endpoint_network_errno_network_error, lwip_strerr(err));
-        if (net_endpoint_set_state(base_endpoint, net_endpoint_state_network_error) != 0) {
+        if (net_endpoint_set_state(base_endpoint, net_endpoint_state_error) != 0) {
             net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
             return ERR_ABRT;
         }
