@@ -387,8 +387,7 @@ int net_tun_endpoint_update(net_endpoint_t base_endpoint) {
 
         return 0;
     default:
-        assert(0);
-        return -1;
+        return 0;
     };
 }
 
