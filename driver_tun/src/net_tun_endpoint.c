@@ -26,8 +26,11 @@ void net_tun_endpoint_set_pcb(struct net_tun_endpoint * endpoint, struct tcp_pcb
 
         struct tcp_pcb * pcb = endpoint->m_pcb;
         endpoint->m_pcb = NULL;
-        endpoint->m_pcb_aborted = 1;
-        tcp_abort(pcb);
+
+        if (do_about) {
+            endpoint->m_pcb_aborted = 1;
+            tcp_abort(pcb);
+        }
     }
 
     endpoint->m_pcb = pcb;
