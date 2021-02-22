@@ -18,18 +18,22 @@ static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, er
 static int net_tun_endpoint_do_write(struct net_tun_endpoint * endpoint);
 static uint32_t net_tun_tcp_seg_total_len(struct tcp_seg * seg);
 
-void net_tun_endpoint_set_pcb(struct net_tun_endpoint * endpoint, struct tcp_pcb * pcb) {
+void net_tun_endpoint_set_pcb(struct net_tun_endpoint * endpoint, struct tcp_pcb * pcb, uint8_t do_about) {
     if (endpoint->m_pcb) {
         tcp_err(endpoint->m_pcb, NULL);
         tcp_recv(endpoint->m_pcb, NULL);
         tcp_sent(endpoint->m_pcb, NULL);
+
+        struct tcp_pcb * pcb = endpoint->m_pcb;
         endpoint->m_pcb = NULL;
+        endpoint->m_pcb_aborted = 1;
+        tcp_abort(pcb);
     }
 
     endpoint->m_pcb = pcb;
 
     if (endpoint->m_pcb) {
-        tcp_nagle_disable(endpoint->m_pcb);
+        endpoint->m_pcb_aborted = 0;
         tcp_arg(endpoint->m_pcb, endpoint);
         tcp_err(endpoint->m_pcb, net_tun_endpoint_err_func);
         tcp_recv(endpoint->m_pcb, net_tun_endpoint_recv_func);
@@ -75,7 +79,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
             }
         }
 
-        return ERR_OK;
+        return endpoint->m_pcb_aborted ? ERR_ABRT : ERR_OK;
     }
 
     assert(p->tot_len > 0);
@@ -102,7 +106,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
         }
 
         pbuf_free(p);
-        return ERR_OK;
+        return endpoint->m_pcb_aborted ? ERR_ABRT : ERR_OK;
     }
 
     pbuf_copy_partial(p, data, total_len, 0);
@@ -131,7 +135,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
         }
     }
 
-    return ERR_OK;
+    return endpoint->m_pcb_aborted ? ERR_ABRT : ERR_OK;
 }
 
 static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t len) {
@@ -169,7 +173,7 @@ static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t l
         net_endpoint_set_is_writing(base_endpoint, 0);
     }
 
-    return ERR_OK;
+    return endpoint->m_pcb_aborted ? ERR_ABRT : ERR_OK;
 }
 
 static void net_tun_endpoint_err_func(void *arg, err_t err) {
@@ -235,8 +239,7 @@ static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, er
             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint), err, lwip_strerr(err));
 
         assert(endpoint->m_pcb);
-        tcp_abort(endpoint->m_pcb);
-        net_tun_endpoint_set_pcb(endpoint, NULL);
+        net_tun_endpoint_set_pcb(endpoint, NULL, 1);
         
         net_endpoint_set_error(
             base_endpoint, net_endpoint_error_source_network,
@@ -264,6 +267,7 @@ static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, er
 
 int net_tun_endpoint_init(net_endpoint_t base_endpoint) {
     net_tun_endpoint_t endpoint = net_endpoint_data(base_endpoint);
+    endpoint->m_pcb_aborted = 0;
     endpoint->m_pcb = NULL;
     return 0;
 }
@@ -273,9 +277,7 @@ void net_tun_endpoint_fini(net_endpoint_t base_endpoint) {
     net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
 
     if (endpoint->m_pcb) {
-        struct tcp_pcb * pcb = endpoint->m_pcb;
-        net_tun_endpoint_set_pcb(endpoint, NULL);
-        tcp_abort(pcb);
+        net_tun_endpoint_set_pcb(endpoint, NULL, 1);
     }
 }
 
@@ -345,7 +347,7 @@ int net_tun_endpoint_update(net_endpoint_t base_endpoint) {
                 tcp_debug_state_str(tcp_dbg_get_tcp_state(endpoint->m_pcb)));
         }
 
-        net_tun_endpoint_set_pcb(endpoint, NULL);
+        net_tun_endpoint_set_pcb(endpoint, NULL, 1);
         return 0;
     case net_endpoint_state_disable:
         if (endpoint->m_pcb == NULL) return 0;
@@ -371,7 +373,7 @@ int net_tun_endpoint_update(net_endpoint_t base_endpoint) {
                 tcp_debug_state_str(tcp_dbg_get_tcp_state(endpoint->m_pcb)));
         }
 
-        net_tun_endpoint_set_pcb(endpoint, NULL);
+        net_tun_endpoint_set_pcb(endpoint, NULL, 0);
         return 0;
     case net_endpoint_state_established:
         if (endpoint->m_pcb == NULL) {
@@ -612,7 +614,7 @@ int net_tun_endpoint_connect(net_endpoint_t base_endpoint) {
             net_endpoint_dump(net_schedule_tmp_buffer(schedule), base_endpoint));
     }
 
-    net_tun_endpoint_set_pcb(endpoint, pcb);
+    net_tun_endpoint_set_pcb(endpoint, pcb, 1);
     
     return net_endpoint_set_state(base_endpoint, net_endpoint_state_connecting);
 }

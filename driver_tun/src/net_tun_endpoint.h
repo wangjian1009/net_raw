@@ -3,6 +3,7 @@
 #include "net_tun_driver_i.h"
 
 struct net_tun_endpoint {
+    uint8_t m_pcb_aborted;
     struct tcp_pcb * m_pcb;
 };
 
@@ -13,6 +14,6 @@ int net_tun_endpoint_update(net_endpoint_t base_endpoint);
 int net_tun_endpoint_set_no_delay(net_endpoint_t endpoint, uint8_t is_enable);
 int net_tun_endpoint_get_mss(net_endpoint_t base_endpoint, uint32_t * mss);
 
-void net_tun_endpoint_set_pcb(struct net_tun_endpoint * endpoint, struct tcp_pcb * pcb);
+void net_tun_endpoint_set_pcb(struct net_tun_endpoint * endpoint, struct tcp_pcb * pcb, uint8_t do_abort);
     
 #endif
