@@ -66,8 +66,6 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
                 endpoint->m_pcb ? tcp_debug_state_str(tcp_dbg_get_tcp_state(endpoint->m_pcb)) : "N/A");
         }
 
-        net_endpoint_set_error(base_endpoint, net_endpoint_error_source_network, net_endpoint_network_errno_remote_closed, NULL);
-
         if (net_endpoint_state(base_endpoint) == net_endpoint_state_established) {
             if (net_endpoint_set_state(base_endpoint, net_endpoint_state_read_closed) != 0) {
                 net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
@@ -99,7 +97,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
         if (!net_endpoint_have_error(base_endpoint)) {
             net_endpoint_set_error(
                 base_endpoint, net_endpoint_error_source_network,
-                net_endpoint_network_errno_logic, "alloc buffer fail");
+                net_endpoint_network_errno_internal, "alloc buffer fail");
         }
 
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_error) != 0) {
@@ -129,7 +127,7 @@ static err_t net_tun_endpoint_recv_func(void *arg, struct tcp_pcb *tpcb, struct 
                 net_endpoint_set_error(
                     base_endpoint,
                     net_endpoint_error_source_network,
-                    net_endpoint_network_errno_logic, NULL);
+                    net_endpoint_network_errno_internal, NULL);
             }
             if (net_endpoint_set_state(base_endpoint, net_endpoint_state_error) != 0) {
                 net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
@@ -161,7 +159,7 @@ static err_t net_tun_endpoint_sent_func(void *arg, struct tcp_pcb *tpcb, u16_t l
     if (net_tun_endpoint_do_write(endpoint) != 0) {
         net_endpoint_set_error(
             base_endpoint, net_endpoint_error_source_network,
-            net_endpoint_network_errno_network_error, "tun write error");
+            net_endpoint_network_errno_internal, "tun write error");
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_error) != 0) {
             net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
             return ERR_ABRT; 
@@ -204,7 +202,7 @@ static void net_tun_endpoint_err_func(void *arg, err_t err) {
         net_endpoint_set_error(
             base_endpoint,
             net_endpoint_error_source_network,
-            net_endpoint_network_errno_remote_closed, NULL);
+            net_endpoint_network_errno_remote_reset, NULL);
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_disable) != 0) {
             net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
         }
@@ -220,7 +218,7 @@ static void net_tun_endpoint_err_func(void *arg, err_t err) {
         net_endpoint_set_error(
             base_endpoint,
             net_endpoint_error_source_network,
-            net_endpoint_network_errno_network_error, lwip_strerr(err));
+            net_endpoint_network_errno_internal, lwip_strerr(err));
 
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_error) != 0) {
             net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
@@ -246,7 +244,7 @@ static err_t net_tun_endpoint_connected_func(void *arg, struct tcp_pcb *tpcb, er
         
         net_endpoint_set_error(
             base_endpoint, net_endpoint_error_source_network,
-            net_endpoint_network_errno_network_error, lwip_strerr(err));
+            net_endpoint_network_errno_internal, lwip_strerr(err));
         if (net_endpoint_set_state(base_endpoint, net_endpoint_state_error) != 0) {
             net_endpoint_set_state(base_endpoint, net_endpoint_state_deleting);
             return ERR_ABRT;
