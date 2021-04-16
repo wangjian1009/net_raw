@@ -64,7 +64,9 @@ net_tun_driver_create(
         net_tun_dgram_fini,
         net_tun_dgram_send,
         /*watcher*/
-        0, NULL, NULL, NULL);
+        0, NULL, NULL, NULL,
+        /*progress*/
+        0, NULL, NULL);
 
     if (base_driver == NULL) return NULL;
 
