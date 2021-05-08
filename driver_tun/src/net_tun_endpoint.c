@@ -282,6 +282,19 @@ void net_tun_endpoint_fini(net_endpoint_t base_endpoint) {
     }
 }
 
+void net_tun_endpoint_calc_size(net_endpoint_t base_endpoint, net_endpoint_size_info_t size_info) {
+    net_tun_endpoint_t endpoint = net_endpoint_data(base_endpoint);
+
+    if (endpoint->m_pcb) {
+        size_info->m_read = 0;
+        size_info->m_write = endpoint->m_pcb->snd_buf;
+    }
+    else {
+        size_info->m_read = 0;
+        size_info->m_write = 0;
+    }
+}
+
 int net_tun_endpoint_update(net_endpoint_t base_endpoint) {
     net_tun_endpoint_t endpoint = net_endpoint_data(base_endpoint);
     net_tun_driver_t driver = net_driver_data(net_endpoint_driver(base_endpoint));
