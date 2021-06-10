@@ -36,3 +36,5 @@ set_property(TARGET net_driver_tun PROPERTY INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_LIST_DIR}/../../../net/core/include
   ${net_driver_tun_base}/include
   )
+
+target_link_libraries(net_driver_tun INTERFACE lwip)
