@@ -1,4 +1,5 @@
 set(lwip_base ${CMAKE_CURRENT_LIST_DIR}/../../depends/lwip-2.1.1)
+set(lwip_custom ${CMAKE_CURRENT_LIST_DIR}/../custom/lwip)
 
 file(GLOB lwip_source ${lwip_base}/src/*.c)
 
@@ -43,12 +44,12 @@ endif()
 add_library(lwip STATIC ${lwip_source})
 
 set_property(TARGET lwip PROPERTY INCLUDE_DIRECTORIES
-  ${CMAKE_CURRENT_LIST_DIR}/../../../cpe/pal/include
-  ${CMAKE_CURRENT_LIST_DIR}/../../../cpe/utils/include
+  ${cpe_pal_base}/include
+  ${cpe_utils_base}/include
   ${lwip_base}/src/include
   ${lwip_base}/src/include/ipv4
   ${lwip_base}/src/include/ipv6
-  ${CMAKE_CURRENT_LIST_DIR}/../custom/lwip
+  ${lwip_custom}
   )
 
 set_property(TARGET lwip PROPERTY COMPILE_OPTIONS ${lwip_compile_options})
