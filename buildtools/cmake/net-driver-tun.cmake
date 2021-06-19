@@ -3,13 +3,11 @@ set(net_driver_tun_base ${CMAKE_CURRENT_LIST_DIR}/../../driver_tun)
 file(GLOB net_driver_tun_source ${net_driver_tun_base}/src/*.c)
 
 if (APPLE)
-  message("aaaa")
   set(net_driver_tun_compile_definitions ${net_driver_tun_compile_definitions} NET_TUN_USE_DEV_NE=1)
   set(net_driver_tun_compile_options ${net_driver_tun_compile_options} "-x" "objective-c" "-fno-objc-arc")
   file(GLOB net_driver_tun_source_oc ${net_driver_tun_base}/src/*.m)
   set(net_driver_tun_source ${net_driver_tun_source} ${net_driver_tun_source_oc})
 else()
-  message("bbbb")
   set(net_driver_tun_compile_definitions ${net_driver_tun_compile_definitions} NET_TUN_USE_DEV_TUN=1)
 endif()
 
